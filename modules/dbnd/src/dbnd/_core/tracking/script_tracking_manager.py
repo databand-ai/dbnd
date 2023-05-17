@@ -19,7 +19,6 @@ from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.parameter.parameter_value import Parameters
-from dbnd._core.run.databand_run import new_databand_run
 from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_definition import TaskDefinition
@@ -27,10 +26,7 @@ from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd._core.tracking.airflow_dag_inplace_tracking import (
-    build_run_time_airflow_task,
-    override_airflow_log_system_for_tracking,
-)
+from dbnd._core.tracking.airflow_dag_inplace_tracking import build_run_time_airflow_task
 from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo
 from dbnd._core.utils import seven
@@ -44,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
-    from dbnd._core.run.databand_run import DatabandRun
 
     T = typing.TypeVar("T")
 
@@ -72,9 +67,6 @@ def _set_tracking_config_overide(airflow_context=None):
         task_target_date = pendulum.parse(
             airflow_context.execution_date, tz=pytz.UTC
         ).date()
-        use_dbnd_log = override_airflow_log_system_for_tracking()
-        if use_dbnd_log is not None:
-            config_for_tracking["log"] = {"disabled": not use_dbnd_log}
 
         config_for_tracking["task"]["task_target_date"] = task_target_date
 
@@ -264,8 +256,11 @@ class _DbndScriptTrackingManager(object):
         tracking_source = (
             None  # TODO_CORE build tracking_source -> typeof TrackingSourceSchema
         )
-        self._run = run = self._enter_cm(
-            new_databand_run(
+
+        from dbnd._core.run.databand_run import DatabandRun
+
+        run = self._enter_cm(
+            DatabandRun.new_context(
                 context=dc,
                 job_name=job_name,
                 run_uid=run_uid,
@@ -274,9 +269,10 @@ class _DbndScriptTrackingManager(object):
                 af_context=airflow_context,
                 tracking_source=tracking_source,
                 project_name=project_name,
+                allow_override=True,
             )
-        )  # type: DatabandRun
-
+        )
+        self._run: DatabandRun = run
         self._run.root_task = root_task
 
         self.update_run_from_airflow_context(airflow_context)
@@ -289,10 +285,9 @@ class _DbndScriptTrackingManager(object):
         self._active = True
 
         # now we send data to DB
-        root_task_run = run._build_and_add_task_run(
-            root_task, task_af_id=root_task.task_name, try_number=try_number
+        root_task_run = run.build_task_run(
+            task=root_task, task_af_id=root_task.task_name, try_number=try_number
         )
-
         root_task_run.is_root = True
 
         run.tracker.init_run()
@@ -464,7 +459,6 @@ def dbnd_tracking_stop(finalize_run=True):
 
 
 def is_dbnd_tracking_active() -> bool:
-    global _dbnd_script_manager
     return bool(_dbnd_script_manager)
 
 

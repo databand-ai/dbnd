@@ -63,7 +63,7 @@ def logging_config_for_log_view(tmpdir):
 
 class TestLogView(AirflowWebAppTest):
     @fixture(autouse=True)
-    def _test_run(self, databand_test_context, logging_config_for_log_view):
+    def _test_run(self, logging_config_for_log_view):
         task = TTask()
         run = task.dbnd_run()
 

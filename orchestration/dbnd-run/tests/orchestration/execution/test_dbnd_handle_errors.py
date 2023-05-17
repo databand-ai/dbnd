@@ -6,8 +6,8 @@ from dbnd import new_dbnd_context
 from dbnd._core.errors import UnknownParameterError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.settings import LoggingConfig
 from dbnd._core.task_build.dbnd_decorator import task
+from dbnd.orchestration.run_settings.log import RunLoggingConfig
 
 
 @task
@@ -55,7 +55,7 @@ class TestErrorHandling(object):
         # Good parameter, error in runtime while dividing by zero
 
         # if we use dbnd logging, caplog will not work as it was initialized before our setup
-        with new_dbnd_context(conf={LoggingConfig.disabled: True}):
+        with new_dbnd_context(conf={RunLoggingConfig.disabled: True}):
             with pytest.raises(DatabandRunError):
                 with dbnd_handle_errors(exit_on_error=False):
                     # Error won't cause exit

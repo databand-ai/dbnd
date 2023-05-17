@@ -122,7 +122,7 @@ class TestDbtCloudApiClient:
             ),  # 404 responses does not send execption to server
         ],
     )
-    @patch("dbnd.utils.dbt_cloud_api_client.log_exception")
+    @patch("dbnd.providers.dbt.dbt_cloud_api_client.log_exception")
     def test_get_run_with_dbt_cloud_bad_status_code(
         self, log_exception_mock, status_code, content, log_exception_call_count
     ):

@@ -41,17 +41,15 @@ ENV_DBND_SYSTEM = "DBND_SYSTEM"
 ENV_DBND_LIB = "DBND_LIB"
 ENV_DBND_CONFIG = "DBND_CONFIG"  # extra config for DBND
 
-ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"  # run on user init
-ENV_DBND__NO_MODULES = (
-    "DBND__NO_MODULES"  # do not auto-load user modules (for example: airflow)
+ENV_DBND__ORCHESTRATION_MODE = (
+    "DBND__ORCHESTRATION_MODE"  # disable orchestration even if installed
 )
-ENV_DBND__NO_PLUGINS = "DBND__NO_PLUGINS"  # do not auto-load user plugins (for example all dbnd-tensorflow)
+# do not auto-load orchestration user plugins (for example all dbnd-tensorflow)
+ENV_DBND__ORCHESTRATION__NO_PLUGINS = "DBND__ORCHESTRATION__NO_PLUGINS"
 
+ENV_DBND__USER_PRE_INIT = "DBND__USER_PRE_INIT"  # run on user init
 ENV_DBND__NO_TABLES = "DBND__NO_TABLES"  # do not print fancy tables
 ENV_DBND__SHOW_STACK_ON_SIGQUIT = "DBND__SHOW_STACK_ON_SIGQUIT"
-ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING = (
-    "DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING"
-)
 ENV_DBND__DISABLE_AIRFLOW_SUBDAG_TRACKING = "DBND__DISABLE_AIRFLOW_SUBDAG_TRACKING"
 
 ENV_DBND_USER = "DBND_USER"
@@ -135,6 +133,19 @@ def in_airflow_tracking_mode():
     return get_dbnd_project_config().is_in_airflow_tracking_mode()
 
 
+def is_orchestration_mode():
+    return get_dbnd_project_config().is_orchestration_mode()
+
+
+def set_orchestration_mode():
+    """
+    Set the system into orchestration mode.
+
+    Together with `dbnd-run` plugin this enables user to run pipelines.
+    """
+    get_dbnd_project_config().set_orchestration_mode()
+
+
 def is_unit_test_mode():
     return get_dbnd_project_config().unit_test_mode
 
@@ -201,6 +212,16 @@ class DbndProjectConfig(object):
             os.environ.pop(ENV_DBND_QUIET, None) is not None
             or self.shell_cmd_complete_mode
         )
+
+        # TRACKING MODE
+        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING, default=None)
+        self.airflow_auto_tracking = environ_enabled(
+            ENV_DBND__AUTO_TRACKING, default=True
+        )
+        self._is_airflow_runtime = None
+
+        # ORCHESTRATION MODE
+        self._dbnd_orchestration = environ_enabled(ENV_DBND__ORCHESTRATION_MODE)
         # external process can create "wrapper run"  (airflow scheduler)
         # a run with partial information,
         # when we have a subprocess,  only nested run will have all actual details
@@ -210,24 +231,15 @@ class DbndProjectConfig(object):
             and os.environ.pop(DBND_RESUBMIT_RUN) == "true"
         )
 
-        self.is_no_modules = environ_enabled(ENV_DBND__NO_MODULES)
-        self.is_no_plugins = environ_enabled(ENV_DBND__NO_PLUGINS)
+        self.is_no_plugins = environ_enabled(ENV_DBND__ORCHESTRATION__NO_PLUGINS)
         self.disable_pluggy_entrypoint_loading = environ_enabled(
             ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING
         )
 
         self.is_sigquit_handler_on = environ_enabled(ENV_DBND__SHOW_STACK_ON_SIGQUIT)
 
-        self._dbnd_tracking = environ_enabled(ENV_DBND__TRACKING, default=None)
-
         self._airflow_context = False
         self._inline_tracking = None
-
-        self.disable_inline = False
-        self.airflow_auto_tracking = environ_enabled(
-            ENV_DBND__AUTO_TRACKING, default=True
-        )
-        self._is_airflow_runtime = None
 
     @property
     def disabled(self):
@@ -286,6 +298,12 @@ class DbndProjectConfig(object):
 
     def set_is_airflow_runtime(self):
         self._is_airflow_runtime = True
+
+    def set_orchestration_mode(self):
+        self._dbnd_orchestration = True
+
+    def is_orchestration_mode(self):
+        return self._dbnd_orchestration
 
 
 class DatabandHomeError(Exception):

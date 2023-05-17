@@ -17,10 +17,10 @@ from sqlalchemy.orm import Session
 
 from dbnd import dbnd_config
 from dbnd._core.errors import DatabandError
-from dbnd._core.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd._core.settings import DatabandSettings
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
 from dbnd.orchestration import errors
+from dbnd.orchestration.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd.orchestration.run_executor_engine.task_executor import RunExecutorEngine
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
@@ -141,8 +141,8 @@ def create_dagrun_from_dbnd_run(
         # all tasks part of the backfill are scheduled to dagrun
 
         # Set log file path to expected airflow log file path
-        task_run.log.local_log_file.path = compute_log_filepath_from_ti(
-            ti, execution_date
+        task_run.task_run_executor.log_manager.local_log_file.path = (
+            compute_log_filepath_from_ti(ti, execution_date)
         )
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore

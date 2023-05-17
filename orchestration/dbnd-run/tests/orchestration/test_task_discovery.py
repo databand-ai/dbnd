@@ -22,7 +22,7 @@ class TestTaskResolution(object):
         dbnd_run_cmd(
             [
                 "--module",
-                "test_dbnd.scenarios.do_not_import",
+                "tests.scenarios.do_not_import",
                 "DynamicImportTask",
                 "-r",
                 "x=123",

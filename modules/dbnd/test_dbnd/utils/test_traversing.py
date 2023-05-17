@@ -19,41 +19,15 @@
 # This file has been modified by databand.ai to support dbnd orchestration.
 
 
-import collections
-
 import pytest
 
-from dbnd import output
 from dbnd._core.task_ctrl.task_relations import _find_target
 from dbnd._core.utils import traversing
-from dbnd._core.utils.traversing import getpaths, traverse
-from dbnd.tasks import Task
-from targets import Target, target
+from dbnd._core.utils.traversing import traverse
+from targets import target
 
 
 class TestTraversing(object):
-    def test_getpaths(self):
-        class RequiredTask(Task):
-            t_output = output(default="/path/to/target/file")
-
-        t = RequiredTask()
-        reqs = {}
-        reqs["bare"] = t
-        reqs["dict"] = {"key": t}
-        reqs["OrderedDict"] = collections.OrderedDict([("key", t)])
-        reqs["list"] = [t]
-        reqs["tuple"] = (t,)
-        reqs["generator"] = (t for _ in range(10))
-
-        struct = getpaths(reqs)
-        assert isinstance(struct, dict)
-        assert isinstance(struct["bare"]["t_output"], Target)
-        assert isinstance(struct["dict"], dict)
-        assert isinstance(struct["OrderedDict"], collections.OrderedDict)
-        assert isinstance(struct["list"], list)
-        assert isinstance(struct["tuple"], tuple)
-        assert hasattr(struct["generator"], "__iter__")
-
     def test_flatten(self):
         flatten = traversing.flatten
         assert sorted(flatten({"a": "foo", "b": "bar"})) == ["bar", "foo"]

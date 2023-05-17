@@ -125,7 +125,7 @@ class TestTaskDataOutputs(object):
         assert task.task_signature[:5] in str(task.splits)
 
     def test_prod_immutable_output_dict_prod(self):
-        env = get_databand_context().env
+        env = get_databand_context().run_settings.env
         prod_env = env.clone(production=True)
         task = TProdImmutbaleOutputs(task_env=prod_env)
         assert task.task_enabled_in_prod

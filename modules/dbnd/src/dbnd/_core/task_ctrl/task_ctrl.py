@@ -9,12 +9,10 @@ from itertools import chain
 
 import six
 
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.current import get_databand_run
 from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.task_build.task_context import task_context
 from dbnd._core.utils.basics.nested_context import nested
-from dbnd._core.utils.traversing import traverse_to_str
 
 
 if typing.TYPE_CHECKING:
@@ -26,6 +24,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_ctrl.task_relations import TaskRelations
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.task.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +32,6 @@ logger = logging.getLogger(__name__)
 class TaskSubCtrl(object):
     def __init__(self, task):
         super(TaskSubCtrl, self).__init__()
-
-        from dbnd.orchestration.task.task import Task
 
         self.task = task  # type: Task
 
@@ -155,65 +152,6 @@ class _BaseTaskCtrl(TaskSubCtrl):
     def task_outputs(self):
         # type: () -> Dict[str, Dict[str][Any]]
         raise NotImplementedError()
-
-
-class TaskCtrl(_BaseTaskCtrl):
-    def __init__(self, task):
-        from dbnd.orchestration.task.task import Task
-
-        assert isinstance(task, Task)
-
-        super(TaskCtrl, self).__init__(task)
-
-        from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
-
-        self._relations = TaskRelations(task)
-
-        self._should_run = self.task._should_run()
-
-    def _initialize_task(self):
-        # target driven relations are relevant only for orchestration tasks
-        self.relations.initialize_relations()
-        self.task_dag.initialize_dag_node()
-
-        super(TaskCtrl, self)._initialize_task()
-
-        # validate circle dependencies
-        # may be we should move it to global level because of performance issues
-        # however, by running it at every task we'll be able to find the code that causes the issue
-        # and show it to user
-        if self.dbnd_context.settings.output.recheck_circle_dependencies:
-            self.task_dag.topological_sort()
-
-    def should_run(self):
-        # convert to property one day
-        return self._should_run
-
-    def subdag_tasks(self):
-        return self.task_dag.subdag_tasks()
-
-    def save_task_band(self):
-        if self.task.task_band:
-            task_outputs = traverse_to_str(self.task.task_outputs)
-            self.task.task_band.as_object.write_json(task_outputs)
-
-    @contextlib.contextmanager
-    def task_context(self, phase):
-        # we don't want logs/user wrappers at this stage
-        with nested(
-            task_context(self.task, phase),
-            TaskContextFilter.task_context(self.task.task_id),
-            config.config_layer_context(self.task.task_config_layer),
-        ):
-            yield
-
-    @property
-    def task_inputs(self):
-        return self.relations.task_inputs
-
-    @property
-    def task_outputs(self):
-        return self.relations.task_outputs
 
 
 class TrackingTaskCtrl(_BaseTaskCtrl):

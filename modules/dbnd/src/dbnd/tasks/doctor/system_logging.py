@@ -39,7 +39,7 @@ def logging_status():
         from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
 
         report.add_sub_report(
-            TaskVisualiser(dbnd_context.settings.log).banner("Log Config")
+            TaskVisualiser(dbnd_context.settings.tracking_log).banner("Log Config")
         )
     # check airflow logging
 

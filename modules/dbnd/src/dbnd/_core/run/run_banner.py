@@ -94,7 +94,6 @@ class RunBanner(RunCtrl):
             run_params = [
                 ("user", task_run_env.user),
                 ("run_uid", "%s" % run.run_uid),
-                ("env", run.env.name),
                 ("project", run.project_name) if run.project_name else None,
                 ("user_code_version", task_run_env.user_code_version),
             ]
@@ -108,15 +107,19 @@ class RunBanner(RunCtrl):
 
         if run.is_orchestration:
             run_executor = run.run_executor
+            b.column("ENV", run_executor.env.name)
+
             driver_task_run = run.driver_task_run
+            driver_task_run_executor = run.driver_task_run.task_run_executor
+            driver_log_manager = driver_task_run_executor.log_manager
             if show_run_info:
-                if driver_task_run and driver_task_run.log:
+                if driver_task_run and driver_log_manager:
                     b.column(
                         "LOG",
                         b.f_simple_dict(
                             [
-                                ("local", driver_task_run.log.local_log_file),
-                                ("remote", driver_task_run.log.remote_log_file),
+                                ("local", driver_log_manager.local_log_file),
+                                ("remote", driver_log_manager.remote_log_file),
                             ],
                             skip_if_empty=True,
                         ),

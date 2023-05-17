@@ -32,7 +32,7 @@ class DescribeDagCtrl(TaskSubCtrl):
 
     @property
     def config(self):
-        return self.settings.describe
+        return self.dbnd_context.run_settings.describe
 
     def tree_view(self, describe_format=None):
         """

@@ -6,7 +6,7 @@ import re
 from io import StringIO
 from logging import StreamHandler
 
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
+from dbnd._core.context.use_dbnd_run import is_airflow_package_installed
 from dbnd._core.utils.structures import list_of_strings
 from dbnd.orchestration.errors.task_execution import (
     failed_spark_status,
@@ -36,7 +36,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
         _config = self.config
         deploy = self.deploy
 
-        AIRFLOW_ON = is_dbnd_run_airflow_enabled()
+        AIRFLOW_ON = is_airflow_package_installed()
 
         if AIRFLOW_ON:
             from airflow.contrib.hooks.spark_submit_hook import SparkSubmitHook

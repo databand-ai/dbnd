@@ -146,7 +146,7 @@ def bash_script(
     # we need a working folder to create bash script
     task_run = try_get_current_task_run()
     if task_run:
-        script_dir = str(task_run.local_task_run_root)
+        script_dir = str(task_run.task_run_executor.local_task_run_root)
     else:
         script_dir = None
 

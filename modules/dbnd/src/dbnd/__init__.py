@@ -78,6 +78,7 @@ from targets import _set_patches
 
 from dbnd._core.configuration.environ_config import (  # isort:skip
     get_dbnd_project_config,
+    set_orchestration_mode,
 )
 
 get_dbnd_project_config().validate_init()  # isort:skip
@@ -134,6 +135,8 @@ __all__ = [
     "ParameterScope",
     "replace_section_with",
     "default",
+    ## Orchestration
+    "set_orchestration_mode",
     # dbnd run cmds functions
     "dbnd_main",
     "dbnd_cmd",

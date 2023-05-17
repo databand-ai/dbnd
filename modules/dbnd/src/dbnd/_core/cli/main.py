@@ -29,7 +29,7 @@ from dbnd.orchestration.cli.cmd_project import project_init
 from dbnd.orchestration.cli.cmd_run import cmd_run
 from dbnd.orchestration.cli.cmd_scheduler_management import schedule
 from dbnd.orchestration.cli.cmd_show import show_tasks
-from dbnd.orchestration.cli.cmd_utils import collect_logs, ipython
+from dbnd.orchestration.cli.cmd_utils import collect_logs
 from dbnd.orchestration.plugin.dbnd_plugins import register_dbnd_cli_commands
 
 
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 @click.group(cls=DYMGroup)
 def cli():
-    dbnd_bootstrap(dbnd_entrypoint=True)
+    return
 
 
 # project
@@ -47,7 +47,6 @@ cli.add_command(project_init)
 # run
 cli.add_command(cmd_run)
 cli.add_command(execute)
-cli.add_command(ipython)
 
 # show
 cli.add_command(show_configs)
@@ -116,8 +115,6 @@ def _register_legacy_airflow_monitor_commands(cli):
 def main():
     """Script's main function and start point."""
     configure_basic_logging(None)
-
-    dbnd_bootstrap()
 
     register_dbnd_cli_commands(cli)
 

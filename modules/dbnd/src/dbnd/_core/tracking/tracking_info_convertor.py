@@ -7,7 +7,7 @@ from functools import partial
 
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
-from dbnd._core.plugin.use_dbnd_airflow_tracking import should_use_airflow_monitor
+from dbnd._core.context.use_dbnd_airflow_tracking import should_use_airflow_monitor
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
@@ -45,7 +45,22 @@ class TrackingInfoBuilder(object):
         run_executor = run.run_executor
         task = run.driver_task_run.task
         context = run.context
-        env = run.env
+        if run_executor:
+            env = run_executor.env
+            env_name = env.name
+            env_cloud_type = env.cloud_type
+            driver_name = env.remote_engine or env.local_engine
+
+            sends_heartbeat = run_executor.send_heartbeat
+            task_executor = run_executor.task_executor_type
+        else:
+            env_name = "local"
+            env_cloud_type = "local"
+            driver_name = "local"
+
+            sends_heartbeat = False
+            task_executor = ""
+
         return RunInfo(
             run_uid=run.run_uid,
             job_name=run.job_name,
@@ -57,13 +72,13 @@ class TrackingInfoBuilder(object):
             end_time=None,
             description=run.description,
             is_archived=run.is_archived,
-            env_name=env.name,
-            cloud_type=env.cloud_type,
+            env_name=env_name,
+            cloud_type=env_cloud_type,
             # deprecate and airflow
             dag_id=run.dag_id,
             execution_date=run.execution_date,
             cmd_name=context.name,
-            driver_name=env.remote_engine or env.local_engine,
+            driver_name=driver_name,
             # move to task
             target_date=task.task_target_date,
             version=task.task_version,
@@ -71,8 +86,8 @@ class TrackingInfoBuilder(object):
             root_run=run.root_run_info,
             scheduled_run=run.scheduled_run_info,
             trigger="unknown",
-            sends_heartbeat=run_executor.send_heartbeat if run_executor else False,
-            task_executor=run_executor.task_executor_type if run_executor else "",
+            sends_heartbeat=sends_heartbeat,
+            task_executor=task_executor,
         )
 
     def build_init_args(self):
@@ -235,11 +250,24 @@ def task_to_task_def(ctx, task):
     return task_definition
 
 
+def _get_path(value):
+    if value:
+        return value.path
+    return None
+
+
 def build_task_run_info(task_run):
     # type: (TaskRun) -> TaskRunInfo
     t = task_run.task
     task_dag = t.ctrl.task_dag
-    log_local, log_remote = task_run._get_log_files()
+
+    if task_run.task_run_executor:
+        log_manager = task_run.task_run_executor.log_manager
+        log_local, log_remote = _get_path(log_manager.local_log_file), _get_path(
+            log_manager.remote_log_file
+        )
+    else:
+        log_local, log_remote = None, None
 
     task_run_params = []
     for param_meta in t.task_params.get_param_values():
@@ -284,7 +312,7 @@ def build_task_run_info(task_run):
         task_signature_source=t.task_signature_obj.signature_source,
         output_signature=t.task_outputs_signature_obj.signature,
         command_line=t.ctrl.task_repr.task_command_line,
-        env=t.task_env.name,
+        env=t.task_env.name if t.task_env else "local",
         functional_call=t.ctrl.task_repr.task_functional_call,
         has_downstreams=bool(task_dag.downstream),
         has_upstreams=bool(task_dag.upstream),

@@ -22,9 +22,8 @@ from typing import List
 
 import pytest
 
-from dbnd import parameter
+from dbnd import Config, parameter
 from dbnd.testing.helpers import build_task
-from dbnd.testing.orchestration_utils import TTask
 from targets.values import ValueType
 
 
@@ -36,7 +35,7 @@ class CustomValueType(ValueType):
         return x[2:]
 
 
-class ListParameterTask(TTask):
+class ListParameterTask(Config):
     param = parameter[List]
     param_typed = parameter[List[int]]
     param_custom_typed = parameter[List[CustomValueType]]

@@ -548,7 +548,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             ENV_DBND_POD_NAMESPACE: self.namespace,
             ENV_DBND_USER: task_run.task_run_env.user,
             ENV_DBND__ENV_IMAGE: image,
-            ENV_DBND_ENV: task_run.run.env.task_name,
+            ENV_DBND_ENV: task_run.run.run_executor.env.task_name,
             ENV_DBND__ENV_MACHINE: "%s at %s" % (pod_name, self.namespace),
         }
 

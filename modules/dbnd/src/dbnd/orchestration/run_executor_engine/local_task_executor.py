@@ -61,7 +61,7 @@ class LocalTaskExecutor(RunExecutorEngine):
             logger.debug("Executing task: %s", task.task_id)
 
             try:
-                tr.executor.execute()
+                tr.task_run_executor.execute()
             except DatabandSigTermError as e:
                 raise e
             except Exception:

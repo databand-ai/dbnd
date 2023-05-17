@@ -5,7 +5,7 @@ import os
 from dbnd._core.utils.basics.path_utils import relative_path
 from dbnd.testing.helpers import run_dbnd_subprocess__dbnd_run
 from dbnd.testing.helpers_pytest import skip_on_windows
-from tests.orchestration.utils import DbndCmdTest
+from tests.orchestration.execution.utils import DbndCmdTest
 
 
 class TestResubmit(DbndCmdTest):

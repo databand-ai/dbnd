@@ -25,11 +25,11 @@ import json
 import pytest
 
 from databand import parameters
+from dbnd import Config
 from dbnd.testing.helpers import build_task
-from dbnd.testing.orchestration_utils import TTask
 
 
-class DictParameterTask(TTask):
+class DictParameterTask(Config):
     param = parameters.DictParameter()
 
 

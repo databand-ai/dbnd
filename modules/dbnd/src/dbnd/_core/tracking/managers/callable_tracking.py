@@ -16,18 +16,11 @@ from dbnd._core.constants import (
     DbndTargetOperationType,
     TaskRunState,
 )
-from dbnd._core.current import (
-    current_task_run,
-    get_databand_run,
-    is_verbose,
-    try_get_current_task,
-)
+from dbnd._core.current import get_databand_run, is_verbose, try_get_current_task_run
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.parameter.parameter_value import ParameterFilters
-from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
-from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_run.task_run import TaskRun
@@ -106,7 +99,8 @@ class CallableTrackingManager(object):
                 return
 
             # 2. Start or reuse existing "main tracking task" that is root for tracked tasks
-            if not try_get_current_task():
+            parent_task_run = try_get_current_task_run()
+            if not parent_task_run:
                 """
                 try to get existing task, and if not exists - try to get/create inplace_task_run
                 """
@@ -114,8 +108,8 @@ class CallableTrackingManager(object):
                     try_get_inplace_tracking_task_run,
                 )
 
-                inplace_tacking_task = try_get_inplace_tracking_task_run()
-                if not inplace_tacking_task:
+                parent_task_run = try_get_inplace_tracking_task_run()
+                if not parent_task_run:
                     # we didn't manage to start inplace tracking task run, we will not be able to track
                     yield _do_nothing_decorator
                     return
@@ -138,7 +132,7 @@ class CallableTrackingManager(object):
 
             # update upstream/downstream relations - needed for correct tracking
             # we can have the task as upstream , as it was executed already
-            parent_task = current_task_run().task
+            parent_task = parent_task_run.task
             if not parent_task.task_dag.has_upstream(task):
                 parent_task.set_upstream(task)
 
@@ -151,12 +145,10 @@ class CallableTrackingManager(object):
                 task.set_upstream(up_task)
 
             # creating task_run_executor as a task we found mid-run
-            task_run = dbnd_run.create_task_run_at_execution_time(
-                task, task_engine=current_task_run().task_engine
-            )
+            task_run = dbnd_run.build_task_run_and_track(task)
 
             should_capture_log = (
-                TrackingConfig.from_databand_context().capture_tracking_log
+                parent_task_run.run.context.settings.tracking.capture_tracking_log
             )
             with task_run.task_run_track_execute(
                 handle_sigterm=True, capture_log=should_capture_log

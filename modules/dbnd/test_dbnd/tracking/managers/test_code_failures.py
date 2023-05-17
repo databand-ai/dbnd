@@ -74,7 +74,7 @@ def test_webserver_connection_fail(set_env):
 
 def test_log_file_write_fail(set_env):
     with mock.patch.object(
-        TaskRunLogManager, "save_log_preview", fake_save_log_preview
+        TaskRunLogManager, "_upload_task_log_preview", fake_save_log_preview
     ):
         try_run_function()
         dbnd_tracking_stop()

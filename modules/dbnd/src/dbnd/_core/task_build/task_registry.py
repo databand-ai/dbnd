@@ -244,7 +244,7 @@ class DbndTaskRegistry(SingletonContext):
             obj = task_cls(**task_kwargs)
 
         except Exception:
-            exc = get_databand_context().settings.log.format_exception_as_str(
+            exc = get_databand_context().settings.tracking_log.format_exception_as_str(
                 sys.exc_info(), isolate=True
             )
             logger.warning(

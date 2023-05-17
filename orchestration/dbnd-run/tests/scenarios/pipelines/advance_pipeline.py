@@ -16,7 +16,9 @@ from targets.target_config import folder
 
 class TDataSource(DataSourceTask):
     partitioned_data_path = path.join(
-        path.dirname(__file__), "data", "partitioned_data"
+        path.dirname(__file__),
+        "../../../../../modules/dbnd/test_dbnd/scenarios/data",
+        "partitioned_data",
     )
     root_location = data(default=partitioned_data_path)
     task_target_date = parameter()[datetime.date]

@@ -12,10 +12,10 @@ from dbnd import PythonTask, new_dbnd_context, override, parameter
 from dbnd._core.configuration.environ_config import DBND_RESUBMIT_RUN, DBND_RUN_UID
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd._core.settings import LoggingConfig
 from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd.orchestration.run_settings import RunConfig
+from dbnd.orchestration.run_settings.log import RunLoggingConfig
 from dbnd.tasks.basics.shell import bash_cmd
 
 
@@ -69,7 +69,7 @@ class DbndSchedulerOperator(BaseOperator):
             conf={
                 RunConfig.task_executor_type: override(TaskExecutorType.local),
                 RunConfig.parallel: override(False),
-                LoggingConfig.disabled: override(True),
+                RunLoggingConfig.disabled: override(True),
             },
         ) as dc:
             launcher_task = Launcher(

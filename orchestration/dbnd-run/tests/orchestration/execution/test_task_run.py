@@ -192,7 +192,7 @@ class TestTaskRun(TargetTestBase):
                     "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
                     1,
                 )
-                validator = current_task_run().executor.validator
+                validator = current_task_run().task_run_executor.validator
                 assert not validator.wait_for_consistency()
 
     def test_no_outputs(self, capsys):

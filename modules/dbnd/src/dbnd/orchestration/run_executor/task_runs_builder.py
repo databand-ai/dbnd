@@ -180,12 +180,11 @@ class TaskRunsBuilder(object):
                 task_engine.require_submit = task_run_engine.require_submit
 
                 task_af_id = friendly_ids[task.task_id]
-                task_run = TaskRun(
-                    task=task,
-                    run=run_executor.run,
-                    task_af_id=task_af_id,
-                    task_engine=task_engine,
+                task_run = run_executor.run.build_task_run(
+                    task=task, task_af_id=task_af_id
                 )
+                run_executor.build_task_run_executor(task_run, task_engine)
+
             if task.task_id in completed_ids:
                 task_run.is_reused = True
 

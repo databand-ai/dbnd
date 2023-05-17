@@ -4,7 +4,10 @@ import logging
 
 from warnings import warn
 
-from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__TRACKING,
+    set_orchestration_mode,
+)
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.basics.environ_utils import env as env_context
@@ -45,6 +48,7 @@ def execute(
     ctx, dbnd_run, disable_tracking_api, expected_dbnd_version, expected_python_version
 ):
     """Execute databand primitives"""
+    set_orchestration_mode()
     if expected_python_version and expected_dbnd_version:
         spark_python_version = get_python_version()
         spark_dbnd_version = get_dbnd_version()
@@ -70,10 +74,14 @@ def execute(
     from targets import target
 
     with env_context(**{ENV_DBND__TRACKING: "False"}):
-        run = RunExecutor.load_run(
+        run_executor = RunExecutor.load_run(
             dump_file=target(dbnd_run), disable_tracking_api=disable_tracking_api
         )
-        ctx.obj = {"run": run, "disable_tracking_api": disable_tracking_api}
+        ctx.obj = {
+            "run_executor": run_executor,
+            "run": run_executor.run,
+            "disable_tracking_api": disable_tracking_api,
+        }
 
 
 @execute.command(name="task")
@@ -115,4 +123,4 @@ def run_task_execute(ctx, task_id):
     run = ctx.obj["run"]  # type: DatabandRun
     with set_active_run_context(run):
         task_run = run.get_task_run_by_id(task_id)
-        task_run.executor.execute(allow_resubmit=False)
+        task_run.task_run_executor.execute(allow_resubmit=False)

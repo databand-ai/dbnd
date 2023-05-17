@@ -3,6 +3,7 @@
 import pandas as pd
 
 from dbnd import pipeline, task
+from dbnd._core.configuration.environ_config import set_orchestration_mode
 
 
 @task
@@ -29,5 +30,6 @@ def t_no_warnings():
 
 class TestParameterTypeCheckWarnings(object):
     def test_no_warnings_on_target(self):
+        set_orchestration_mode()
         actual = t_no_warnings.task()
         assert not actual.result.task._params.get_param_value("df").warnings

@@ -50,11 +50,11 @@ class TestAirflowBaseViews(AirflowWebAppTest):
     task_execution_date_str = timezone.datetime(2018, 3, 1)
 
     @fixture(autouse=True)
-    def _test_run(self, databand_test_context):
+    def _test_run(self):
         patch_airflow_create_app()
 
     @fixture(autouse=True)
-    def _test_run(self, databand_test_context):
+    def _test_run(self):
         task = TTask()
         run = task.dbnd_run()
 

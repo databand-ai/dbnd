@@ -23,8 +23,8 @@ class FailFastPipeline(PipelineTask):
 
 
 @fixture
-def databand_context_kwargs():
-    return dict(conf={"run": {"fail_fast": "True"}})
+def dbnd_config_for_test_run__user():
+    return {"run": {"fail_fast": "True"}}
 
 
 def test_fail_fast():

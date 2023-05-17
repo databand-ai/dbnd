@@ -155,9 +155,11 @@ def is_verbose():
 def get_target_logging_level():
     default_level = 10  # DEBUG
 
-    context = try_get_databand_context()
-    if context and getattr(context, "settings", None):
-        return getattr(logging, context.settings.log.targets_log_level)
+    run = try_get_databand_run()
+    if run and run.run_executor:
+        return getattr(
+            logging, run.run_executor.run_settings.run_logging.targets_log_level
+        )
 
     return default_level
 

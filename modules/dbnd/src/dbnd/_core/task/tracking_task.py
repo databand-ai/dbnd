@@ -11,11 +11,7 @@ import more_itertools
 import six
 
 from dbnd._core.constants import RESULT_PARAM, TaskEssence, _TaskParamContainer
-from dbnd._core.current import (
-    get_databand_context,
-    get_databand_run,
-    try_get_current_task,
-)
+from dbnd._core.current import get_databand_run, try_get_current_task
 from dbnd._core.parameter import build_user_parameter_value
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
@@ -195,7 +191,7 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
             # we need better definition of "what we use for tracking"
             self.task_version = task_version or utcnow().strftime("%Y%m%d_%H%M%S")
             self.task_target_date = utcnow().date()
-            self.task_env = get_databand_context().env
+            self.task_env = None
             self.task_children_scope_params = {}
 
         self.task_outputs = dict()

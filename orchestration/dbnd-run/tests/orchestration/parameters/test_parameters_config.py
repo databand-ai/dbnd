@@ -7,10 +7,21 @@ from typing import List, Tuple
 from dbnd import config, config_deco, parameter
 from dbnd._core.configuration.config_path import ConfigPath
 from dbnd.tasks.basics import SimplestTask
-from test_dbnd.helpers import value_at_task
+from dbnd.testing.orchestration_utils import TTask
 
 
 logger = logging.getLogger(__name__)
+
+
+def value_at_task(parameter):
+    """
+    A hackish way to get the "value" of a parameter.
+    """
+
+    class _DummyTask(TTask):
+        param = parameter
+
+    return _DummyTask().param
 
 
 class TestParameterConfig(object):

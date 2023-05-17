@@ -496,7 +496,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     def build_target(self, task):  # type: (ParameterDefinition, Task) -> DataTarget
         target_config = self.target_config
         if not target_config.format:
-            default_config = task.settings.output.get_value_target_config(
+            default_config = task.run_settings.output.get_value_target_config(
                 self.value_type
             )
             # for now we take only format and compression from config

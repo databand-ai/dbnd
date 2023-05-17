@@ -104,7 +104,9 @@ class TestSparkTasksLocally(object):
         print(target(actual.counters.path, "part-00000").read())
 
     @skip_require_java_build
-    @mock.patch("dbnd_spark.local.local_spark.is_airflow_enabled", return_value=False)
+    @mock.patch(
+        "dbnd_spark.local.local_spark.is_airflow_package_installed", return_value=False
+    )
     def test_word_count_pyspark_local_spark(self, _):
         actual = WordCountPySparkTask(text=__file__)
         actual.dbnd_run()

@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from dbnd._core.configuration.environ_config import set_orchestration_mode
 from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
 from dbnd._vendor import click
 from dbnd._vendor.click import get_current_context
@@ -53,6 +54,8 @@ SPECIAL_INTERVALS = {"@never": None}
 @click.pass_context
 def schedule(ctx):
     """Manage scheduled jobs"""
+    set_orchestration_mode()
+
     ctx.obj = {}
     ctx.obj["headers"] = SCHEDULED_JOB_HEADERS
     from dbnd import new_dbnd_context

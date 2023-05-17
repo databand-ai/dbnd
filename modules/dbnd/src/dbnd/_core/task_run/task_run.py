@@ -5,10 +5,9 @@ import typing
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_current_task_run
-from dbnd._core.errors import DatabandRuntimeError
+from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
-from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
 from dbnd._core.tracking.registry import get_tracking_store
 from dbnd._core.utils.basics.nested_context import nested
@@ -16,12 +15,11 @@ from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_by_task_run, get_uuid
+from dbnd.orchestration.task.task import Task
 from dbnd.orchestration.task_run_executor.task_run_executor import (
-    TaskRunExecutor,
     handle_sigterm_at_dbnd_task_run,
 )
 from dbnd.providers.spark.spark_jvm_context import jvm_context_manager
-from targets import target
 
 
 logger = logging.getLogger(__name__)
@@ -29,26 +27,21 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd.orchestration.run_settings import EngineConfig
-    from dbnd.orchestration.task.task import Task
 
 
 class TaskRun(object):
     def __init__(
         self,
-        task,
-        run,
-        task_af_id=None,
-        try_number=1,
-        is_dynamic=None,
-        task_engine=None,
+        task: typing.Union[TrackingTask, Task],
+        run: "DatabandRun",
+        task_af_id: str = None,
+        try_number: int = 1,
+        is_dynamic: typing.Optional[bool] = None,
     ):
-        # type: (Task, DatabandRun, str, int, bool, EngineConfig)-> None
         # actually this is used as Task uid
 
-        self.task = task  # type: Task
-        self.run = run  # type: DatabandRun
-        self.task_engine = task_engine
+        self.task: typing.Union[TrackingTask, Task] = task
+        self.run: DatabandRun = run
         self.is_dynamic = is_dynamic if is_dynamic is not None else task.task_is_dynamic
         self.is_system = task.task_is_system
         self.task_af_id = task_af_id or self.task.task_id
@@ -66,24 +59,10 @@ class TaskRun(object):
         self.job_name = clean_job_name(self.task_af_id).lower()
         self.job_id = self.job_name + "_" + str(self.task_run_uid)[:8]
 
-        # custom per task engine , or just use one from global env
-        dbnd_local_root = (
-            self.task_engine.dbnd_local_root or self.run.env.dbnd_local_root
-        )
-        self.local_task_run_root = (
-            dbnd_local_root.folder(run.run_folder_prefix)
-            .folder("tasks")
-            .folder(self.task.task_id)
-        )
-
         self.attempt_number = try_number
-        self.task_run_attempt_uid = None
-        self.attempt_folder = None
-        self.meta_files = None
-        self.log = None
-        self.init_new_task_run_attempt()
 
-        # TODO: inherit from parent task if disabled
+        self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
+
         self.is_tracked = task._conf__tracked
 
         if self.is_tracked and self.run.is_tracked:
@@ -100,7 +79,6 @@ class TaskRun(object):
 
         self.tracking_store = tracking_store
         self.tracker = TaskRunTracker(task_run=self, tracking_store=tracking_store)
-        self.executor = TaskRunExecutor(task_run=self)
 
         self.task_tracker_url = self.tracker.task_run_url()
         self.external_resource_urls = dict()
@@ -118,6 +96,11 @@ class TaskRun(object):
         self.start_time = None
         self.finished_time = None
 
+        self.tracking_log_manager = TaskRunLogManager(task_run=self)
+
+        # orchestration support
+        self.task_run_executor = None
+
     def __getstate__(self):
         d = self.__dict__.copy()
         if "airflow_context" in d:
@@ -131,24 +114,9 @@ class TaskRun(object):
     def task_run_env(self):
         return self.run.context.task_run_env
 
-    def task_run_attempt_file(self, *path):
-        return target(self.attempt_folder, *path)
-
     @property
     def last_error(self):
         return self.errors[-1] if self.errors else None
-
-    def _get_log_files(self):
-
-        log_local = None
-        if self.log.local_log_file:
-            log_local = self.log.local_log_file.path
-
-        log_remote = None
-        if self.log.remote_log_file:
-            log_remote = self.log.remote_log_file.path
-
-        return log_local, log_remote
 
     @property
     def task_run_state(self):
@@ -183,44 +151,18 @@ class TaskRun(object):
     def set_external_resource_urls(self, links_dict):
         # if value is None skip
         if links_dict is None:
-            # TODO: Throw exception?
             return
 
-        for link in links_dict:
-            if not links_dict[link]:
-                # Dict has empty fields
-                # TODO: Throw exception?
-                return
+        links_dict = {link: value for link, value in links_dict.items() if value}
 
         self.external_resource_urls.update(links_dict)
         self.tracking_store.save_external_links(
             task_run=self, external_links_dict=links_dict
         )
 
-    def update_task_run_attempt(self, attempt_number):
-        if attempt_number is None:
-            raise DatabandRuntimeError("cannot set None as the attempt number")
-
-        if self.attempt_number != attempt_number:
-            self.attempt_number = attempt_number
-            self.init_new_task_run_attempt()
-
-    def init_new_task_run_attempt(self):
-        # trying to find if we should use attempt_uid that been set from external process.
-        # if so - the attempt_uid is uniquely for this task_run_attempt, and that why we pop.
+    def set_task_run_attempt(self, attempt_number):
+        self.attempt_number = attempt_number
         self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
-
-        self.attempt_folder = self.task._meta_output.folder(
-            "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
-            extension=None,
-        )
-        self.attempt_folder_local = self.local_task_run_root.folder(
-            "attempt_%s_%s" % (self.attempt_number, self.task_run_attempt_uid),
-            extension=None,
-        )
-        self.attemp_folder_local_cache = self.attempt_folder_local.folder("cache")
-        self.meta_files = TaskRunMetaFiles(self.attempt_folder)
-        self.log = TaskRunLogManager(task_run=self)
 
     @contextlib.contextmanager
     def task_run_track_execute(self, handle_sigterm=False, capture_log=True):
@@ -229,7 +171,7 @@ class TaskRun(object):
         ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
 
         if capture_log:
-            ctx_managers.append(self.log.capture_task_log())
+            ctx_managers.append(self.tracking_log_manager.capture_task_log())
 
         if handle_sigterm:
             ctx_managers.append(handle_sigterm_at_dbnd_task_run())

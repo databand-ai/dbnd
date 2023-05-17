@@ -23,7 +23,7 @@ class TestPartitionsByDate(object):
             {FetchIds.task_enabled_in_prod: True, FetchData.task_enabled_in_prod: True}
         ):
             task = ProductionIdsAndData(
-                task_env=get_databand_context().env.clone(production=True)
+                task_env=get_databand_context().run_settings.env.clone(production=True)
             )
             assert_run_task(task)
 

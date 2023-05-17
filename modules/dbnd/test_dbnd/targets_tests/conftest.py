@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import os
 
+import pytest
+
 from pytest import fixture
 
 
@@ -48,3 +50,12 @@ def s1_file_2_csv(s1_root_dir, simple_df):
 @fixture
 def s1_dir_with_csv(s1_root_dir, s1_file_1_csv, s1_file_2_csv):
     return s1_root_dir, s1_file_1_csv, s1_file_2_csv
+
+
+@pytest.fixture()
+def mock_target_fs():
+    from targets.fs.mock import MockFileSystem
+
+    MockFileSystem.instance.clear()
+    yield MockFileSystem.instance
+    MockFileSystem.instance.clear()

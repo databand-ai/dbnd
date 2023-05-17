@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import contextlib
 import logging
 import os
 import sys
@@ -212,10 +212,35 @@ def find_handler(logger, handler_name):
     return None
 
 
+@contextmanager
+def capture_stderr_stdout(logging_target=None):
+    #  redirecting all messages from sys.stderr/sys.stdout into logging_target
+    # WARNING: this can create stdout/stderr loop if :
+    #     we redirect into logger, and logger is writing to current sys.stdout that is current redirect
+    #     ( not the original one before the wrapping)
+    #    -> LOOP:   some print ->  redirect_stdout() -> logger -> print -> redirect_stdout() ...
+
+    airflow_root_console_handler = find_handler(logging.root, "console")
+    if safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
+        yield None
+        return
+
+    with contextlib.ExitStack() as stack:
+        logging_target_stdout = logging_target or logging.getLogger("dbnd.stdout")
+        if logging_target_stdout.isEnabledFor(logging.INFO):
+            stack.enter_context(redirect_stdout(logging_target_stdout, logging.INFO))
+
+        logging_target_stderr = logging_target or logging.getLogger("dbnd.stderr")
+        if logging_target_stderr.isEnabledFor(logging.WARN):
+            stack.enter_context(redirect_stderr(logging_target_stderr, logging.WARN))
+
+        yield
+
+
 SENTRY_TOUCHED = False
 
 
-def try_init_sentry():
+def try_init_sentry(logging_config):
     """
     Initiate the sentry sdk to track the errors in the system.
     This function is idempotent - we allowed running it once in a single run.
@@ -223,10 +248,6 @@ def try_init_sentry():
     global SENTRY_TOUCHED
     if SENTRY_TOUCHED:
         return
-
-    from dbnd._core.settings import LoggingConfig
-
-    logging_config = LoggingConfig.from_databand_context()
 
     sentry_url = logging_config.sentry_url
 
@@ -275,3 +296,9 @@ class PrefixLoggerAdapter(logging.LoggerAdapter):
 
     def process(self, msg, kwargs):
         return "[%s] %s" % (self.prefix, msg), kwargs
+
+
+def safe_is_typeof(value, name):
+    if not value:
+        return
+    return isinstance(value, object) and value.__class__.__name__.endswith(name)

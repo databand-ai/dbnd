@@ -109,6 +109,7 @@ class CompositeTrackingStore(TrackingStore):
 
                 if isinstance(e, DatabandWebserverNotReachableError):
                     if in_tracking_run():
+                        log_exception("Failed tracking store", ex=e, non_critical=True)
                         logger.warning(str(e))
 
                     if is_orchestration_run():

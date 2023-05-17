@@ -1,11 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import contextlib
-import sys
 
 from collections.abc import Callable
-
-import six
 
 from dbnd._vendor import cloudpickle
 
@@ -33,13 +30,6 @@ except ImportError:
     except ImportError:
         from _dummy_thread import get_ident
 
-
-def fix_sys_path_str():
-    if six.PY2:
-        # fix path from "non" str values, otherwise we fail on py2
-        sys.path = [str(p) if type(p) != str else p for p in sys.path]
-
-
 try:
     import urlparse
 except ImportError:
@@ -52,7 +42,6 @@ __all__ = [
     "import_errors",
     "Callable",
     "get_ident",
-    "fix_sys_path_str",
     "urlparse",
     "StringIO",
 ]

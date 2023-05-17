@@ -12,7 +12,10 @@ import six
 from dbnd._core.cli.click_utils import _help
 from dbnd._core.configuration.config_readers import parse_and_build_config_store
 from dbnd._core.configuration.config_value import ConfigValuePriority
-from dbnd._core.configuration.environ_config import tracking_mode_context
+from dbnd._core.configuration.environ_config import (
+    set_orchestration_mode,
+    tracking_mode_context,
+)
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
@@ -21,6 +24,7 @@ from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
 from dbnd._vendor import click
 from dbnd.orchestration.cli.service_auto_completer import completer
+from dbnd.orchestration.orchestration_bootstrap import dbnd_bootstrap_orchestration
 from dbnd.orchestration.utils.user_code import load_user_modules
 
 
@@ -211,6 +215,8 @@ def cmd_run(
     To see all available tasks use `dbnd show-tasks` (tab completion is available).
     `dbnd show-configs` will print all available configs.
     """
+
+    dbnd_bootstrap_orchestration()
 
     from dbnd import config
     from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
@@ -423,6 +429,8 @@ def _nullable_flag(flag):
 
 def dbnd_run_cmd_main(task, env=None, args=None):
     """A wrapper for dbnd_cmd_run with error handling."""
+    set_orchestration_mode()
+
     from dbnd import Task
 
     if isinstance(task, Task):

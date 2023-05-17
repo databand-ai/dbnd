@@ -5,7 +5,7 @@ import logging
 from mock import MagicMock, PropertyMock, patch
 
 from dbnd import new_dbnd_context
-from dbnd._core.configuration.environ_config import ENV_DBND__NO_PLUGINS
+from dbnd._core.configuration.environ_config import ENV_DBND__ORCHESTRATION__NO_PLUGINS
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd.orchestration.run_executor.heartbeat_sender import start_heartbeat_sender
 from dbnd.orchestration.run_executor.run_executor import RunExecutor
@@ -27,11 +27,13 @@ class TestHeartbeat(object):
             run = MagicMock(DatabandRun)
             type(run).run_uid = PropertyMock(return_value="testtest")
             type(run).context = PropertyMock(return_value=dc)
-            type(run).run_local_root = PropertyMock(return_value=dc.env.dbnd_local_root)
 
             run_executor = MagicMock(RunExecutor)
             type(run_executor).run = PropertyMock(return_value=run)
             type(run_executor).run_config = RunConfig()
+            type(run_executor).run_local_root = PropertyMock(
+                return_value=dc.run_settings.env.dbnd_local_root
+            )
             with patch("subprocess.Popen") as mock_popen:
                 hearbeat = start_heartbeat_sender(run_executor)
                 with hearbeat:
@@ -39,5 +41,5 @@ class TestHeartbeat(object):
                 mock_popen.assert_called_once()
                 call = mock_popen.call_args_list[-1]
 
-                assert ENV_DBND__NO_PLUGINS in call.kwargs["env"]
+                assert ENV_DBND__ORCHESTRATION__NO_PLUGINS in call.kwargs["env"]
                 assert "testtest" in call.args[0]

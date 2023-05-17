@@ -56,6 +56,9 @@ class FileTrackingStore(TrackingStore):
         if state == TaskRunState.RUNNING:
             self.dump_task_run_info(task_run)
 
+    def _get_meta_files(self, task_run):
+        return task_run.task_run_executor.meta_files
+
     def dump_task_run_info(self, task_run):
 
         info = {
@@ -71,13 +74,13 @@ class FileTrackingStore(TrackingStore):
         }
         # old implementation, replace with "dbnd_tracking" request
 
-        meta_data_file = task_run.meta_files.get_meta_data_file()
+        meta_data_file = self._get_meta_files(task_run).get_meta_data_file()
         with meta_data_file.open("w") as yaml_file:
             yaml.dump(info, yaml_file, default_flow_style=False)
 
     def log_histograms(self, task_run, key, value_meta, timestamp):
         # type: (TaskRun, str, ValueMeta, datetime) -> None
-        metric_path = task_run.meta_files.get_metric_target(
+        metric_path = self._get_meta_files(task_run).get_metric_target(
             "{}.json".format(key), source=MetricSource.histograms
         )
         data_schema = value_meta.data_schema.as_dict() if value_meta.data_schema else {}
@@ -98,7 +101,7 @@ class FileTrackingStore(TrackingStore):
     def log_metrics(self, task_run, metrics):
         # type: (TaskRun, List[Metric]) -> None
         for metric in metrics:
-            metric_path = task_run.meta_files.get_metric_target(
+            metric_path = self._get_meta_files(task_run).get_metric_target(
                 metric.key, source=metric.source
             )
             timestamp = int(time.mktime(metric.timestamp.timetuple()))

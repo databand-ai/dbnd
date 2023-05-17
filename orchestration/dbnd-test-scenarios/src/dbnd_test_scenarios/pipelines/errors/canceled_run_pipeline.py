@@ -24,7 +24,7 @@ def long_sleeping_task(sleep_sec=10):
 def cancel_run():
     print("Going to kill current run")
     databand_run = get_databand_run()
-    r = databand_run.kill_run()
+    r = databand_run.run_executor.kill_run()
     print("Killed run")
     import time
 

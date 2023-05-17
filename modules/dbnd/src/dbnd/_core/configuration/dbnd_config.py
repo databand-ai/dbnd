@@ -262,6 +262,14 @@ class DbndConfig(object):
             )
         )
 
+    def reset(self):
+        self.config_layer = _ConfigLayer(
+            name="empty",
+            config=_ConfigStore(),
+            layer_config=_ConfigStore(),
+            parent=None,
+        )
+
 
 config = DbndConfig.build_empty(name="empty")
 

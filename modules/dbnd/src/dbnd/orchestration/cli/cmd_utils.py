@@ -11,28 +11,6 @@ from dbnd._vendor import click
 logger = logging.getLogger(__name__)
 
 
-@click.command()
-def ipython():
-    """Get ipython shell with Databand's context"""
-    # noinspection PyUnresolvedReferences
-    import IPython
-
-    from airflow.utils.db import create_session
-
-    from dbnd import new_dbnd_context
-
-    with new_dbnd_context(name="ipython") as ctx, create_session() as session:
-        header = "\n\t".join(
-            [
-                "Welcome to \033[91mDataband\033[0m's ipython command.\nPredefined variable are",
-                "\033[92m\033[1mctx\033[0m     -> dbnd_context",
-                "\033[92m\033[1msession\033[0m -> DB session",
-                "\033[92m\033[1mmodels\033[0m  -> dbnd models",
-            ]
-        )
-        IPython.embed(colors="neutral", header=header)
-
-
 @click.command(
     help="Collect logs and debugging information for a specific DatabandRun. Creates a tarfile that can be "
     "easily sent to databand.ai customer support"

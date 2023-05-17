@@ -7,6 +7,7 @@ import typing
 import six
 
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import is_orchestration_mode
 from dbnd._core.constants import TaskEssence
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
@@ -70,6 +71,14 @@ class TaskMetaclass(abc.ABCMeta):
         """
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
+
+        if (
+            cls.task_essence == TaskEssence.ORCHESTRATION
+            and not is_orchestration_mode()
+        ):
+            logger.error(
+                "You are trying to create orchestration task, without explicitly enabling orchestration mode"
+            )
 
         # create new config layer, so when we are out of this process -> config is back to the previous value
         with config(

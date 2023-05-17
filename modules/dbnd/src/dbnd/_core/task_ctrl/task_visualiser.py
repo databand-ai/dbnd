@@ -9,6 +9,7 @@ from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.task_run.task_run_error import task_call_source_to_str
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_string, safe_tabulate
@@ -150,7 +151,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
             if task_run.external_resource_urls:
                 self.add_external_resource_info(task_run)
 
-            self.add_log_info(task_run)
+            self.add_task_run_executor_log_info(task_run)
 
         all_info = self.verbosity >= FormatterVerbosity.HIGH
         self.table_director.add_params_table(
@@ -178,7 +179,6 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         if task_run:
             self.add_tracker_info(task_run)
-            self.add_log_info(task_run)
 
         self.table_director.add_params_table()
 
@@ -210,10 +210,11 @@ class _TaskBannerBuilder(TaskSubCtrl):
         elif verbosity >= FormatterVerbosity.HIGH:
             self._task_create_stack()
 
-    def add_log_info(self, task_run):
-        logs = [("local", task_run.log.local_log_file)]
-        if task_run.log.remote_log_file:
-            logs.append(("remote", task_run.log.remote_log_file))
+    def add_task_run_executor_log_info(self, task_run):
+        log_manager = task_run.task_run_executor.log_manager
+        logs = [("local", log_manager.local_log_file)]
+        if log_manager.remote_log_file:
+            logs.append(("remote", log_manager.remote_log_file))
         self.banner.column("LOG", self.banner.f_simple_dict(logs))
 
     def add_external_resource_info(self, task_run):
@@ -295,7 +296,7 @@ class _TaskBannerBuilder(TaskSubCtrl):
             isolate = not self.task.task_definition.full_task_family.startswith(
                 "databand."
             )
-            traceback_str = self.settings.log.format_exception_as_str(
+            traceback_str = self.settings.tracking_log.format_exception_as_str(
                 exc_info=exc_info, isolate=isolate
             )
 
@@ -379,7 +380,6 @@ class _ParamTableDirector(object):
         # type: (Task, TextBanner) -> None
         self.task = task
         self.banner = banner
-        self.record_builder = _ParamRecordBuilder()
         self.header_builder = _ParamHeaderBuilder()
 
     def add_params_table(
@@ -465,8 +465,8 @@ class _ParamTableDirector(object):
         self.banner.new_line()
 
     def build_record(self, p, param_meta, value):
-        self.record_builder.reset(self.task, p, value, param_meta)
-        return self._build_row(self.record_builder)
+        record_builder = _ParamRecordBuilder(self.task, p, value, param_meta)
+        return self._build_row(record_builder)
 
     def build_headers(self):
         self.header_builder.reset()
@@ -496,15 +496,8 @@ class _ParamTableDirector(object):
 class _ParamRecordBuilder(object):
     """Describe how to build each of the columns in the param table, from single param"""
 
-    def __init__(self):
-        self.task = None
-        self.definition = None
-        self.value = None
-        self.meta = None
-        self.row = None
-
-    def reset(self, task, definition, value, meta):
-        self.task = task
+    def __init__(self, task, definition, value, meta):
+        self.task: _BaseTask = task
         self.definition = definition
         self.value = value if not definition.hidden else "***"
         self.meta = meta
@@ -557,10 +550,8 @@ class _ParamRecordBuilder(object):
     def add_value(self):
         import dbnd  # noqa: 401 import dbnd before DataFrameValueType to avoid cyclic imports
 
-        from dbnd._core.settings import DescribeConfig
-
         console_value_preview_size = (
-            DescribeConfig.from_databand_context().console_value_preview_size
+            self.task.dbnd_context.settings.tracking_log.console_value_preview_size
         )
 
         if self.value is None:

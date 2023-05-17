@@ -99,9 +99,7 @@ class _BaseTask(object):
         return self.task_name
 
     @property
-    def settings(self):
-        # type: () -> DatabandSettings
-
+    def settings(self) -> "DatabandSettings":
         return self.dbnd_context.settings
 
     @property

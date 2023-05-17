@@ -159,7 +159,7 @@ class DbndLocalFileMetadataRegistry(object):
         run = try_get_databand_run()
         if not run:
             raise Exception("No databand run found to when creating cache file")
-        dbnd_local_root = run.get_current_dbnd_local_root()
+        dbnd_local_root = run.run_executor.get_current_dbnd_local_root()
         cache_dir = get_or_create_folder_in_dir("cache", dbnd_local_root.path)
 
         file_name = os.path.basename(file_path) + DbndLocalFileMetadataRegistry.ext

@@ -79,8 +79,7 @@ class CoreConfig(Config):
     )[Dict[str, str]]
 
     tracker = parameter(
-        default=["file", "console", "api"],
-        description="Set the Tracking Stores to be used.",
+        default=["console", "api"], description="Set the Tracking Stores to be used."
     )[List[str]]
 
     tracker_api = parameter(

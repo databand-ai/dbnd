@@ -119,7 +119,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     ):
         test_task = test_task.t(my_multitarget)
         task_run = test_task.dbnd_run().root_task_run
-        sync_local = task_run.executor.sync_local
+        sync_local = task_run.task_run_executor.sync_local
 
         assert len(sync_local.inputs_to_sync) == 1
         task_param, old_multitarget = sync_local.inputs_to_sync[0]
@@ -173,7 +173,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     ):
         test_task = test_task.t(my_target)
         task_run = test_task.dbnd_run().root_task_run
-        task_run_executor = task_run.executor
+        task_run_executor = task_run.task_run_executor
         sync_local = task_run_executor.sync_local
 
         assert len(sync_local.inputs_to_sync) == 1

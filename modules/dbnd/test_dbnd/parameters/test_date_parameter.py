@@ -23,33 +23,32 @@ import datetime
 
 from databand import parameters
 from databand.parameters import MonthParameter, TimeDeltaParameter, YearParameter
-from dbnd import parameter
+from dbnd import Config, parameter
 from dbnd._core.utils.timezone import utc
 from dbnd.testing.helpers import build_task
-from dbnd.testing.orchestration_utils import TTask
 
 
-class DateTask(TTask):
+class DateTask(Config):
     day = parameter[datetime.date]
 
 
-class DateHourTask(TTask):
+class DateHourTask(Config):
     dh = parameters.DateHourParameter()
 
 
-class DateMinuteTask(TTask):
+class DateMinuteTask(Config):
     dm = parameters.DateMinuteParameter()
 
 
-class DateSecondTask(TTask):
+class DateSecondTask(Config):
     ds = parameters.DateSecondParameter()
 
 
-class MonthTask(TTask):
+class MonthTask(Config):
     month = MonthParameter()
 
 
-class YearTask(TTask):
+class YearTask(Config):
     year = YearParameter()
 
 

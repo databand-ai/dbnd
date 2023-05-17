@@ -81,7 +81,7 @@ class TaskRunError(object):
             nested=nested_exceptions_str(ex, limit=1),
             traceback=self.traceback,
             user_code_traceback=secrets_anonymizer.anonymize(
-                task.settings.log.format_exception_as_str(
+                task.settings.tracking_log.format_exception_as_str(
                     exc_info=self.exc_info, isolate=isolate
                 )
             ),

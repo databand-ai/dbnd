@@ -7,7 +7,7 @@ from dbnd.tasks import Task
 from dbnd.tasks.basics.sanity import dbnd_sanity_check
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_test_scenarios.pipelines.pipe_4tasks import MainPipeline
-from test_dbnd.scenarios.advance_pipeline import TComplicatedPipeline
+from tests.scenarios.pipelines.advance_pipeline import TComplicatedPipeline
 
 
 class TestRunSanity(object):

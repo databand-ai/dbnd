@@ -4,8 +4,8 @@ import logging
 import typing
 
 from dbnd._core.constants import TaskExecutorType
+from dbnd._core.context.use_dbnd_run import is_dbnd_orchestration_via_airflow_enabled
 from dbnd._core.errors import DatabandConfigError
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
 from dbnd.orchestration import errors
 from dbnd.orchestration.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd.orchestration.run_executor_engine.local_task_executor import LocalTaskExecutor
@@ -26,7 +26,7 @@ def calculate_task_executor_type(submit_tasks, remote_engine, run_config):
     parallel = run_config.parallel
     task_executor_type = run_config.task_executor_type
 
-    dbnd_run_airflow_enabled = is_dbnd_run_airflow_enabled()
+    dbnd_run_airflow_enabled = is_dbnd_orchestration_via_airflow_enabled()
 
     if task_executor_type is None:
         if dbnd_run_airflow_enabled:

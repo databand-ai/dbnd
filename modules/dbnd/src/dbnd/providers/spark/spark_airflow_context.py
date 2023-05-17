@@ -52,12 +52,12 @@ def validate_spark_airflow_conf(**kwargs):
         # airflow context is empty, nothing to do here
         return True
     # some values are provided while others are not
-    for kw in kwargs:
-        if kwargs[kw] is None:
+    for kw_key, kw_value in kwargs.items():
+        if kw_value is None:
             logger.warning(
-                f"Airflow context AIRFLOW_{kw.upper()} value is missing in the spark env. Please add it to the spark env to ensure proper tracking of the tasks."
+                f"Airflow context AIRFLOW_{kw_key.upper()} value is missing in the spark env. Please add it to the spark env to ensure proper tracking of the tasks."
             )
     logger.warning(
-        f"Some airflow context values are missing in the spark env. This can lead to the incorrect task tracking."
+        "Some airflow context values are missing in the spark env. This can lead to the incorrect task tracking."
     )
     return False

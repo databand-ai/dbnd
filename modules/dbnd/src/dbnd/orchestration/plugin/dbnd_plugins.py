@@ -3,10 +3,9 @@
 import importlib
 import logging
 
-from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.load_python_module import _load_module
-from dbnd._core.utils.seven import fix_sys_path_str, import_errors
+from dbnd._core.utils.seven import import_errors
 from dbnd._vendor import pluggy
 from dbnd.orchestration.plugin import dbnd_plugin_spec
 
@@ -47,18 +46,8 @@ _dbnd_plugins_registered = False
 
 
 def register_dbnd_plugins():
-    if get_dbnd_project_config().is_no_plugins:
-        return
-
-    global _dbnd_plugins_registered
-    if _dbnd_plugins_registered:
-        return
-    _dbnd_plugins_registered = True
-
-    fix_sys_path_str()
-    if not get_dbnd_project_config().disable_pluggy_entrypoint_loading:
-        pm.load_setuptools_entrypoints("dbnd")
-        pm.check_pending()
+    pm.load_setuptools_entrypoints("dbnd")
+    pm.check_pending()
 
 
 def register_dbnd_user_plugins(user_plugin_modules):

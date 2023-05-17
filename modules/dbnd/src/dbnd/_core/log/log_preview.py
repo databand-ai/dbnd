@@ -6,7 +6,7 @@ import os
 
 import six
 
-from dbnd._core.settings import LoggingConfig
+from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs
 from dbnd._vendor.termcolor import colored
 
@@ -22,7 +22,7 @@ else:
 
 
 LINE_BRAKE = "\r\n"
-MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {file_size} bytes of the file.\r\nFor full log access the log path {log_path} .\r\nControl the log preview length with LoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
+MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {file_size} bytes of the file.\r\nFor full log access the log path {log_path} .\r\nControl the log preview length with TrackingLoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
 
 # Frontend depends on this exact strings to show localized messages: don't change it!
 EMPTY_LOG_MSG = "Log truncated to empty"
@@ -32,7 +32,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
     """
     Reads the log_path using the current logging config
     """
-    logger_config = LoggingConfig()
+    logger_config = TrackingLoggingConfig()
     max_head_size = logger_config.preview_head_bytes
     max_tail_size = logger_config.preview_tail_bytes
 

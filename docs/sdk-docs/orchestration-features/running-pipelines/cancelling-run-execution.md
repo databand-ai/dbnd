@@ -15,7 +15,7 @@ To kill a run execution, outside of execution code:
 
 <!-- noqa -->
 ```python
-databand_run.kill_run()
+databand_run.run_executor.kill_run()
 ```
 
 ## Setting Custom Error Message

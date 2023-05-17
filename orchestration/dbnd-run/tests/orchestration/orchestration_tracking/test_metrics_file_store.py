@@ -8,7 +8,7 @@ from mock import Mock
 from dbnd._core.constants import MetricSource
 from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
-from dbnd._core.tracking.backends.tracking_store_file import (
+from dbnd.orchestration.orchestration_tracking.backends.tracking_store_file import (
     FileTrackingStore,
     TaskRunMetricsFileStoreReader,
 )
@@ -16,17 +16,24 @@ from targets import target
 from targets.value_meta import ValueMetaConf
 
 
+def get_task_run_and_tracker(tmpdir):
+    metrics_folder = target(str(tmpdir))
+
+    task_run = Mock()
+    task_run.task_run_executor = Mock()
+    task_run.task_run_executor.meta_files = TaskRunMetaFiles(metrics_folder)
+    t = FileTrackingStore()
+    tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
+    tr_tracker.settings.tracking.get_value_meta_conf = Mock(
+        return_value=ValueMetaConf.enabled()
+    )
+    return task_run, tr_tracker, metrics_folder
+
+
 class TestFileMetricsStore(object):
     def test_task_metrics_simple(self, tmpdir, pandas_data_frame):
-        metrics_folder = target(str(tmpdir))
+        task_run, tr_tracker, metrics_folder = get_task_run_and_tracker(tmpdir)
 
-        task_run = Mock()
-        task_run.meta_files = TaskRunMetaFiles(metrics_folder)
-        t = FileTrackingStore()
-        tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
-        tr_tracker.settings.tracking.get_value_meta_conf = Mock(
-            return_value=ValueMetaConf.enabled()
-        )
         tr_tracker.log_metric("a", 1)
         tr_tracker.log_metric("a_string", "1")
         tr_tracker.log_metric("a_list", [1, 3])
@@ -45,15 +52,8 @@ class TestFileMetricsStore(object):
 
     @pytest.mark.skipif(six.PY2, reason="float representation issue with stats.std")
     def test_task_metrics_histograms(self, tmpdir, pandas_data_frame):
-        metrics_folder = target(str(tmpdir))
+        task_run, tr_tracker, metrics_folder = get_task_run_and_tracker(tmpdir)
 
-        task_run = Mock()
-        task_run.meta_files = TaskRunMetaFiles(metrics_folder)
-        t = FileTrackingStore()
-        tr_tracker = TaskRunTracker(task_run=task_run, tracking_store=t)
-        tr_tracker.settings.tracking.get_value_meta_conf = Mock(
-            return_value=ValueMetaConf.enabled()
-        )
         tr_tracker.log_data("df", pandas_data_frame, meta_conf=ValueMetaConf.enabled())
 
         hist_metrics = TaskRunMetricsFileStoreReader(

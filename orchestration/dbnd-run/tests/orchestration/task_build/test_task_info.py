@@ -79,11 +79,11 @@ class TestTaskInfo(object):
         )
         func_call = t.ctrl.task_repr.task_functional_call
 
-        import test_dbnd
+        import tests
 
         # the func call will have "full module", so we need ot be able to import it
 
-        logger.info("Func call : %s, imported module: %s", func_call, test_dbnd)
+        logger.info("Func call : %s, imported module: %s", func_call, tests)
         task_run = eval(func_call)
         assert task_run.task == t
 
@@ -103,21 +103,21 @@ class TestTaskInfo(object):
 
     def test_in_memory_dump(self):
         s = t_very_long_params.task(t_param="long_string" * 1000)
-        assert len(s.t_param) > s.settings.describe.console_value_preview_size * 3
+        assert len(s.t_param) > s.settings.tracking_log.console_value_preview_size * 3
 
         actual = TaskVisualiser(s).banner("Running task")
         logger.warning(actual)
-        assert len(actual) < s.settings.describe.console_value_preview_size * 3
+        assert len(actual) < s.settings.tracking_log.console_value_preview_size * 3
 
 
 class TestLogValuePreviewLogs:
     def test_params_preview(self):
         PARAMS_WITH_PREVIEWS = dedent(
             """
-            Name        Kind    Type    Format    Source              -= Value =-
-            num_param   param   int               t.t.t.t_f[default]  12
-            list_param  param   List              t.t.t.t_f[default]  [1,2,3]
-            none_param  param   object            t.t.t.t_f[default]  @None
+            Name        Kind    Type    Format    Source                -= Value =-
+            num_param   param   int               t.o.t.t.t_f[default]  12
+            list_param  param   List              t.o.t.t.t_f[default]  [1,2,3]
+            none_param  param   object            t.o.t.t.t_f[default]  @None
             """
         )
 
@@ -136,11 +136,11 @@ class TestLogValuePreviewLogs:
     def test_params_without_preview(self):
         PARAMS_WITHOUT_PREVIEWS = dedent(
             """
-            Name        Kind    Type    Format    Source              -= Value =-
-            num_param   param   int               t.t.t.t_f[default]  -
-            list_param  param   List              t.t.t.t_f[default]  "-"
-            none_param  param   object            t.t.t.t_f[default]  -
-            result      output  object  .pickle                       "-"
+            Name        Kind    Type    Format    Source                -= Value =-
+            num_param   param   int               t.o.t.t.t_f[default]  -
+            list_param  param   List              t.o.t.t.t_f[default]  "-"
+            none_param  param   object            t.o.t.t.t_f[default]  -
+            result      output  object  .pickle                         "-"
             """
         )
 

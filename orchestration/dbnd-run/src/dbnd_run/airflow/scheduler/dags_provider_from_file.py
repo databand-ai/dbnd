@@ -9,6 +9,7 @@ import yaml
 
 from airflow import DAG
 
+from dbnd import set_orchestration_mode
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD
 from dbnd._core.utils.basics.environ_utils import environ_enabled
@@ -222,6 +223,7 @@ def get_dags_from_file():
         return None
 
     try:
+        set_orchestration_mode()
         # let be sure that we are loaded
         config.load_system_configs()
 

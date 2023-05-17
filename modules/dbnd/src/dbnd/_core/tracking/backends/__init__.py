@@ -6,7 +6,6 @@ from dbnd._core.tracking.backends.tracking_store_channels import (
 )
 from dbnd._core.tracking.backends.tracking_store_composite import CompositeTrackingStore
 from dbnd._core.tracking.backends.tracking_store_console import ConsoleStore
-from dbnd._core.tracking.backends.tracking_store_file import FileTrackingStore
 
 
 __all__ = [
@@ -14,5 +13,4 @@ __all__ = [
     TrackingStoreThroughChannel,
     CompositeTrackingStore,
     ConsoleStore,
-    FileTrackingStore,
 ]

@@ -12,9 +12,6 @@ from collections.abc import Mapping
 from typing import Any, Dict, Iterable, Optional, Tuple
 from uuid import UUID
 
-import dbnd._core.utils.basics.environ_utils
-
-from dbnd._core.configuration import environ_config
 from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
     ENV_DBND_TRACKING_ATTEMPT_UID,
@@ -43,12 +40,6 @@ from dbnd.utils.helpers import get_callable_name
 logger = logging.getLogger(__name__)
 
 DAG_SPECIAL_TASK_ID = "DAG"
-
-
-def override_airflow_log_system_for_tracking():
-    return dbnd._core.utils.basics.environ_utils.environ_enabled(
-        environ_config.ENV_DBND__OVERRIDE_AIRFLOW_LOG_SYSTEM_FOR_TRACKING
-    )
 
 
 def try_get_airflow_context():

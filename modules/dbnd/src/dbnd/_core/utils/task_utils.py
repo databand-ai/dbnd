@@ -8,8 +8,9 @@ from typing import Any, Optional, Union
 
 import six
 
+from dbnd._core.configuration.environ_config import is_orchestration_mode
+from dbnd._core.context.use_dbnd_run import is_dbnd_orchestration_via_airflow_enabled
 from dbnd._core.errors import DatabandSystemError, friendly_error
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
 from dbnd._core.utils.traversing import traverse
 from dbnd.orchestration.task.task import Task
 from targets.base_target import Target
@@ -22,7 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 def _try_get_task_from_airflow_op(value):
-    if is_dbnd_run_airflow_enabled():
+    if not is_orchestration_mode():
+        return
+
+    if is_dbnd_orchestration_via_airflow_enabled():
         from dbnd_run.airflow.dbnd_task_executor.converters import (
             try_operator_to_dbnd_task,
         )

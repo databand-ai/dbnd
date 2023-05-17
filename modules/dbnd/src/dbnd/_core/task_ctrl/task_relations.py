@@ -4,10 +4,11 @@ import logging
 import sys
 import warnings
 
+from dbnd._core.configuration.environ_config import is_orchestration_mode
+from dbnd._core.context.use_dbnd_run import is_dbnd_orchestration_via_airflow_enabled
 from dbnd._core.errors import DatabandSystemError, friendly_error
 from dbnd._core.errors.friendly_error import _band_call_str
 from dbnd._core.parameter.parameter_value import ParameterFilters
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import (
     build_signature,
@@ -126,9 +127,13 @@ class TaskRelations(TaskSubCtrl):
         return outputs_to_sign
 
     def initialize_band(self):
+        # we run this code for orchestration only!
+        if not is_orchestration_mode():
+            return
+
         try:
             band_context = []
-            if is_dbnd_run_airflow_enabled():
+            if is_dbnd_orchestration_via_airflow_enabled():
                 from dbnd_run.airflow.dbnd_task_executor.airflow_operators_catcher import (
                     get_databand_op_catcher_dag,
                 )

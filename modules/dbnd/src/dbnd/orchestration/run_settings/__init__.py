@@ -15,6 +15,7 @@ from dbnd.orchestration.run_settings.describe import DescribeConfig
 from dbnd.orchestration.run_settings.engine import EngineConfig  # noqa: F401
 from dbnd.orchestration.run_settings.env import EnvConfig, LocalEnvConfig  # noqa: F401
 from dbnd.orchestration.run_settings.git import GitConfig
+from dbnd.orchestration.run_settings.log import RunLoggingConfig
 from dbnd.orchestration.run_settings.output import OutputConfig
 from dbnd.orchestration.run_settings.run import RunConfig
 from dbnd.orchestration.run_settings.scheduler import SchedulerConfig
@@ -29,15 +30,33 @@ class RunSettings(object):
         super(RunSettings, self).__init__()
         self.databand_context = databand_context  # type: DatabandContext
 
+        self.env = self.get_env_config(self.system.env)
+        databand_context.config.set_values(
+            config_values={"task": {"task_env": self.system.env}},
+            source="DatabandContext[%s]" % databand_context.name,
+        )
+
+        from dbnd._core.tracking.registry import register_store
+        from dbnd.orchestration.orchestration_tracking.backends.tracking_store_file import (
+            FileTrackingStore,
+        )
+
+        register_store("file", FileTrackingStore)
+
         self.run = RunConfig()
         self.git = GitConfig()
 
         self.describe = DescribeConfig()
 
         self.output = OutputConfig()
+        self.run_logging = RunLoggingConfig()
         self.scheduler = SchedulerConfig()
 
         self.singleton_configs = {}
+
+        self.user_configs = {}
+        for user_config in databand_context.settings.core.user_configs:
+            self.user_configs[user_config] = build_task_from_config(user_config)
 
     @property
     def system(self):
@@ -49,10 +68,11 @@ class RunSettings(object):
         if isinstance(name_or_env, EnvConfig):
             return name_or_env
 
-        if name_or_env not in self.core.environments:
+        enabled_environments = self.databand_context.settings.core.environments
+        if name_or_env not in enabled_environments:
             raise DatabandConfigError(
                 "Unknown env name '%s', available environments are %s,  please enable it at '[core]environments' "
-                % (name_or_env, self.core.environments)
+                % (name_or_env, enabled_environments)
             )
         return build_task_from_config(name_or_env, EnvConfig)
 

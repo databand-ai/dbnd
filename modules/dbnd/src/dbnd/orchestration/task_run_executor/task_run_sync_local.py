@@ -118,7 +118,7 @@ class TaskRunLocalSyncer(TaskRunCtrl):
         if self.inputs_to_sync:
             logger.info(
                 "All required task inputs are downloaded to %s",
-                self.task_run.attemp_folder_local_cache,
+                self.task_run.task_run_executor.attemp_folder_local_cache,
             )
 
         for p_def, remote_target in self.outputs_to_sync:

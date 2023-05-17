@@ -8,6 +8,7 @@ from typing import Optional, Union
 from uuid import UUID
 
 from dbnd._core.configuration.dbnd_config import config
+from dbnd._core.configuration.environ_config import is_orchestration_mode
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log import dbnd_log
@@ -18,7 +19,6 @@ from dbnd._core.utils import seven
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
-from dbnd.orchestration.run_executor.run_executor import dbnd_run_task
 from dbnd.orchestration.task.task import Task
 
 
@@ -26,6 +26,7 @@ if typing.TYPE_CHECKING:
     from typing import ContextManager
 
     from dbnd._core.run.databand_run import DatabandRun
+    from dbnd.orchestration.run_settings import RunSettings
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,10 @@ class DatabandContext(SingletonContext):
         # we assign real object only in _on_enter, however it's great for auto completion
         from dbnd._core.settings import DatabandSettings
 
-        self.settings = None  # type: DatabandSettings
+        self.settings: DatabandSettings = None
+
+        self.run_settings: RunSettings = None
+
         self._is_initialized = False
 
         self._tracking_store = None
@@ -84,6 +88,7 @@ class DatabandContext(SingletonContext):
         # if we are deserialized - we don't need to run this code again.
         if not self._is_initialized:
             # will be called from singleton context manager
+            # we need DatabandContext to be available to create all these objects
             self.system_settings = DatabandSystemConfig()
             self.system_settings.update_config_from_user_inputs(self.config)
 
@@ -91,11 +96,10 @@ class DatabandContext(SingletonContext):
 
             self.settings = DatabandSettings(databand_context=self)
 
-            self.env = self.settings.get_env_config(self.system_settings.env)
-            self.config.set_values(
-                config_values={"task": {"task_env": self.system_settings.env}},
-                source="DatabandContext[%s]" % self.name,
-            )
+            if is_orchestration_mode():
+                from dbnd.orchestration.run_settings import RunSettings
+
+                self.run_settings = RunSettings(databand_context=self)
 
             self.task_run_env = RunInfoConfig().build_task_run_info()
             self._is_initialized = True
@@ -141,6 +145,9 @@ class DatabandContext(SingletonContext):
         """
         Deprecated in favor of dbnd_run_task
         """
+
+        from dbnd.orchestration.run_executor.run_executor import dbnd_run_task
+
         run_executor = dbnd_run_task(
             task_or_task_name=task_or_task_name,
             context=self,

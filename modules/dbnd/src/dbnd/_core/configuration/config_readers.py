@@ -37,7 +37,9 @@ def _default_configuration_paths():
     project_config = get_dbnd_project_config()
 
     yield project_config.dbnd_config_path("databand-core.cfg")
-    yield project_config.dbnd_lib_path("orchestration", "conf", "dbnd-run.cfg")
+
+    if project_config.is_orchestration_mode():
+        yield project_config.dbnd_lib_path("orchestration", "conf", "dbnd-run.cfg")
 
     system_config = os.path.expanduser("/etc/databand.cfg")
     if os.path.isfile(system_config):

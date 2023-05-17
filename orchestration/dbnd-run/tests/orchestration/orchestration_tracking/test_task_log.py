@@ -53,7 +53,7 @@ def test_word_count():
     t = WordCount(text=__file__)
     t.dbnd_run()
 
-    meta_path = t.ctrl.last_task_run.attempt_folder
+    meta_path = t.ctrl.last_task_run.task_run_executor.attempt_folder
     chars_read = os.path.join(meta_path.path, "metrics", "user", "chars_read")
     artifact = os.path.join(meta_path.path, "artifacts", "figure.png")
 

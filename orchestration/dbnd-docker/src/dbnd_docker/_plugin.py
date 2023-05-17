@@ -5,7 +5,7 @@ import logging
 import dbnd
 
 from dbnd import register_config_cls
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
+from dbnd._core.context.use_dbnd_run import is_airflow_package_installed
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def dbnd_setup_plugin():
 
     register_config_cls(DockerEngineConfig)
     register_config_cls(DockerRunTask)
-    if is_dbnd_run_airflow_enabled():
+    if is_airflow_package_installed():
         from dbnd_docker.kubernetes.kubernetes_engine_config import (
             KubernetesEngineConfig,
         )

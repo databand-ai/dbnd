@@ -10,7 +10,6 @@ import six
 
 from dbnd import config, dbnd_tracking_stop, log_metric, task
 from dbnd._core.constants import TaskRunState
-from dbnd._core.errors import DatabandRunError
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskDefinitionInfo,
     TaskRunInfo,
@@ -318,55 +317,3 @@ def test_tracking_keyboard_interrupt(mock_channel_tracker):
             TaskRunState.FAILED.name,  # task
             TaskRunState.UPSTREAM_FAILED.name,  # DAG
         ] == update_task_run_attempts_chain
-
-
-def test_dbnd_pass_through_default(pandas_data_frame_on_disk, mock_channel_tracker):
-    df, df_file = pandas_data_frame_on_disk
-    some_date = utcnow().isoformat()
-    r = task_pass_through_default.dbnd_run(
-        str(df_file), some_date, expect_pass_through=False
-    )
-    assert r.root_task.result.read() == str(df)
-
-    _check_tracking_calls(
-        mock_channel_tracker,
-        {
-            "init_run": 1,
-            "add_task_runs": 1,
-            "update_task_run_attempts": 4,  # DAG start, driver start, task start, task finished
-            "log_metrics": 3,  # 1 data metric call, 2 marshalling data calls
-            "log_targets": 2,  # read input "data" dataframe, write result
-            "save_task_run_log": 2,  # task, driver
-            "set_run_state": 2,  # running, success
-        },
-    )
-
-    _assert_tracked_params(
-        mock_channel_tracker,
-        task_pass_through_default,
-        data=str(
-            df_file
-        ),  # param value is file path, the DF value will be logged as log_targets
-        dt=some_date.replace("+00:00", "").replace(":", ""),
-        expect_pass_through=False,
-    )
-
-
-def test_dbnd_exception(mock_channel_tracker):
-    # we'll pass string instead of defined expected DataFrame and it should work
-    with pytest.raises(DatabandRunError):
-        task_pass_through_exception.dbnd_run()
-
-    _check_tracking_calls(
-        mock_channel_tracker,
-        Counter(
-            {
-                "init_run": 1,
-                "set_run_state": 2,
-                "update_task_run_attempts": 4,
-                "add_task_runs": 1,
-                "save_task_run_log": 2,
-                "set_unfinished_tasks_state": 1,
-            }
-        ),
-    )

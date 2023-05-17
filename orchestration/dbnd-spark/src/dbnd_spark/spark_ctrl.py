@@ -15,14 +15,14 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_FIX_PYSPARK_IMPORTS,
     get_dbnd_project_config,
 )
-from dbnd._core.plugin.dbnd_plugins import pm
-from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
+from dbnd.orchestration.plugin.dbnd_plugins import pm
+from dbnd.orchestration.task_run_executor import _TaskRunExecutorCtrl
 from dbnd.orchestration.task_run_executor.task_sync_ctrl import DisabledTaskSyncCtrl
 from dbnd_spark import SparkConfig
 
 
-class SparkCtrl(TaskRunCtrl):
+class SparkCtrl(_TaskRunExecutorCtrl):
     stop_spark_session_on_finish = False
 
     def __init__(self, task_run):
@@ -34,7 +34,7 @@ class SparkCtrl(TaskRunCtrl):
             self.deploy = self._get_deploy_ctrl()
 
     def _get_deploy_ctrl(self):
-        return self.task_run.executor.deploy
+        return self.task_run_executor.executor.deploy
 
     @property
     def config(self):

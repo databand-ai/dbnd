@@ -5,6 +5,7 @@ Tracking store backends registry
 """
 
 import logging
+import typing
 
 from typing import List, Optional
 
@@ -12,16 +13,17 @@ from dbnd._core.errors import friendly_error
 from dbnd._core.tracking.backends import (
     CompositeTrackingStore,
     ConsoleStore,
-    FileTrackingStore,
     TrackingStoreThroughChannel,
 )
 from dbnd._core.tracking.backends.tracking_store_composite import build_store_name
 
 
+if typing.TYPE_CHECKING:
+    from dbnd._core.context.databand_context import DatabandContext
+
 logger = logging.getLogger(__name__)
 
 _BACKENDS_REGISTRY = {
-    "file": FileTrackingStore,
     "console": ConsoleStore,
     "debug": TrackingStoreThroughChannel.build_with_console_debug_channel,
     ("api", "web"): TrackingStoreThroughChannel.build_with_web_channel,
@@ -31,20 +33,17 @@ _BACKENDS_REGISTRY = {
 
 
 def register_store(name, store_builder):
-    if name in _BACKENDS_REGISTRY:
-        raise Exception("Already registered")
     _BACKENDS_REGISTRY[name] = store_builder
 
 
 def get_tracking_store(
-    databand_ctx,
-    tracking_store_names,
-    api_channel_name,
-    max_retires,
-    tracker_raise_on_error,
-    remove_failed_store,
-):
-    # type: (List[str], Optional[str], int, bool, bool) -> CompositeTrackingStore
+    databand_ctx: "DatabandContext",
+    tracking_store_names: List[str],
+    api_channel_name: Optional[str],
+    max_retires: int,
+    tracker_raise_on_error: bool,
+    remove_failed_store: bool,
+) -> CompositeTrackingStore:
     """
     Build a tracking stores based on the registry and wrap them with TrackingStoreComposite
 
@@ -63,7 +62,9 @@ def get_tracking_store(
 
         tracking_store_builder = _BACKENDS_REGISTRY.get(name)
         if tracking_store_builder is None:
-            raise friendly_error.config.wrong_store_name(name)
+            raise friendly_error.config.wrong_store_name(
+                name, [str(k) for k in _BACKENDS_REGISTRY.keys()]
+            )
 
         instance = tracking_store_builder(databand_ctx)
         if isinstance(name, tuple):

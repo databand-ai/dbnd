@@ -127,7 +127,9 @@ class TaskRunTracker(TaskRunCtrl):
         try:
             # file storage will save file
             # db will save path
-            artifact_target = self.task_run.meta_files.get_artifact_target(name)
+            artifact_target = (
+                self.task_run.task_run_executor.meta_files.get_artifact_target(name)
+            )
             self.tracking_store.log_artifact(
                 task_run=self.task_run,
                 name=name,

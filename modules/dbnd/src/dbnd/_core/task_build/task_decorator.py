@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from dbnd import Task
+    from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.task_run.task_run import TaskRun
 
 
@@ -129,17 +130,16 @@ class TaskDecorator(object):
         return self.get_task_cls().task_definition
 
     @dbnd_handle_errors(exit_on_error=False)
-    def _build_task(self, *args, **kwargs):
+    def _build_orchestration_task(self, *args, **kwargs):
         task_cls = self.get_task_cls()
         return task_cls(*args, **kwargs)
 
     @dbnd_handle_errors(exit_on_error=False)
-    def dbnd_run(self, *args, **kwargs):
-        # type: (...)-> DatabandRun
+    def dbnd_run(self, *args, **kwargs) -> "DatabandRun":
         """
         Run task via Databand execution system
         """
-        t = self._build_task(*args, **kwargs)
+        t = self._build_orchestration_task(*args, **kwargs)
         return t.dbnd_run()
 
     def tracking_context(self, call_args, call_kwargs):
@@ -292,8 +292,9 @@ class TaskDecorator(object):
 
             task._dbnd_call_state = TaskCallState(should_store_result=True)
             try:
+                parent_task_run = current_task_run()
                 task_run = run_executor.run_task_at_execution_time(
-                    task, task_engine=current_task_run().task_engine
+                    task, task_engine=parent_task_run.task_run_executor.task_engine
                 )
 
                 # this will work only for _DecoratedTask

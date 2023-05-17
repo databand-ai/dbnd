@@ -8,15 +8,11 @@ import sys
 
 from subprocess import list2cmdline
 
-from dbnd import dbnd_config
 from dbnd._core.configuration.environ_config import ENV_DBND_HOME
-from dbnd._core.current import dbnd_context
 from dbnd._core.task_build.task_registry import get_task_registry
-from dbnd._core.utils import seven
 from dbnd._core.utils.basics import fast_subprocess
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.project.project_fs import abs_join
-from dbnd.orchestration.run_settings import RunConfig
 from dbnd.orchestration.tools.jupyter.notebook import notebook_run
 
 
@@ -95,17 +91,6 @@ def run_dbnd_subprocess__dbnd(args, retcode=255, **kwargs):
     )
 
 
-def run_dbnd_subprocess__dbnd_web(args, retcode=255, **kwargs):
-    if isinstance(args, str):
-        args = shlex.split(args, posix=not windows_compatible_mode)
-    return run_dbnd_subprocess(
-        args=["dbnd-web"] + args,
-        cwd=kwargs.pop("cwd", os.environ[ENV_DBND_HOME]),
-        retcode=retcode,
-        **kwargs
-    )
-
-
 def run_dbnd_subprocess__with_home(args, retcode=255, **kwargs):
     return run_dbnd_subprocess(
         args=[sys.executable] + args,
@@ -127,12 +112,6 @@ def build_task(root_task, **kwargs):
 
     with new_dbnd_context(conf={root_task: kwargs}):
         return get_task_registry().build_dbnd_task(task_name=root_task)
-
-
-@seven.contextlib.contextmanager
-def initialized_run(task):
-    with dbnd_config({RunConfig.dry: True}):
-        dbnd_context().dbnd_run_task(task_or_task_name=task)
 
 
 def dbnd_module_path():

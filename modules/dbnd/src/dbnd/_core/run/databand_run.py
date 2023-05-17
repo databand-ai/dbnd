@@ -35,7 +35,6 @@ from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.date_utils import unique_execution_date
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd._vendor.namesgenerator import get_random_name
-from dbnd.orchestration.run_settings.engine import build_engine_config
 
 
 if typing.TYPE_CHECKING:
@@ -121,35 +120,19 @@ class DatabandRun(SingletonContext):
         self.task_runs_by_af_id = {}
         self.dynamic_af_tasks_count = dict()
 
+        self.tracker = RunTracker(self, tracking_store=self.context.tracking_store)
+
         self.target_origin = TargetIdentitySourceMap()
         self.describe = RunBanner(self)
-        self.tracker = RunTracker(self, tracking_store=self.context.tracking_store)
 
         # ALL RUN CONTEXT SPECIFIC thing
         self.root_run_info = RootRunInfo.from_env(current_run=self)
         self.scheduled_run_info = scheduled_run_info or ScheduledRunInfo.from_env(
             self.run_uid
         )
-        self.env = self.context.env
-        self.run_folder_prefix = os.path.join(
-            "log",
-            self.execution_date.strftime("%Y-%m-%d"),
-            "%s_%s_%s"
-            % (
-                self.execution_date.strftime("%Y-%m-%dT%H%M%S.%f"),
-                self.job_name,
-                self.name,
-            ),
-        )
-        self.run_root = self.env.dbnd_root.folder(self.run_folder_prefix)
-        self.run_local_root = self.env.dbnd_local_root.folder(self.run_folder_prefix)
 
         # ORCHESTRATION: execution of the run
         self.run_executor = None  # type: Optional[RunExecutor]
-
-        self.local_engine = build_engine_config(self.env.local_engine).clone(
-            require_submit=False
-        )
 
         self.start_time = None
         self.finished_time = None
@@ -273,44 +256,24 @@ class DatabandRun(SingletonContext):
             task_af_id = task_name
         return task_af_id
 
-    def create_task_run_at_execution_time(self, task, task_engine, task_af_id=None):
+    def build_task_run(self, task, task_af_id=None, try_number=1):
+        # this task run is still not tracked, you need to call init_run or explicitly track it
         if task_af_id is None:
             task_af_id = self.next_af_task_name(task)
 
         if self.af_context:
             task_af_id = "_".join([self.af_context.task_id, task_af_id])
 
-        tr = TaskRun(
-            task=task,
-            run=self,
-            is_dynamic=True,
-            task_engine=task_engine,
-            task_af_id=task_af_id,
-        )
-        self.add_task_runs_and_track([tr])
+        tr = TaskRun(task=task, run=self, task_af_id=task_af_id, try_number=try_number)
+        self._add_task_run(tr)
         return tr
 
-    def add_task_runs_and_track(self, task_runs):
-        # type: (List[TaskRun]) -> None
-        for tr in task_runs:
-            self._add_task_run(tr)
+    def build_task_run_and_track(self, task, task_af_id=None):
 
-        self.tracker.add_task_runs(task_runs)
+        tr = self.build_task_run(task, task_af_id=task_af_id)
+        tr.is_dynamic = True
 
-    def _build_and_add_task_run(
-        self, task, task_engine=None, task_af_id=None, try_number=1
-    ):
-        if task_af_id is None:
-            task_af_id = self.next_af_task_name(task)
-
-        tr = TaskRun(
-            task=task,
-            run=self,
-            task_engine=task_engine or self.local_engine,
-            task_af_id=task_af_id,
-            try_number=try_number,
-        )
-        self._add_task_run(tr)
+        self.tracker.add_task_runs([tr])
         return tr
 
     def _add_task_run(self, task_run):
@@ -339,11 +302,6 @@ class DatabandRun(SingletonContext):
         if self.context.settings.core.user_code_on_fork:
             env[ENV_DBND__USER_PRE_INIT] = self.context.settings.core.user_code_on_fork
         return env
-
-    def get_current_dbnd_local_root(self):
-        # we should return here the proper engine config, based in which context we run right now
-        # it could be submit, driver or task engine
-        return self.env.dbnd_local_root
 
     def load_from_result(self, name=RESULT_PARAM, value_type=None):
         # type: (Optional[str], Optional[str]) -> Any

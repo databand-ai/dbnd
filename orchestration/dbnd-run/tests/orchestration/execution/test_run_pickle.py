@@ -18,11 +18,13 @@ from dbnd._core.utils.seven import cloudpickle
 from dbnd.orchestration.run_executor.run_executor import RunExecutor
 from dbnd.orchestration.run_settings import RunConfig
 from dbnd.tasks import PythonTask
+from dbnd.testing.helpers_profile import cProfile_benchmark
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["cProfile_benchmark"]
 
 # comment out for fixture "benchmark" via pytest-benchmark
 @pytest.fixture

@@ -59,9 +59,9 @@ def no_credentials():
     )
 
 
-def wrong_store_name(name):
+def wrong_store_name(name, possible_names):
     return DatabandConfigError(
-        "Unsupported tracking store: '{}', use one of file/console/api".format(name),
+        f"Unsupported tracking store: '{name}', use one of '{','.join( sorted(possible_names))}'",
         help_msg="Please check you configuration at [core] tracker.",
     )
 

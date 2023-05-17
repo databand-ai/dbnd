@@ -28,13 +28,13 @@ def _is_dbnd_spark_installed():
         return False
 
     if "pyspark" not in sys.modules:
-        dbnd_log_init_msg(f"No Spark: Spark not found in modules")
+        dbnd_log_init_msg("No Spark: Spark not found in modules")
         return False
 
     try:
         from pyspark import SparkContext  # noqa: F401
     except import_errors:
-        dbnd_log_init_msg(f"No Spark: can not import pyspark module")
+        dbnd_log_init_msg("No Spark: can not import pyspark module")
         return False
 
     # all good, we have it

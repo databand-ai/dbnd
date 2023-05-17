@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import contextlib
 import datetime
 import logging
 import random
@@ -9,6 +9,8 @@ import warnings
 from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
+from dbnd._core.configuration.dbnd_config import config as dbnd_config
+from dbnd._core.configuration.environ_config import set_orchestration_mode
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
     DbndTargetOperationType,
@@ -20,16 +22,20 @@ from dbnd._core.constants import (
 from dbnd._core.current import get_databand_run, try_get_current_task_run
 from dbnd._core.errors.friendly_error.task_build import incomplete_output_found_for_task
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import output, parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task.task_with_params import _TaskWithParams
-from dbnd._core.task_ctrl.task_ctrl import TaskCtrl
+from dbnd._core.task_build.task_context import task_context
+from dbnd._core.task_ctrl.task_ctrl import _BaseTaskCtrl
+from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.nothing import NOTHING
-from dbnd._core.utils.traversing import flatten
+from dbnd._core.utils.traversing import flatten, traverse_to_str
 from dbnd.orchestration import errors
+from dbnd.orchestration.run_settings import RunSettings
 from dbnd.orchestration.run_settings.env import EnvConfig
 from dbnd.orchestration.task_run_executor.task_output_builder import calculate_path
 from targets import InMemoryTarget, target
@@ -43,6 +49,7 @@ if typing.TYPE_CHECKING:
     from dbnd._core.task_build.task_cls__call_state import TaskCallState
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
     from dbnd._core.task_run.task_run import TaskRun
+    from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
 
 DEFAULT_CLASS_VERSION = ""
 
@@ -224,7 +231,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
                 self.task_name, complete_outputs, incomplete_outputs
             )
 
-            if self.settings.run.validate_task_outputs_on_build:
+            if self.run_settings.run.validate_task_outputs_on_build:
                 raise exc
             else:
                 logger.warning(str(exc))
@@ -235,6 +242,15 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
     def current_task_run(self):
         # type: ()->TaskRun
         return get_databand_run().get_task_run(self.task_id)
+
+    @property
+    def current_task_run_executor(self):
+        # type: ()->TaskRunExecutor
+        return self.current_task_run.task_run_executor
+
+    @property
+    def run_settings(self) -> RunSettings:
+        return self.dbnd_context.run_settings
 
     def _output(self):
         """
@@ -258,7 +274,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
     def _task_run(self):
         # bring all relevant files
-        task_run_executor = self.current_task_run.executor
+        task_run_executor = self.current_task_run.task_run_executor
         task_run_executor.sync_local.sync_pre_execute()
         param_values = self.task_params.get_param_values()
 
@@ -319,8 +335,8 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
 
         # default behaviour
         if self.task_env.production and output_mode == OutputMode.prod_immutable:
-            return self.settings.output.path_prod_immutable_task
-        return self.settings.output.path_task
+            return self.run_settings.output.path_prod_immutable_task
+        return self.run_settings.output.path_task
 
     def get_target(self, name, config=None, output_ext=None, output_mode=None):
         name = name or "tmp/dbnd-tmp-%09d" % random.randint(0, 999999999)
@@ -395,6 +411,7 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         # this code should be executed under context!
         from dbnd._core.current import get_databand_context
 
+        set_orchestration_mode()
         ctx = get_databand_context()
         run = ctx.dbnd_run_task(self)
         return run
@@ -464,3 +481,62 @@ TASK_PARAMS_COUNT = len(
         if isinstance(v, ParameterDefinition) and v.value_type_str != "Target"
     ]
 )
+
+
+class TaskCtrl(_BaseTaskCtrl):
+    def __init__(self, task):
+        assert isinstance(task, Task)
+
+        super(TaskCtrl, self).__init__(task)
+
+        from dbnd._core.task_ctrl.task_relations import TaskRelations  # noqa: F811
+
+        self._relations = TaskRelations(task)
+
+        self._should_run = self.task._should_run()
+
+    def _initialize_task(self):
+
+        # target driven relations are relevant only for orchestration tasks
+        self.relations.initialize_relations()
+
+        self.task_dag.initialize_dag_node()
+
+        super(TaskCtrl, self)._initialize_task()
+
+        # validate circle dependencies
+        # may be we should move it to global level because of performance issues
+        # however, by running it at every task we'll be able to find the code that causes the issue
+        # and show it to user
+        if self.task.run_settings.output.recheck_circle_dependencies:
+            self.task_dag.topological_sort()
+
+    def should_run(self):
+        # convert to property one day
+        return self._should_run
+
+    def subdag_tasks(self):
+        return self.task_dag.subdag_tasks()
+
+    def save_task_band(self):
+        if self.task.task_band:
+            task_outputs = traverse_to_str(self.task.task_outputs)
+            self.task.task_band.as_object.write_json(task_outputs)
+
+    @contextlib.contextmanager
+    def task_context(self, phase):
+        # we don't want logs/user wrappers at this stage
+        with nested(
+            task_context(self.task, phase),
+            TaskContextFilter.task_context(self.task.task_id),
+            dbnd_config.config_layer_context(self.task.task_config_layer),
+        ):
+            yield
+
+    @property
+    def task_inputs(self):
+        return self.relations.task_inputs
+
+    @property
+    def task_outputs(self):
+        return self.relations.task_outputs

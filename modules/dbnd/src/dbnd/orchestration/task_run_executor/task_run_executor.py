@@ -9,8 +9,8 @@ import webbrowser
 from dbnd._core.constants import SystemTaskName, TaskRunState
 from dbnd._core.errors import show_error_once
 from dbnd._core.errors.base import DatabandSigTermError
-from dbnd._core.task_run.task_run_ctrl import TaskRunCtrl
 from dbnd._core.task_run.task_run_error import TaskRunError
+from dbnd._core.task_run.task_run_meta_files import TaskRunMetaFiles
 from dbnd._core.utils import seven
 from dbnd._core.utils.basics.nested_context import nested
 from dbnd._core.utils.basics.signal_utils import safe_signal
@@ -18,9 +18,16 @@ from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.timezone import utcnow
 from dbnd.orchestration import errors
 from dbnd.orchestration.plugin.dbnd_plugins import is_plugin_enabled, pm
+from dbnd.orchestration.run_settings import LocalEnvConfig
+from dbnd.orchestration.task_run_executor import _TaskRunExecutorCtrl
+from dbnd.orchestration.task_run_executor.task_run_orchestration_logging import (
+    TaskRunOrchestrationLogManager,
+)
 from dbnd.orchestration.task_run_executor.task_run_sync_local import TaskRunLocalSyncer
 from dbnd.orchestration.task_run_executor.task_sync_ctrl import TaskSyncCtrl
 from dbnd.orchestration.task_run_executor.task_validator import TaskValidator
+from targets import FileTarget, target
+from targets.target_config import TargetConfig
 
 
 if typing.TYPE_CHECKING:
@@ -29,8 +36,8 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TaskRunExecutor(TaskRunCtrl):
-    def __init__(self, task_run):
+class TaskRunExecutor(_TaskRunExecutorCtrl):
+    def __init__(self, task_run, run_executor, task_engine, airflow_context=None):
         super(TaskRunExecutor, self).__init__(task_run=task_run)
 
         self.deploy = TaskSyncCtrl(task_run=task_run)
@@ -38,19 +45,64 @@ class TaskRunExecutor(TaskRunCtrl):
 
         self.task_validator = TaskValidator(task_run=task_run)
 
-    def execute(self, airflow_context=None, allow_resubmit=True, handle_sigterm=True):
-        self.task_run.airflow_context = airflow_context
-        if airflow_context:
-            # In the case the airflow_context has a different try_number than our task_run_executor's attempt_number,
-            # we need to update our task_run_executor attempt accordingly.
-            self.task_run.update_task_run_attempt(airflow_context["ti"].try_number)
+        # custom per task engine , or just use one from global env
+        self.task_engine = task_engine
+        dbnd_local_root = (
+            self.task_engine.dbnd_local_root or run_executor.env.dbnd_local_root
+        )
+        self.local_task_run_root = (
+            dbnd_local_root.folder(run_executor.run_folder_prefix)
+            .folder("tasks")
+            .folder(self.task.task_id)
+        )
 
+        # trying to find if we should use attempt_uid that been set from external process.
+        # if so - the attempt_uid is uniquely for this task_run_attempt, and that why we pop.
         task_run = self.task_run
-        run = task_run.run
-        run_executor = run.run_executor
+        self.attempt_folder = self.task._meta_output.folder(
+            "attempt_%s_%s"
+            % (task_run.attempt_number, self.task_run.task_run_attempt_uid),
+            extension=None,
+        )
+        self.attempt_folder_local = self.local_task_run_root.folder(
+            "attempt_%s_%s" % (task_run.attempt_number, self.task_run_attempt_uid),
+            extension=None,
+        )
+        self.attemp_folder_local_cache = self.attempt_folder_local.folder("cache")
+        self.meta_files = TaskRunMetaFiles(self.attempt_folder)
+
+        self.local_log_file: FileTarget = self.local_task_run_root.partition(
+            name="%s.log" % task_run.attempt_number
+        )
+
+        self.remote_log_file = None
+        if (
+            not isinstance(self.task.task_env, LocalEnvConfig)
+            and not self.run_executor.run_settings.run_logging.remote_logging_disabled
+        ):
+            self.remote_log_file: FileTarget = self.attempt_folder.partition(
+                name=str(task_run.attempt_number),
+                config=TargetConfig().as_file().txt,
+                extension=".log",
+            )
+
+        self.log_manager = TaskRunOrchestrationLogManager(
+            task_run=task_run,
+            remote_log_file=self.remote_log_file,
+            local_log_file=self.local_log_file,
+        )
+
+        self.airflow_context = airflow_context
+
+    def task_run_attempt_file(self, *path):
+        return target(self.attempt_folder, *path)
+
+    def execute(self, airflow_context=None, allow_resubmit=True, handle_sigterm=True):
+        task_run = self.task_run
+        run_executor = self.run_executor
         run_config = run_executor.run_config
         task = self.task  # type: Task
-        task_engine = task_run.task_engine
+        task_engine = self.task_engine
         if allow_resubmit and task_engine._should_wrap_with_submit_task(task_run):
             args = task_engine.dbnd_executable + [
                 "execute",
@@ -60,7 +112,7 @@ class TaskRunExecutor(TaskRunCtrl):
                 "--task-id",
                 task_run.task.task_id,
             ]
-            submit_task = self.task_run.task_engine.submit_to_engine_task(
+            submit_task = task_engine.submit_to_engine_task(
                 env=task.task_env, task_name=SystemTaskName.task_submit, args=args
             )
             submit_task.descendants.add_child(task.task_id)
@@ -69,9 +121,12 @@ class TaskRunExecutor(TaskRunCtrl):
             run_executor.run_task_at_execution_time(submit_task)
             return
 
-        with self.task_run.task_run_track_execute() as tracking_context, self.task_run_execute_context(
+        with self.task_run.task_run_track_execute(
+            handle_sigterm=False, capture_log=False
+        ) as tracking_context, self.task_run_execute_context(
             handle_sigterm=handle_sigterm
         ) as execute_context:
+
             if run_executor.is_killed():
                 raise errors.task_execution.databand_context_killed(
                     "task.execute_start of %s" % task
@@ -106,7 +161,7 @@ class TaskRunExecutor(TaskRunCtrl):
                     "Sig TERM! Killing the task '%s' via task.on_kill()",
                     task_run.task.task_id,
                 )
-                run.run_executor._internal_kill()
+                run_executor._internal_kill()
 
                 error = TaskRunError.build_from_ex(ex, task_run)
                 try:
@@ -135,7 +190,7 @@ class TaskRunExecutor(TaskRunCtrl):
                 except Exception:
                     logger.exception("Failed to kill task on user keyboard interrupt")
                 task_run.set_task_run_state(TaskRunState.CANCELLED, error=error)
-                run.run_executor._internal_kill()
+                run_executor._internal_kill()
                 raise
             except SystemExit as ex:
                 error = TaskRunError.build_from_ex(ex, task_run)
@@ -156,10 +211,22 @@ class TaskRunExecutor(TaskRunCtrl):
         if handle_sigterm:
             ctx_managers.append(handle_sigterm_at_dbnd_task_run())
 
+        if self.run_executor.settings.tracking_log.capture_task_run_log:
+            ctx_managers.append(self.log_manager.capture_task_log())
+
         ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))
 
         with nested(*ctx_managers):
             yield
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        if "airflow_context" in d:
+            # airflow context contains "auto generated code" that can not be pickled (Vars class)
+            # we don't need to pickle it as we pickle DAGs separately
+            d = self.__dict__.copy()
+            del d["airflow_context"]
+        return d
 
 
 @seven.contextlib.contextmanager

@@ -10,7 +10,7 @@ from mock import MagicMock
 from pytest import fixture
 
 from dbnd._core.configuration.environ_config import (
-    ENV_DBND__NO_PLUGINS,
+    ENV_DBND__ORCHESTRATION__NO_PLUGINS,
     reset_dbnd_project_config,
 )
 from dbnd._core.utils.basics.environ_utils import set_on
@@ -37,7 +37,7 @@ os.environ[
 reset_dbnd_project_config()
 
 # we don't need to load dbnd plugins/modules
-set_on(ENV_DBND__NO_PLUGINS)
+set_on(ENV_DBND__ORCHESTRATION__NO_PLUGINS)
 
 
 def pytest_configure(config):

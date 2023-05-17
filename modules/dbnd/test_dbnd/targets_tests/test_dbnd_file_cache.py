@@ -50,9 +50,10 @@ class TestDbndFileCache(object):
     def test_resolve_cache_file_name(self, mock_get_run):
         file_path = "/path/to/file.py"
         with TemporaryDirectory() as dir:
-            mock_get_run.return_value.get_current_dbnd_local_root.return_value = target(
-                dir
-            )
+            run_executor = MagicMock()
+            run_executor.get_current_dbnd_local_root.return_value = target(dir)
+
+            mock_get_run.return_value.run_executor = run_executor
             cache_file_path = DbndLocalFileMetadataRegistry._resolve_cache_file_name(
                 file_path
             )

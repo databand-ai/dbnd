@@ -2,12 +2,11 @@
 
 from typing import Set
 
-from dbnd import parameter
+from dbnd import Config, parameter
 from dbnd.testing.helpers import build_task
-from dbnd.testing.orchestration_utils import TTask
 
 
-class SetParameterTask(TTask):
+class SetParameterTask(Config):
     param = parameter[Set]
     param_typed = parameter[Set].sub_type(int)
 

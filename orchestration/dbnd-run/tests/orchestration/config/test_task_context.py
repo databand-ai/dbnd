@@ -48,7 +48,7 @@ class TestDatabandContext(object):
         with new_dbnd_context(
             conf={
                 "core": {
-                    "user_init": "test_dbnd.configuration.test_task_context._user_code"
+                    "user_init": "tests.orchestration.config.test_task_context._user_code"
                 }
             }
         ):
@@ -60,7 +60,7 @@ class TestDatabandContext(object):
         with new_dbnd_context(
             conf={
                 "core": {
-                    "user_init": "test_dbnd.configuration.test_task_context.inject_some_params"
+                    "user_init": "tests.orchestration.config.test_task_context.inject_some_params"
                 },
                 "MyConfig22": {"config_id": "1"},
             }
@@ -74,7 +74,7 @@ class TestDatabandContext(object):
             with new_dbnd_context(
                 conf={
                     "core": {
-                        "user_init": "test_dbnd.configuration.test_task_context._user_code_raises"
+                        "user_init": "tests.orchestration.config.test_task_context._user_code_raises"
                     }
                 }
             ):

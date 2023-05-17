@@ -2,20 +2,14 @@
 
 import typing
 
-from typing import Union
-
-from dbnd._core.errors import DatabandConfigError
 from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.settings.core import CoreConfig, DatabandSystemConfig
 from dbnd._core.settings.histogram import HistogramConfig  # noqa: F401
-from dbnd._core.settings.log import LoggingConfig
 from dbnd._core.settings.run_info import RunInfoConfig  # noqa: F401
 from dbnd._core.settings.tracking_config import TrackingConfig
+from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 from dbnd._core.task import Config
-from dbnd._core.task_build.task_registry import build_task_from_config
-from dbnd.orchestration.run_settings.describe import DescribeConfig
 from dbnd.orchestration.run_settings.env import EnvConfig  # noqa: F401
-from dbnd.orchestration.run_settings.output import OutputConfig
 
 
 if typing.TYPE_CHECKING:
@@ -29,34 +23,14 @@ class DatabandSettings(object):
 
         self.core = CoreConfig()
         self.tracking = TrackingConfig()  # type: TrackingConfig
-
-        self.log = LoggingConfig()
-
-        self.output = OutputConfig()
-        self.describe = DescribeConfig()
+        self.tracking_log = TrackingLoggingConfig()
 
         self.singleton_configs = {}
-
-        self.user_configs = {}
-        for user_config in self.core.user_configs:
-            self.user_configs[user_config] = build_task_from_config(user_config)
 
     @property
     def system(self):
         # type:()->DatabandSystemConfig
         return self.databand_context.system_settings
-
-    def get_env_config(self, name_or_env):
-        # type: ( Union[str, EnvConfig]) -> EnvConfig
-        if isinstance(name_or_env, EnvConfig):
-            return name_or_env
-
-        if name_or_env not in self.core.environments:
-            raise DatabandConfigError(
-                "Unknown env name '%s', available environments are %s,  please enable it at '[core]environments' "
-                % (name_or_env, self.core.environments)
-            )
-        return build_task_from_config(name_or_env, EnvConfig)
 
     def get_config(self, name):
         """

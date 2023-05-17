@@ -11,6 +11,7 @@ from dbnd.orchestration.run_executor.run_executor import (
     RunExecutor,
     set_active_run_context,
 )
+from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
 from dbnd_run.airflow.bootstrap import dbnd_run_airflow_bootstrap
 from dbnd_run.airflow.dbnd_airflow_contrib.dbnd_operator import DbndOperator
 from dbnd_run.airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
@@ -45,7 +46,7 @@ def dbnd_execute_airflow_operator(airflow_operator, context):
     if isinstance(dbnd_task_run.task, AirflowOperatorAsDbndTask):
         # we need to update it with latest, as we have "templated" and copy airflow operator object
         dbnd_task_run.task.airflow_op = airflow_operator
-        return dbnd_task_run.executor.execute(context)
+        return dbnd_task_run.task_run_executor.execute(context)
     else:
         logging.info(
             "Found airflow operator with dbnd_task_id that can not be run by dbnd: %s",
@@ -94,9 +95,10 @@ def dbnd_operator__execute(dbnd_operator, context):
 
             dbnd_bootstrap()
             dbnd_run_airflow_bootstrap()
-            run = RunExecutor.load_run(
+            run_executor = RunExecutor.load_run(
                 dump_file=target(driver_dump), disable_tracking_api=False
             )
+            run = run_executor.run
         except Exception as e:
             print(
                 "Failed to load dbnd task in native airflow execution! Exception: %s"
@@ -107,10 +109,18 @@ def dbnd_operator__execute(dbnd_operator, context):
 
         with set_active_run_context(run):
             task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
-            ret_value = task_run.executor.execute(airflow_context=context)
+
+            task_run.airflow_context = context
+            # In the case the airflow_context has a different try_number than our task_run_executor's attempt_number,
+            # we need to update our task_run_executor attempt accordingly.
+            if task_run.attempt_number != context["ti"].try_number:
+                task_run.set_task_run_attempt(context["ti"].try_number)
+                task_run.task_run_executor = TaskRunExecutor(task_run)
+
+            ret_value = task_run.task_run_executor.execute(airflow_context=context)
     else:
         task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
-        ret_value = task_run.executor.execute(airflow_context=context)
+        ret_value = task_run.task_run_executor.execute(airflow_context=context)
 
     return ret_value
 

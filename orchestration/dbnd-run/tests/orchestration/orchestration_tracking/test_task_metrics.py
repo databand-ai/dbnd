@@ -10,8 +10,10 @@ import pytest
 from dbnd import as_task, band, dbnd_config, log_artifact, log_metric, task
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.current import get_databand_run
-from dbnd._core.tracking.backends.tracking_store_file import read_task_metrics
 from dbnd._vendor.pendulum import utcnow
+from dbnd.orchestration.orchestration_tracking.backends.tracking_store_file import (
+    read_task_metrics,
+)
 from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
 from dbnd_test_scenarios.test_common.task.factories import TTask
@@ -42,7 +44,9 @@ class TestTaskMetricsCommands(TargetTestBase):
 
         t = assert_run_task(t_f_metric.t())
         assert (
-            t.ctrl.last_task_run.meta_files.get_metric_target("t_f").read().split()[1]
+            t.ctrl.last_task_run.task_run_executor.meta_files.get_metric_target("t_f")
+            .read()
+            .split()[1]
             == "5"
         )
 
@@ -56,8 +60,9 @@ class TestTaskMetricsCommands(TargetTestBase):
         with dbnd_config({"core": {"tracker": ["file", "console"]}}):
             with DatabandContext.new_context(allow_override=True):
                 t = assert_run_task(t_f_metric.t())
-                t.ctrl.last_task_run.meta_files.get_metric_target("t_f").read()
-                assert t.ctrl.last_task_run.meta_files.get_metric_target(
+                task_run_executor = t.ctrl.last_task_run.task_run_executor
+                task_run_executor.meta_files.get_metric_target("t_f").read()
+                assert task_run_executor.meta_files.get_metric_target(
                     "t_f"
                 ).read().split()[1] == str(now)
 
@@ -70,7 +75,9 @@ class TestTaskMetricsCommands(TargetTestBase):
         def read_metrics(metrics_task_id):
             # type: ( str) -> Dict
             source_task_attempt_folder = (
-                get_databand_run().get_task_run(metrics_task_id).attempt_folder
+                get_databand_run()
+                .get_task_run(metrics_task_id)
+                .task_run_executor.attempt_folder
             )
             metrics = read_task_metrics(source_task_attempt_folder)
             return metrics

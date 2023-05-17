@@ -14,11 +14,10 @@ import dbnd._core.utils.basics.environ_utils
 
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
-    ENV_DBND__NO_MODULES,
-    ENV_DBND__NO_PLUGINS,
+    ENV_DBND__ORCHESTRATION__NO_PLUGINS,
     reset_dbnd_project_config,
 )
-from dbnd._core.plugin.use_dbnd_airflow_tracking import disable_airflow_plugin
+from dbnd._core.context.use_dbnd_run import disable_airflow_package
 from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 from targets import target
@@ -26,16 +25,16 @@ from targets import target
 
 # we want to test only this module
 # However, this import runs in separate space from test run -> this global will not be visible to your test
-# get_dbnd_project_config().is_no_modules = True
+# get_dbnd_project_config().is_no_dbnd_orchestration = True
 
 # if enabled will pring much better info on tests
 # os.environ["DBND__VERBOSE"] = "True"
-set_on(ENV_DBND__NO_MODULES)
-set_on(ENV_DBND__NO_PLUGINS)
+# set_on(ENV_DBND__NO_ORCHESTRATION)
+set_on(ENV_DBND__ORCHESTRATION__NO_PLUGINS)
 set_on(ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING)
 
 # DISABLE AIRFLOW, we don't test it in this module!
-disable_airflow_plugin()
+disable_airflow_package()
 
 # all env changes should be active for current project config
 reset_dbnd_project_config()
@@ -103,7 +102,7 @@ def pandas_data_frame_index(pandas_data_frame):
 
 @pytest.fixture
 def pandas_data_frame_on_disk(tmpdir, pandas_data_frame):
-    t = target(tmpdir / "df.parquet")
+    t = target(tmpdir / "df.csv")
     t.write_df(pandas_data_frame)
     return pandas_data_frame, t
 

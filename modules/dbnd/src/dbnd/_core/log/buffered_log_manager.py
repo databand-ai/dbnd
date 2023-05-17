@@ -4,7 +4,7 @@ from dbnd._vendor.termcolor import colored
 
 
 LINE_BRAKE = "\r\n"
-MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {total_log_size} bytes of the logs.\r\nControl the log preview length with LoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
+MERGE_MSG = "\r\n...\r\n\r\nThe log body is truncated by databand, fetched {head_size} bytes for the `head` and {tail_size} bytes for the `tail` from the whole {total_log_size} bytes of the logs.\r\nControl the log preview length with TrackingLoggingConfig.preview_head_bytes and LoggingConfig.preview_tail_bytes \r\n\r\n...\r\n"
 MERGE_MSG_COLOR = "yellow"
 
 # Frontend depends on those exact strings to show localized messages: don't change them!
@@ -23,7 +23,7 @@ class BufferedLogManager:
     terminator = "\n"
 
     def __init__(self, max_head_bytes=None, max_tail_bytes=None):
-        from dbnd._core.settings import LoggingConfig
+        from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 
         self.initial_buffer = []
         self.initial_buffer_size = 0
@@ -31,7 +31,7 @@ class BufferedLogManager:
         self.max_head_bytes = max_head_bytes
         self.max_tail_bytes = max_tail_bytes
         if self.max_head_bytes is None or self.max_tail_bytes is None:
-            logger_config = LoggingConfig()
+            logger_config = TrackingLoggingConfig()
             self.max_head_bytes = max_head_bytes or logger_config.preview_head_bytes
             self.max_tail_bytes = max_tail_bytes or logger_config.preview_tail_bytes
 

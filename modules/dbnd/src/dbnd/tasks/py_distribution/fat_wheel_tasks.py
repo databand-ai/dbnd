@@ -31,8 +31,10 @@ class ProjectWheelFile(Task):
     wheel_file = output.with_format("zip")
 
     def run(self):
-        local_wheel_file_zip = self.current_task_run.local_task_run_root.partition(
-            name="project_wheel_file.zip"
+        local_wheel_file_zip = (
+            self.current_task_run_executor.local_task_run_root.partition(
+                name="project_wheel_file.zip"
+            )
         )  # type: FileTarget
         local_wheel_file_zip.mkdir_parent()
         # we need a temp folder to create our wheel file,

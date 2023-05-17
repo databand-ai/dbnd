@@ -12,7 +12,6 @@ from uuid import UUID
 
 import six
 
-from dbnd._core.configuration.config_readers import read_from_config_files
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import is_unit_test_mode
 from dbnd._core.constants import (
@@ -21,6 +20,7 @@ from dbnd._core.constants import (
     TaskExecutorType,
     TaskRunState,
 )
+from dbnd._core.context.use_dbnd_run import is_dbnd_orchestration_via_airflow_enabled
 from dbnd._core.current import current_task_run
 from dbnd._core.errors import DatabandRunError, DatabandSystemError
 from dbnd._core.errors.base import (
@@ -29,10 +29,8 @@ from dbnd._core.errors.base import (
     DatabandSigTermError,
     DbndCanceledRunError,
 )
-from dbnd._core.plugin.use_dbnd_run import is_dbnd_run_airflow_enabled
-from dbnd._core.run.databand_run import DatabandRun, new_databand_run
+from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.run.run_banner import print_tasks_tree
-from dbnd._core.settings import DatabandSystemConfig
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
@@ -60,10 +58,11 @@ from dbnd.orchestration.run_executor.heartbeat_sender import start_heartbeat_sen
 from dbnd.orchestration.run_executor.results_view import RunResultBand
 from dbnd.orchestration.run_executor.task_runs_builder import TaskRunsBuilder
 from dbnd.orchestration.run_executor_engine.local_task_executor import LocalTaskExecutor
-from dbnd.orchestration.run_settings import RunSettings
+from dbnd.orchestration.run_settings import EnvConfig, RunLoggingConfig, RunSettings
 from dbnd.orchestration.run_settings.engine import build_engine_config
 from dbnd.orchestration.run_settings.run import RunConfig
 from dbnd.orchestration.task.task import Task
+from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
 from targets import FileTarget, target
 from targets.caching import TARGET_CACHE
 from targets.providers.pandas import register_pd_to_hdf5_as_table_marshaler
@@ -82,15 +81,6 @@ logger = logging.getLogger(__name__)
 _is_killed = threading.Event()
 
 
-def init_config(self):
-    self.system_settings = DatabandSystemConfig()
-    if self.system_settings.conf:
-        self.config.set_values(self.system_settings.conf, source="[databand]conf")
-    if self.system_settings.conf_file:
-        conf_file = read_from_config_files(self.system_settings.conf_file)
-        self.config.set_values(conf_file, source="[databand]conf")
-
-
 class RunExecutor(SingletonContext):
     """
     This class is in charge of running the pipeline at orchestration (dbnd run) mode
@@ -102,6 +92,12 @@ class RunExecutor(SingletonContext):
     def __init__(
         self, run, root_task_or_task_name, send_heartbeat, force_task_name=None
     ):
+
+        from dbnd.orchestration.orchestration_bootstrap import (
+            dbnd_bootstrap_orchestration,
+        )
+
+        dbnd_bootstrap_orchestration()
 
         self.run = run  # type: DatabandRun
         self.databand_context = run.context  # type: DatabandContext
@@ -129,21 +125,25 @@ class RunExecutor(SingletonContext):
                 type(root_task_or_task_name),
             )
 
-        env = self.run.env
-        system_settings = self.run.context.system_settings
-        self.run_settings = RunSettings(databand_context=self)
-        self.run_config = self.run_settings.run  # type: RunConfig
-
-        self.env = self.settings.get_env_config(system_settings.env)
-        self.config.set_values(
-            config_values={"task": {"task_env": system_settings.env}},
-            source="RunExecutor[%s]" % self.run.name,
+        self.run_folder_prefix = os.path.join(
+            "log",
+            run.execution_date.strftime("%Y-%m-%d"),
+            "%s_%s_%s"
+            % (
+                run.execution_date.strftime("%Y-%m-%dT%H%M%S.%f"),
+                run.job_name,
+                run.name,
+            ),
         )
+        self.run_root = self.env.dbnd_root.folder(self.run_folder_prefix)
+        self.run_local_root = self.env.dbnd_local_root.folder(self.run_folder_prefix)
 
-        self.driver_dump = run.run_root.file("run.pickle")
+        self.driver_dump = self.run_root.file("run.pickle")
 
-        self.local_engine = build_engine_config(env.local_engine)
-        self.remote_engine = build_engine_config(env.remote_engine or env.local_engine)
+        self.local_engine = build_engine_config(self.env.local_engine)
+        self.remote_engine = build_engine_config(
+            self.env.remote_engine or self.env.local_engine
+        )
 
         # we take values from run config (if defined) - otherwise from specific env definition
         # usually run_config will contain "negative" override
@@ -151,18 +151,20 @@ class RunExecutor(SingletonContext):
         self.submit_driver = (
             self.run_config.submit_driver
             if self.run_config.submit_driver is not None
-            else env.submit_driver
+            else self.env.submit_driver
         )
         self.submit_tasks = (
             self.run_config.submit_tasks
             if self.run_config.submit_tasks is not None
-            else env.submit_tasks
+            else self.env.submit_tasks
         )
         self.task_executor_type, self.parallel = calculate_task_executor_type(
             self.submit_tasks, self.remote_engine, self.run_config
         )
 
-        run = self.run
+        self.local_engine = build_engine_config(self.env.local_engine).clone(
+            require_submit=False
+        )
         if self.submit_driver and not run.existing_run:
             # we are running submitter, that will send driver to remote
             self.run_executor_type = SystemTaskName.driver_submit
@@ -192,9 +194,26 @@ class RunExecutor(SingletonContext):
 
         # we are running from python notebook, let start to print to stdout
         if run.context.name == "interactive" or is_unit_test_mode():
-            run.context.config.set("log", "stream_stdout", "True", source="log")
+            run.context.config.set(
+                RunLoggingConfig._conf__task_family,
+                "stream_stdout",
+                "True",
+                source="log",
+            )
 
         self._is_initialized = False
+
+    @property
+    def run_settings(self) -> RunSettings:
+        return self.databand_context.run_settings
+
+    @property
+    def run_config(self) -> RunConfig:
+        return self.run_settings.run
+
+    @property
+    def env(self) -> EnvConfig:
+        return self.run_settings.env
 
     def _on_enter(self):
         pm.hook.dbnd_on_pre_init_context(ctx=self)
@@ -218,7 +237,8 @@ class RunExecutor(SingletonContext):
 
         # we do it every time we go into databand_config
         self.configure_targets()
-        self.settings.log.configure_dbnd_logging()
+
+        self.run_settings.run_logging.configure_dbnd_logging()
 
         _run_user_func(
             self.settings.core.__class__.user_init, self.settings.core.user_init
@@ -229,7 +249,7 @@ class RunExecutor(SingletonContext):
         pm.hook.dbnd_on_exit_context(ctx=self)
 
     def configure_targets(self):
-        output_config = self.settings.output  # type: OutputConfig
+        output_config = self.run_settings.output
         if output_config.hdf_format == "table":
             register_pd_to_hdf5_as_table_marshaler()
 
@@ -254,10 +274,12 @@ class RunExecutor(SingletonContext):
 
         # will track and "execute" pipeline
         # you need to run DatabandRun.init_run otherwise it will be not tracked
-        self.run._driver_task_run = TaskRun(
-            task=self.run_executor__task, run=self.run, task_engine=self.host_engine
+        self.run._driver_task_run = self.run.build_task_run(
+            task=self.run_executor__task
         )
-        self.run._add_task_run(self.run._driver_task_run)
+        self.build_task_run_executor(
+            self.run._driver_task_run, task_engine=self.host_engine
+        )
 
         run.tracker.init_run()
         run.set_run_state(RunState.RUNNING)
@@ -270,7 +292,7 @@ class RunExecutor(SingletonContext):
                 start_pycharm_debugger(host="localhost", port=debug_port)
 
             self.start_time = utcnow()
-            run.driver_task_run.executor.execute()
+            run.driver_task_run.task_run_executor.execute()
             self.finished_time = utcnow()
             # if we are in submitter we don't want to print banner that everything is good
         except DatabandRunError as ex:
@@ -285,6 +307,11 @@ class RunExecutor(SingletonContext):
                 logger.exception("Failed to shutdown the current run, continuing")
 
         return self
+
+    def get_current_dbnd_local_root(self):
+        # we should return here the proper engine config, based in which context we run right now
+        # it could be submit, driver or task engine
+        return self.env.dbnd_local_root
 
     def _dbnd_run_error(self, ex):
         if (
@@ -351,7 +378,7 @@ class RunExecutor(SingletonContext):
         if self.task_executor_type == TaskExecutorType.local:
             return False
 
-        if is_dbnd_run_airflow_enabled():
+        if is_dbnd_orchestration_via_airflow_enabled():
             from dbnd_run.airflow.executors import AirflowTaskExecutorType
 
             return self.task_executor_type not in [
@@ -371,7 +398,7 @@ class RunExecutor(SingletonContext):
         self.run.tracker.tracking_store.flush()
 
         with t.open("wb") as fp:
-            cloudpickle.dump(obj=self.run, file=fp)
+            cloudpickle.dump(obj=self.run.run_executor, file=fp)
 
     @classmethod
     def load_run(cls, dump_file, disable_tracking_api):
@@ -476,16 +503,25 @@ class RunExecutor(SingletonContext):
             self, task, task_run_engine=task_engine
         )
 
-        # this one will add tasks to the run! extra api call
-        run.add_task_runs_and_track(task_runs)
+        # this one will add tasks to the run! track task runs
+        run.tracker.add_task_runs(task_runs)
+
         return task_runs
 
     def run_task_at_execution_time(self, task, task_engine=None):
         if task_engine is None:
             task_engine = self.host_engine
-        task_run = self.run.create_task_run_at_execution_time(task, task_engine)
-        task_run.executor.execute()
+        task_run = self.run.build_task_run_and_track(task)
+        task_run_executor = self.build_task_run_executor(task_run, task_engine)
+        task_run_executor.execute()
         return task_run
+
+    def build_task_run_executor(self, task_run, task_engine):
+        task_run_executor = TaskRunExecutor(
+            task_run=task_run, run_executor=self, task_engine=task_engine
+        )
+        task_run.task_run_executor = task_run_executor
+        return task_run_executor
 
     def run_driver(self):
         logger.info("Running driver... Driver PID: %s", os.getpid())
@@ -616,7 +652,7 @@ class RunExecutor(SingletonContext):
         remote_engine = self.remote_engine
         remote_engine.prepare_for_run(run)
 
-        result_map_target = run.run_root.file("{}.json".format(get_uuid()))
+        result_map_target = self.run_root.file("{}.json".format(get_uuid()))
         cmd_line_args = (
             ["run"]
             + _get_dbnd_run_relative_cmd()
@@ -634,7 +670,7 @@ class RunExecutor(SingletonContext):
 
         args = remote_engine.dbnd_executable + cmd_line_args
         submit_to_engine_task = remote_engine.submit_to_engine_task(
-            env=run.env,
+            env=run.run_executor.env,
             args=args,
             task_name="dbnd_driver_run",
             interactive=self.run_config.interactive,
@@ -837,7 +873,7 @@ def dbnd_run_task(
         task_or_task_name,
     )
 
-    with new_databand_run(
+    with DatabandRun.new_context(
         context=context,
         job_name=job_name,
         run_uid=run_uid,
@@ -845,6 +881,7 @@ def dbnd_run_task(
         scheduled_run_info=scheduled_run_info,
         is_orchestration=True,
         project_name=project_name,
+        allow_override=True,
     ) as run:  # type: DatabandRun
         # this is the main entry point to run some task in "orchestration" mode
         with RunExecutor.new_context(

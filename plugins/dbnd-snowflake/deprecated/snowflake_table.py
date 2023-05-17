@@ -5,8 +5,8 @@ from typing import Optional, Union
 from snowflake.connector import SnowflakeConnection
 
 from dbnd import log_duration
-from dbnd._core.utils.dbnd_modules import is_module_enabled
 from dbnd._core.tracking.metrics import log_data, log_dataset_op
+from dbnd._core.utils.dbnd_modules import is_module_enabled
 from dbnd_snowflake.extract_sql_query import TableTargetOperation
 from dbnd_snowflake.snowflake_config import SnowflakeConfig
 from dbnd_snowflake.snowflake_controller import SnowflakeController

@@ -10,35 +10,31 @@ from logging.config import DictConfigurator
 from typing import Callable, List, Optional
 
 from dbnd._core.configuration.environ_config import in_quiet_mode
-from dbnd._core.log.buffered_memory_handler import BufferedMemoryHandler
 from dbnd._core.log.config import configure_logging_dictConfig
-from dbnd._core.log.logging_utils import find_handler, setup_log_file, try_init_sentry
+from dbnd._core.log.logging_utils import (
+    find_handler,
+    safe_is_typeof,
+    setup_log_file,
+    try_init_sentry,
+)
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task import config
-from dbnd._core.utils.basics.format_exception import format_exception_as_str
 from dbnd._core.utils.project.project_fs import databand_system_path
 
 
 logger = logging.getLogger(__name__)
 
 
-class LoggingConfig(config.Config):
+class RunLoggingConfig(config.Config):
     """Databand's logger configuration"""
 
-    _conf__task_family = "log"
+    _conf__task_family = "run_log"
     disabled = parameter(
         description="Determine whether logging should be disabled."
     ).value(False)
     debug_log_config = parameter(
         description="Enable debugging our logging configuration system."
     ).value(False)
-
-    capture_stdout_stderr = parameter(
-        description="Set if logger should retransmit all output written to stdout or stderr"
-    ).value(True)
-    capture_task_run_log = parameter.help(
-        "Enable capturing task output into log."
-    ).value(True)
 
     override_airflow_logging_on_task_run = parameter(
         description="Enable replacing airflow logger with databand logger."
@@ -96,28 +92,9 @@ class LoggingConfig(config.Config):
     at_warn = parameter.help("Set name of loggers to put in WARNING mode.").c[List[str]]
     at_debug = parameter.help("Set name of loggers to put in DEBUG mode.").c[List[str]]
 
-    exception_no_color = parameter(
-        default=False, description="Disable using colors in exception handling."
-    )[bool]
-    exception_simple = parameter(
-        default=False, description="Use simple mode of exception handling"
-    )[bool]
-
     send_body_to_server = parameter(
         default=True, description="Enable or disable sending log file to server."
     )[bool]
-
-    preview_head_bytes = parameter(
-        default=0,  # Disabled
-        description="Determine the maximum head size of the log file, bytes to be sent to server.\n"
-        " The default value is 0 Kilobytes.",
-    )[int]
-
-    preview_tail_bytes = parameter(
-        default=0,  # Disabled
-        description="Determine the maximum tail size of the log file, bytes to be sent to server.\n"
-        " The default value is 0 Kilobytes",
-    )[int]
 
     remote_logging_disabled = parameter.help(
         "For tasks using a cloud environment, don't copy the task log to cloud storage."
@@ -136,26 +113,8 @@ class LoggingConfig(config.Config):
     ).value(False)
 
     def _initialize(self):
-        super(LoggingConfig, self)._initialize()
+        super(RunLoggingConfig, self)._initialize()
         self.task_log_file_formatter = None
-
-    def format_exception_as_str(self, exc_info, isolate=True):
-        if self.exception_simple:
-            return format_exception_as_str(exc_info)
-
-        try:
-            from dbnd._vendor.tbvaccine import TBVaccine
-
-            tbvaccine = TBVaccine(
-                no_colors=self.exception_no_color,
-                show_vars=False,
-                skip_non_user_on_isolate=True,
-                isolate=isolate,
-            )
-            return tbvaccine.format_tb(*exc_info)
-        except Exception as ex:
-            logger.info("Failed to format exception: %s", ex)
-            return format_exception_as_str(exc_info)
 
     def get_dbnd_logging_config(self, filename=None):
         if self.custom_dict_config:
@@ -168,7 +127,7 @@ class LoggingConfig(config.Config):
         return self.get_dbnd_logging_config_base(filename=filename)
 
     def get_dbnd_logging_config_base(self, filename=None):
-        # type: (LoggingConfig, Optional[str]) -> Optional[dict]
+        # type: (RunLoggingConfig, Optional[str]) -> Optional[dict]
         self.log_debug("Using log.get_dbnd_logging_config_base")
         log_settings = self
         log_level = log_settings.level
@@ -249,7 +208,7 @@ class LoggingConfig(config.Config):
 
         # start by trying to initiate Sentry setup - has side effect of changing the logging config
         self.log_debug("Initialize Sentry setup")
-        try_init_sentry()
+        try_init_sentry(self)
 
         if self.disable_colors:
             self.log_debug("Colors are disabled")
@@ -260,6 +219,7 @@ class LoggingConfig(config.Config):
         airflow_task_log_handler = None
         if self.override_airflow_logging_on_task_run:
             airflow_task_log_handler = self.dbnd_override_airflow_logging_on_task_run()
+
         try:
             self.log_debug("configure_logging_dictConfig: %s", dict_config)
             configure_logging_dictConfig(dict_config=dict_config)
@@ -284,8 +244,7 @@ class LoggingConfig(config.Config):
         #  EVERY output of root logger will go through CONSOLE handler into AIRFLOW.TASK without being printed to screen
 
         self.log_debug("dbnd_override_airflow_logging_on_task_run")
-        if not sys.stderr or not _safe_is_typeof(sys.stderr, "StreamLogWriter"):
-
+        if not sys.stderr or not safe_is_typeof(sys.stderr, "StreamLogWriter"):
             self.log_debug(
                 "Airflow logging is already replaced by dbnd stream log writer! sys.stderr=%s",
                 sys.stderr,
@@ -304,7 +263,7 @@ class LoggingConfig(config.Config):
         airflow_root_console_handler = find_handler(logging.root, "console")
 
         self.log_debug("airflow_root_console_handler:%s", airflow_root_console_handler)
-        if _safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
+        if safe_is_typeof(airflow_root_console_handler, "RedirectStdHandler"):
             # we are removing this console logger
             # this is the logger that capable to create self loop
             # as it writes to "latest" sys.stdout,
@@ -327,22 +286,6 @@ class LoggingConfig(config.Config):
             "dbnd_override_airflow_logging_on_task_run logging.root: %s", logging.root
         )
         return airflow_task_log_handler
-
-    def get_task_log_memory_handler(self):
-        if not self.task_log_file_formatter:
-            config = self.get_dbnd_logging_config()
-            configurator = DictConfigurator(config)
-            formatter_config = configurator.config.get("formatters").get(
-                self.file_formatter_name
-            )
-            self.task_log_file_formatter = configurator.configure_formatter(
-                formatter_config
-            )
-
-        handler = BufferedMemoryHandler()
-        handler.setFormatter(self.task_log_file_formatter)
-        handler.setLevel(self.level)
-        return handler
 
     def get_task_log_file_handler(self, log_file):
         if not self.task_log_file_formatter:
@@ -384,9 +327,3 @@ class LoggingConfig(config.Config):
             logger.info("DEBUG_LOG_CONFIG:" + msg, *args)
         except Exception:
             pass
-
-
-def _safe_is_typeof(value, name):
-    if not value:
-        return
-    return isinstance(value, object) and value.__class__.__name__.endswith(name)

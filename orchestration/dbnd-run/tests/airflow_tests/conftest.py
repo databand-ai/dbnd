@@ -11,15 +11,15 @@ import pytest
 from dbnd_run.airflow.testing.unittest_env import setup_unittest_airflow  # isort:skip
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True, scope="module")
 def dbnd_airflow_unittest_setup():
     setup_unittest_airflow()
 
 
-@pytest.fixture(autouse=True)
-def dbnd_env_per_test(databand_pytest_env):
+@pytest.fixture(autouse=True, scope="session")
+def dbnd_airflow_clean():
     _clean_af_env()
-    yield databand_pytest_env
+    yield
     _clean_af_env()
 
 
