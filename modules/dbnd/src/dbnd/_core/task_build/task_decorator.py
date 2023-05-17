@@ -16,10 +16,6 @@ from dbnd._core.current import (
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
-from dbnd._core.plugin.use_dbnd_run_airflow_as_native_operator import (
-    build_task_at_airflow_dag_context,
-    is_in_airflow_dag_build_context,
-)
 from dbnd._core.task.decorated_callable_task import _DecoratedCallableTask
 from dbnd._core.task_build.task_context import TaskContextPhase, current_phase
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
@@ -174,12 +170,6 @@ class TaskDecorator(object):
         # we are at orchestration mode
 
         task_cls = self.get_task_cls()
-
-        if is_in_airflow_dag_build_context():
-            # we are in Airflow DAG building mode - AIP-31
-            return build_task_at_airflow_dag_context(
-                task_cls=task_cls, call_args=call_args, call_kwargs=call_kwargs
-            )
 
         current = try_get_current_task()
         if not current:

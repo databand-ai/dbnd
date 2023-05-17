@@ -8,10 +8,6 @@ import six
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.constants import TaskEssence
-from dbnd._core.plugin.use_dbnd_run_airflow_as_native_operator import (
-    build_task_at_airflow_dag_context,
-    is_in_airflow_dag_build_context,
-)
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_factory import TaskFactory
@@ -72,23 +68,6 @@ class TaskMetaclass(abc.ABCMeta):
         """
         Custom class instantiation utilizing instance cache.
         """
-
-        # use-case of TaskClass() call from airflow context during DAG creation
-        _dbnd_disable_airflow_inplace = kwargs.pop(
-            "_dbnd_disable_airflow_inplace", False
-        )
-        if (
-            is_in_airflow_dag_build_context()
-            and TaskEssence.is_task_cls(cls)
-            and not _dbnd_disable_airflow_inplace
-            and not getattr(cls, "_dbnd_decorated_task", False)
-        ):
-            kwargs = kwargs.copy()
-            kwargs["_dbnd_disable_airflow_inplace"] = True
-            return build_task_at_airflow_dag_context(
-                task_cls=cls, call_args=args, call_kwargs=kwargs
-            )
-
         task_definition = cls.task_definition
         # we need to have context initialized before we start to run all logic in config() scope
 
