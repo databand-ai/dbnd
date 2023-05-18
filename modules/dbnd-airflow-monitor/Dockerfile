@@ -19,7 +19,7 @@ COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd_airflow_monitor-*.whl \
     /dist-python/
 
-ENV DBND_VERSION=1.0.13.0
+ENV DBND_VERSION=1.0.13.1
 
 RUN pip install dbnd==$DBND_VERSION \
     dbnd_airflow_monitor==$DBND_VERSION \
