@@ -8,20 +8,20 @@ import attr
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 
 
-@attr.s
+@attr.s(auto_attribs=True, kw_only=True)
 class BaseServerConfig:
-    uid: UUID = attr.ib()
-    source_name: str = attr.ib()
-    source_type: str = attr.ib()
-    tracking_source_uid: UUID = attr.ib()
+    uid: UUID
+    source_name: str
+    source_type: str
+    tracking_source_uid: UUID
 
-    sync_interval: int = attr.ib(default=10)  # Sync interval in seconds
-    is_sync_enabled: bool = attr.ib(default=True)
-    fetcher_type = attr.ib(default=None)  # type: str
+    sync_interval: int = 10  # Sync interval in seconds
+    is_sync_enabled: bool = True
+    fetcher_type: Optional[str] = None
 
-    log_level = attr.ib(default=None)  # type: str
-    is_generic_syncer_enabled: bool = attr.ib(default=False)
-    syncer_max_retries: int = attr.ib(default=5)
+    log_level: str = None
+    is_generic_syncer_enabled: bool = False
+    syncer_max_retries: int = 5
 
     @classmethod
     def create(
