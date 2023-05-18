@@ -14,6 +14,7 @@ import requests
 
 from six.moves.urllib_parse import urljoin
 
+from dbnd import __version__
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import (
     DatabandApiError,
@@ -80,6 +81,7 @@ class ApiClient(object):
             "Accept": "application/json",
             "content-encoding": "gzip",
             "Content-Type": "application/json",
+            "X-Databand-Version": __version__,
             **(extra_default_headers or {}),
         }
 
