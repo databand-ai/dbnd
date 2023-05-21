@@ -75,7 +75,7 @@ class GenericSyncer(BaseComponent):
             )
 
         for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
-            cursor, batch_size=200
+            cursor, batch_size=10
         ):
             synced_new_data = self._process_assets_batch(init_assets)
 
