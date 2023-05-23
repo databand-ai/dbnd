@@ -23,6 +23,7 @@ setuptools.setup(
         "boto3",
         "botocore",
         "s3fs",
+        "apache-airflow-providers-ftp==3.3.1",
     ],
     extras_require={
         "tests": [
