@@ -265,6 +265,7 @@ class ApiClient(object):
                     failure_handler(ex, retry_policy, retry_number)
 
                 if retry_policy.should_retry(500, None, retry_number):
+                    logger.info("Retrying request - %s", url)
                     sleep(retry_policy.seconds_to_sleep(retry_number))
                     continue
 
