@@ -49,13 +49,13 @@ class GenericSyncer(BaseComponent):
         synced_active_data = False
         synced_new_data = False
         cursor = self.tracking_service.get_last_cursor(
-            integration_id=self.config.identifier,
+            integration_id=str(self.config.uid),
             syncer_instance_id=self.syncer_instance_id,
         )
 
         if cursor is None:
             self.tracking_service.update_last_cursor(
-                integration_id=self.config.identifier,
+                integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
                 state="init",
                 data=self.adapter.init_cursor(),
@@ -66,7 +66,7 @@ class GenericSyncer(BaseComponent):
             self.config.tracking_source_uid,
         )
         active_assets_to_states = self.tracking_service.get_active_assets(
-            integration_id=self.config.identifier,
+            integration_id=str(self.config.uid),
             syncer_instance_id=self.syncer_instance_id,
         )
         if active_assets_to_states:
@@ -82,14 +82,13 @@ class GenericSyncer(BaseComponent):
         if last_cursor != None:
             # report last cursor only when all pages saved
             self.tracking_service.update_last_cursor(
-                integration_id=self.config.identifier,
+                integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
                 state="update",
                 data=last_cursor,
             )
         self.integration_management_service.report_monitor_time_data(
-            self.config.identifier,
-            synced_new_data=(synced_active_data or synced_new_data),
+            self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
         )
 
     def _process_assets_batch(self, assets):
@@ -121,7 +120,7 @@ class GenericSyncer(BaseComponent):
                 self.config.tracking_source_uid,
             )
             self.tracking_service.save_assets_state(
-                integration_id=self.config.identifier,
+                integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
                 assets_to_state=self.assets_to_states_machine.process(
                     assets_states_to_report
