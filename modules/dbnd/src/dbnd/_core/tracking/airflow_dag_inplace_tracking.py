@@ -37,10 +37,10 @@ from dbnd._core.utils.uid_utils import (
 from dbnd.providers.spark.spark_airflow_context import (
     try_get_airflow_context_from_spark_conf,
 )
+from dbnd.utils.helpers import get_callable_name
 
 
 logger = logging.getLogger(__name__)
-
 
 DAG_SPECIAL_TASK_ID = "DAG"
 
@@ -97,8 +97,9 @@ def try_get_airflow_context_env():
     return None
 
 
-def build_run_time_airflow_task(af_context, root_task_name):
-    # type: (AirflowTaskContext, Optional[str]) -> Tuple[TrackingTask, str, UpdateSource, UUID]
+def build_run_time_airflow_task(
+    af_context: AirflowTaskContext, root_task_name: Optional[str]
+) -> Tuple[TrackingTask, str, UpdateSource, UUID]:
     if af_context.context:
         # we are in the execute entry point and therefore that task name is <task>__execute
         task_family = af_context.task_id
@@ -111,7 +112,7 @@ def build_run_time_airflow_task(af_context, root_task_name):
         source_code = NO_SOURCE_CODE
         if is_instance_by_class_name(airflow_operator, "PythonOperator"):
             tracked_function = airflow_operator.python_callable
-            user_params["function_name"] = tracked_function.__name__
+            user_params["function_name"] = get_callable_name(tracked_function)
             source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it

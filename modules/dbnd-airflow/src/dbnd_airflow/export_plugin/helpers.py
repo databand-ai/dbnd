@@ -13,6 +13,7 @@ from airflow.models import BaseOperator
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.git import get_git_commit, is_git_dirty
 from dbnd._core.utils.uid_utils import source_md5
+from dbnd.utils.helpers import get_callable_name
 from dbnd_airflow.export_plugin.compat import get_task_log_reader
 
 
@@ -128,8 +129,7 @@ def _get_command_from_operator(t):
     if isinstance(t, BashOperator):
         return "bash_command='{bash_command}'".format(bash_command=t.bash_command)
     elif isinstance(t, PythonOperator):
-        # functools.partial does not has attribute __name__, so we need use repr
-        func_name = getattr(t.python_callable, "__name__", repr(t.python_callable))
+        func_name = get_callable_name(t.python_callable)
         return "python_callable={func}, op_kwargs={kwrags}".format(
             func=func_name, kwrags=t.op_kwargs
         )

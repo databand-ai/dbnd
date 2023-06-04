@@ -1,11 +1,12 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+from unittest.mock import patch
 from uuid import UUID
 
 from mock import Mock
 
 from dbnd import log_metric
 from dbnd._core.constants import UpdateSource
+from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     AirflowTaskContext,
     build_run_time_airflow_task,
@@ -54,6 +55,28 @@ def af_context_wo_context():
 
 def test_build_run_time_airflow_task_with_context():
     context = af_context_w_context()
+    root_task, job_name, source, run_uid = build_run_time_airflow_task(
+        context, "some_name"
+    )
+
+    assert job_name == "test_dag"
+    assert source == UpdateSource.airflow_tracking
+    assert "test_task" in root_task.task_name
+    assert root_task.task_family == "test_task"
+
+    for field in ["a", "b", "c"]:
+        assert root_task.task_params.get_value(field)
+
+
+@patch("dbnd._core.tracking.airflow_dag_inplace_tracking.is_instance_by_class_name")
+@patch("dbnd._core.tracking.airflow_dag_inplace_tracking.TaskSourceCode.from_callable")
+def test_build_run_time_airflow_task_with_functools_partial(
+    mock_task_source_code, mock_is_instance_by_class_name
+):
+    mock_is_instance_by_class_name.return_value = True
+    mock_task_source_code.return_value = NO_SOURCE_CODE
+    context = af_context_w_context()
+    context.python_callable = "st"
     root_task, job_name, source, run_uid = build_run_time_airflow_task(
         context, "some_name"
     )
