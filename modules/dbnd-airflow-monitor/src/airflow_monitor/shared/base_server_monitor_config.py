@@ -20,7 +20,6 @@ class BaseServerConfig:
     fetcher_type: Optional[str] = None
 
     log_level: str = None
-    is_generic_syncer_enabled: bool = False
     syncer_max_retries: int = 5
 
     @classmethod
