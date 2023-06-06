@@ -159,15 +159,6 @@ def get_dbnd_project_config():
     return _project_config
 
 
-def get_dbnd_custom_config():
-    try:
-        import dbnd_custom_config
-
-        return dbnd_custom_config.get_config_file_path()
-    except Exception:
-        return ""
-
-
 def reset_dbnd_project_config():
     global _project_config
     _project_config = None
