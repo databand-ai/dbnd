@@ -7,6 +7,10 @@ import attr
 
 
 class AssetState(Enum):
+    """
+    Enum representing the states of an asset.
+    """
+
     INIT = "init"
     ACTIVE = "active"
     FINISHED = "finished"
@@ -14,17 +18,33 @@ class AssetState(Enum):
     MAX_RETRY = "max_retry"
 
     @classmethod
-    def get_active_states(cls):
+    def get_active_states(cls) -> List[str]:
+        """
+        Get a list of active states.
+
+        Returns:
+            List[str]: A list of active states.
+        """
         return [cls.INIT.value, cls.ACTIVE.value, cls.FAILED_REQUEST.value]
 
 
 @attr.s(auto_attribs=True)
 class AssetToState(ABC):
+    """
+    Represents the mapping of an asset to its state.
+    """
+
     asset_id: str
     state: AssetState
     retry_count: int = 0
 
-    def asdict(self):
+    def asdict(self) -> Dict[str, object]:
+        """
+        Convert the AssetToState object to a dictionary.
+
+        Returns:
+            dict: A dictionary representing the AssetToState object.
+        """
         return {
             "asset_uri": self.asset_id,
             "state": self.state.value,
@@ -32,7 +52,16 @@ class AssetToState(ABC):
         }
 
     @classmethod
-    def from_dict(cls, assset_dict) -> "AssetToState":
+    def from_dict(cls, assset_dict: Dict[str, object]) -> "AssetToState":
+        """
+        Create an AssetToState object from a dictionary.
+
+        Args:
+            asset_dict (dict): A dictionary representing an AssetToState object.
+
+        Returns:
+            AssetToState: An AssetToState object created from the dictionary.
+        """
         asset_id = assset_dict.get("asset_uri")
         state = assset_dict.get("state")
         asset_state = None
@@ -53,9 +82,22 @@ class AssetToState(ABC):
 
 @attr.s(auto_attribs=True)
 class AssetsToStatesMachine:
+    """
+    Represents a state machine for processing assets and their states.
+    """
+
     max_retries: int = 5
 
     def process(self, assets_to_state: List[AssetToState]) -> List[AssetToState]:
+        """
+        Process the given assets and their states based on the defined rules.
+
+        Args:
+            assets_to_state (List[AssetToState]): A list of AssetToState objects to be processed.
+
+        Returns:
+            List[AssetToState]: A list of processed AssetToState objects.
+        """
         new_assets_to_state = []
         for asset_to_state in assets_to_state:
             if asset_to_state.state == AssetState.FAILED_REQUEST:
@@ -71,6 +113,10 @@ class AssetsToStatesMachine:
 
 @attr.s(auto_attribs=True)
 class Assets:
+    """
+    Represents a collection of assets and their states.
+    """
+
     data: Optional[object] = None
     assets_to_state: Optional[List[AssetToState]] = None
 
@@ -82,18 +128,58 @@ class ThirdPartyInfo:
 
 
 class Adapter(ABC):
+    """
+    Abstract base class for integration adapters.
+    Subclasses should implement the methods to interact with a specific integration.
+    seealso:: :class:`MockAdapter`
+    seealso:: :class:`DataStageAdapter`
+    seealso:: :class:`DbtAdapter`
+    """
+
     @abstractmethod
     def init_cursor(self) -> object:
+        """
+        This method should be implemented by subclasses to initialize and return a cursor object.
+
+        Returns:
+            object: initial cursor object to query integration assets
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def init_assets_for_cursor(
         self, cursor: object, batch_size: int
-    ) -> Generator[Tuple[Assets, str], None, None]:
+    ) -> Generator[Tuple[Assets, object], None, None]:
+        """
+        Initialize assets to init state mapping for a given cursor and batch size.
+
+        This method should be implemented by subclasses to initialize batch of assets object with assets to init state
+        mapping and corresponding next cursor object given initial cursor object and
+        batch size.
+
+        Args:
+            cursor (object): The cursor object that will be used to query for integration assets
+            batch_size (int): The number of assets to include in each batch.
+
+        Yields: Tuple[Assets, object]: A tuple containing assets with assets to init state mapping and a next cursor
+        object representing each batch.
+        """
+
         raise NotImplementedError()
 
     @abstractmethod
     def get_assets_data(self, assets: Assets) -> Assets:
+        """
+        Retrieve integration assets data for the given assets state mapping.
+
+        This method should be implemented by subclasses to retrieve integration data for the given assets.
+
+        Args:
+            assets (Assets): represents the state and data of each asset batch
+
+        Returns:
+            Assets: a batch of integration raw data and state of each data object
+        """
         raise NotImplementedError()
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
