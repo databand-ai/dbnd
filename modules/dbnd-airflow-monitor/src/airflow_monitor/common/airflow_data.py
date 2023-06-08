@@ -1,5 +1,4 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
 from typing import List, Optional
 
 import attr
@@ -42,11 +41,10 @@ class PluginMetadata:
         )
 
     def as_safe_dict(self):
-        values_dict = self.as_dict()
-        for key in values_dict:
-            if values_dict[key] == NOTHING:
-                values_dict[key] = ""
-
+        values_dict = {
+            key: "" if value is NOTHING else value
+            for key, value in self.as_dict().items()
+        }
         return values_dict
 
     @classmethod
