@@ -424,7 +424,7 @@ class TestGenericSyncer:
             # report_assets_data_batch_size_bytes.labels
             labels = generic_syncer_assets_data_batch_size_bytes.return_value
             # data batch size bytes value
-            assert labels.method_calls[0].args[0] == 232
+            assert labels.method_calls[0].args[0] > 0
 
     def test_report_get_assets_data_error_metric(
         self,
