@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
+import sys
 
 from airflow_monitor.shared.adapter.adapter import (
     Adapter,
@@ -10,9 +11,19 @@ from airflow_monitor.shared.adapter.adapter import (
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.generic_syncer_metrics import (
+    report_assets_data_batch_size_bytes,
+    report_assets_data_fetch_error,
+    report_generic_syncer_error,
+    report_save_tracking_data_response_time,
+    report_sync_once_batch_duration_seconds,
+    report_sync_once_total_duration_seconds,
+    report_total_assets_size,
+)
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
+from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -39,61 +50,103 @@ class GenericSyncer(BaseComponent):
             config, tracking_service, integration_management_service, None
         )
         self.adapter = adapter
-        self.assets_to_states_machine = AssetsToStatesMachine(config.syncer_max_retries)
         self.syncer_instance_id = syncer_instance_id
+        self.assets_to_states_machine = AssetsToStatesMachine(
+            integration_id=self.config.uid,
+            syncer_instance_id=self.syncer_instance_id,
+            max_retries=config.syncer_max_retries,
+        )
 
     def _sync_once(self):
-        logger.info(
-            "Started running for tracking source %s", self.config.tracking_source_uid
-        )
-        synced_active_data = False
-        synced_new_data = False
-        cursor = self.tracking_service.get_last_cursor(
-            integration_id=str(self.config.uid),
-            syncer_instance_id=self.syncer_instance_id,
-        )
-
-        if cursor is None:
-            self.tracking_service.update_last_cursor(
+        try:
+            sync_once_start_time = utcnow()
+            logger.info(
+                "Started running for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+            synced_active_data = False
+            synced_new_data = False
+            cursor = self.tracking_service.get_last_cursor(
                 integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
-                state="init",
-                data=self.adapter.init_cursor(),
-            )
-            return
-        logger.info(
-            "Checking for new data for tracking source %s",
-            self.config.tracking_source_uid,
-        )
-        active_assets_to_states = self.tracking_service.get_active_assets(
-            integration_id=str(self.config.uid),
-            syncer_instance_id=self.syncer_instance_id,
-        )
-        if active_assets_to_states:
-            synced_active_data = self._process_assets_batch(
-                Assets(assets_to_state=active_assets_to_states)
             )
 
-        for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
-            cursor, batch_size=10
-        ):
-            synced_new_data = self._process_assets_batch(init_assets)
-
-        if last_cursor != None:
-            # report last cursor only when all pages saved
-            self.tracking_service.update_last_cursor(
+            if cursor is None:
+                self.tracking_service.update_last_cursor(
+                    integration_id=str(self.config.uid),
+                    syncer_instance_id=self.syncer_instance_id,
+                    state="init",
+                    data=self.adapter.init_cursor(),
+                )
+                return
+            logger.info(
+                "Checking for new data for tracking source %s",
+                self.config.tracking_source_uid,
+            )
+            active_assets_to_states = self.tracking_service.get_active_assets(
                 integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
-                state="update",
-                data=last_cursor,
             )
-        self.integration_management_service.report_monitor_time_data(
-            self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
-        )
+            if active_assets_to_states:
+                synced_active_data = self._process_assets_batch(
+                    Assets(assets_to_state=active_assets_to_states)
+                )
+            assets_counter = 0
+            for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
+                cursor, batch_size=10
+            ):
+                if init_assets.assets_to_state:
+                    assets_size = len(init_assets.assets_to_state)
+                    assets_counter += assets_size
+                synced_new_data = self._process_assets_batch(init_assets)
+
+            if last_cursor != None:
+                # report last cursor only when all pages saved
+                self.tracking_service.update_last_cursor(
+                    integration_id=str(self.config.uid),
+                    syncer_instance_id=self.syncer_instance_id,
+                    state="update",
+                    data=last_cursor,
+                )
+            report_total_assets_size(
+                integration_id=self.config.uid,
+                syncer_instance_id=self.syncer_instance_id,
+                assets_size=assets_counter,
+            )
+            self.integration_management_service.report_monitor_time_data(
+                self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
+            )
+            sync_once_end_time = utcnow()
+            total_sync_once_duration_seconds = (
+                sync_once_end_time - sync_once_start_time
+            ).total_seconds()
+            report_sync_once_total_duration_seconds(
+                integration_id=self.config.uid,
+                syncer_instance_id=self.syncer_instance_id,
+                duration=total_sync_once_duration_seconds,
+            )
+        except Exception as ex:
+            logger.error("unexpected generic syncer error")
+            report_generic_syncer_error(
+                integration_id=self.config.uid,
+                syncer_instance_id=self.syncer_instance_id,
+                error_message=str(ex),
+            )
 
     def _process_assets_batch(self, assets):
+        batch_process_start_time = utcnow()
         synced_data = False
-        assets_data = self.adapter.get_assets_data(assets)
+        try:
+            assets_data = self.adapter.get_assets_data(assets)
+        except Exception as ex:
+            logger.error("error on fetching assets data")
+            report_assets_data_fetch_error(
+                integration_id=self.config.uid,
+                syncer_instance_id=self.syncer_instance_id,
+                error_message=str(ex),
+            )
+            return synced_data
+
         assets_data_to_report = assets_data.data
         assets_states_to_report = assets_data.assets_to_state
         if not assets_data_to_report:
@@ -107,8 +160,26 @@ class GenericSyncer(BaseComponent):
                 self.config.tracking_source_uid,
             )
             synced_data = True
-
+            try:
+                assets_data_batch_size = sys.getsizeof(assets_data_to_report)
+                report_assets_data_batch_size_bytes(
+                    integration_id=self.config.uid,
+                    syncer_instance_id=self.syncer_instance_id,
+                    assets_data_batch_size=assets_data_batch_size,
+                )
+            except TypeError:
+                logger.warning("assets data batch size could not be calculated")
+            save_tracking_data_start_time = utcnow()
             self.tracking_service.save_tracking_data(assets_data_to_report)
+            save_tracking_data_end_time = utcnow()
+            save_tracking_data_duration_seconds = (
+                save_tracking_data_end_time - save_tracking_data_start_time
+            ).total_seconds()
+            report_save_tracking_data_response_time(
+                integration_id=self.config.uid,
+                syncer_instance_id=self.syncer_instance_id,
+                duration=save_tracking_data_duration_seconds,
+            )
         if not assets_states_to_report:
             logger.info(
                 "No new assets states for tracking source %s",
@@ -126,6 +197,15 @@ class GenericSyncer(BaseComponent):
                     assets_states_to_report
                 ),
             )
+        batch_process_end_time = utcnow()
+        batch_process_duration_seconds = (
+            batch_process_end_time - batch_process_start_time
+        ).total_seconds()
+        report_sync_once_batch_duration_seconds(
+            integration_id=self.config.uid,
+            syncer_instance_id=self.syncer_instance_id,
+            duration=batch_process_duration_seconds,
+        )
         return synced_data
 
     @property

@@ -5,6 +5,11 @@ from typing import Dict, Generator, List, Optional, Tuple
 
 import attr
 
+from airflow_monitor.shared.generic_syncer_metrics import (
+    report_total_assets_max_retry_requests,
+    report_total_failed_assets_requests,
+)
+
 
 class AssetState(Enum):
     """
@@ -87,6 +92,8 @@ class AssetsToStatesMachine:
     """
 
     max_retries: int = 5
+    integration_id: str = ""
+    syncer_instance_id: str = ""
 
     def process(self, assets_to_state: List[AssetToState]) -> List[AssetToState]:
         """
@@ -98,16 +105,30 @@ class AssetsToStatesMachine:
         Returns:
             List[AssetToState]: A list of processed AssetToState objects.
         """
+        failed_assets_requests_counter = 0
+        max_retry_assets_requests_counter = 0
         new_assets_to_state = []
         for asset_to_state in assets_to_state:
             if asset_to_state.state == AssetState.FAILED_REQUEST:
                 if asset_to_state.retry_count > self.max_retries:
                     asset_to_state.state = AssetState.MAX_RETRY
+                    max_retry_assets_requests_counter += 1
                 else:
                     asset_to_state.retry_count += 1
+                    failed_assets_requests_counter += 1
             elif asset_to_state.state == AssetState.MAX_RETRY:
                 continue
             new_assets_to_state.append(asset_to_state)
+        report_total_failed_assets_requests(
+            integration_id=self.integration_id,
+            syncer_instance_id=self.syncer_instance_id,
+            total_failed_assets=failed_assets_requests_counter,
+        )
+        report_total_assets_max_retry_requests(
+            integration_id=self.integration_id,
+            syncer_instance_id=self.syncer_instance_id,
+            total_max_retry_assets=max_retry_assets_requests_counter,
+        )
         return new_assets_to_state
 
 
