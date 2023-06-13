@@ -190,5 +190,5 @@ def is_killed():
 
 def cancel_current_run(message=None):
     """Kills a run's execution from within the execution."""
-    current_databand_run = get_databand_run()
-    return current_databand_run.kill_run(message)
+    run_executor = try_get_run_executor()
+    return run_executor.kill_run(message)

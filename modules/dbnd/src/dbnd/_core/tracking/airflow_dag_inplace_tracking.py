@@ -160,8 +160,7 @@ def build_run_time_airflow_task(
     return root_task, job_name, source, root_run_uid
 
 
-def should_flatten(operator, attr_name):
-    flatten_config = get_settings().tracking.flatten_operator_fields
+def should_flatten(flatten_config, operator, attr_name):
     for op_name in flatten_config:
         if is_instance_by_class_name(operator, op_name):
             return attr_name in flatten_config[op_name]
@@ -191,9 +190,13 @@ def flatten_param(attr_name, value):
 
 def get_flatten_operator_params(operator):
     params = []
+    flatten_config = get_settings().tracking.flatten_operator_fields
+
     for attr_name in operator.template_fields:
         value = getattr(operator, attr_name)
-        if should_flatten(operator, attr_name):
+        if should_flatten(
+            flatten_config=flatten_config, operator=operator, attr_name=attr_name
+        ):
             params.extend(flatten_param(attr_name, value))
 
         else:

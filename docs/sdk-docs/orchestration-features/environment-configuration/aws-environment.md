@@ -10,7 +10,7 @@ You must have the `dbnd-aws` plugin installed.
 2. In the `[aws]` section, configure your connection ID, and optionally provide a root bucket/folder for your data.
 
 ```ini
-[core]
+[run]
 environments = ['local', 'aws']
 ...
 [aws]

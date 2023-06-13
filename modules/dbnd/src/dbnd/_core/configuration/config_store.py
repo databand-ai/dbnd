@@ -98,8 +98,9 @@ if typing.TYPE_CHECKING:
     ]
 
 
-def merge_config_stores(config_left, config_right):
-    # type : (_ConfigStore, _ConfigStore)-> _ConfigStore
+def merge_config_stores(
+    config_left: _ConfigStore, config_right: _ConfigStore
+) -> _ConfigStore:
     # known issue: non consisten copy on write
     # for example  c1.merge()  -> return c2.   c1.update() will affect c2 as well
 
@@ -108,8 +109,10 @@ def merge_config_stores(config_left, config_right):
     if not config_left:
         return config_right
 
+    # let's create a new config, copy "sections" dictionary
     new_config = config_left.copy()
     # we copy only section that are changed
+    # as we will "merge them"
     for section in config_right.keys():
         new_config[section] = config_left[section].copy()
 

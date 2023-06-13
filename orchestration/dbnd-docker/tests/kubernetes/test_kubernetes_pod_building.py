@@ -29,9 +29,9 @@ def request_builder(config_name):
 
 
 @pytest.fixture
-def databand_context_kwargs():
+def dbnd_config_for_test_run__user():
     # we want extra tracking "debug" , so we can see all "tracking" calls on the screen
-    return dict(conf={"core": {"tracker": ["console"]}})
+    return {"core": {"tracker": ["console"]}}
 
 
 K8S_CONFIG = {

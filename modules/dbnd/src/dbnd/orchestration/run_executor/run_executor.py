@@ -13,7 +13,10 @@ from uuid import UUID
 import six
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import is_unit_test_mode
+from dbnd._core.configuration.environ_config import (
+    ENV_DBND__USER_PRE_INIT,
+    is_unit_test_mode,
+)
 from dbnd._core.constants import (
     RunState,
     SystemTaskName,
@@ -92,12 +95,6 @@ class RunExecutor(SingletonContext):
     def __init__(
         self, run, root_task_or_task_name, send_heartbeat, force_task_name=None
     ):
-
-        from dbnd.orchestration.orchestration_bootstrap import (
-            dbnd_bootstrap_orchestration,
-        )
-
-        dbnd_bootstrap_orchestration()
 
         self.run = run  # type: DatabandRun
         self.databand_context = run.context  # type: DatabandContext
@@ -219,6 +216,7 @@ class RunExecutor(SingletonContext):
         pm.hook.dbnd_on_pre_init_context(ctx=self)
         run_user_func(config.get("core", "user_pre_init"))
         # if we are deserialized - we don't need to run this code again.
+        run_config = self.run_config
         if not self._is_initialized:
             # will be called from singleton context manager
 
@@ -226,8 +224,7 @@ class RunExecutor(SingletonContext):
 
             # RUN USER SETUP FUNCTIONS
             _run_user_func(
-                self.settings.core.__class__.user_driver_init,
-                self.settings.core.user_driver_init,
+                run_config.__class__.user_driver_init, run_config.user_driver_init
             )
 
             self._is_initialized = True
@@ -240,9 +237,7 @@ class RunExecutor(SingletonContext):
 
         self.run_settings.run_logging.configure_dbnd_logging()
 
-        _run_user_func(
-            self.settings.core.__class__.user_init, self.settings.core.user_init
-        )
+        _run_user_func(run_config.__class__.user_init, run_config.user_init)
         pm.hook.dbnd_post_enter_context(ctx=self)
 
     def _on_exit(self):
@@ -737,6 +732,12 @@ class RunExecutor(SingletonContext):
                     state = TaskRunState.FAILED
 
         return state
+
+    def get_context_spawn_env(self):
+        env = self.run.get_context_spawn_env()
+        if self.run_config.user_code_on_fork:
+            env[ENV_DBND__USER_PRE_INIT] = self.run_config.user_code_on_fork
+        return env
 
     @property
     def result(self):

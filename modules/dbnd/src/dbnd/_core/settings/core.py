@@ -27,9 +27,6 @@ class DatabandSystemConfig(Config):
 
     describe = parameter.help("Describe current run").value(False)
 
-    module = parameter(
-        default=None, description="Auto load this module before resolving user classes"
-    )[str]
     env = parameter(
         default=CloudType.local,
         description="task environment: (based on core.environments) local/aws/aws_prod/gcp/prod",
@@ -124,46 +121,6 @@ class CoreConfig(Config):
         default=0.1,
     )[float]
 
-    # USER CODE TO RUN ON START
-    user_configs = parameter(
-        empty_default=True,
-        description="Set the config used for creating tasks from user code.",
-    )[List[str]]
-
-    # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
-    user_init = parameter(
-        default=None,
-        description="This runs in every DBND process with System configuration in place. This is called in "
-        "DatabandContex after entering initialization steps.",
-    )[object]
-    user_driver_init = parameter(
-        default=None,
-        description="This runs in driver after configuration initialization. This is called from DatabandContext when "
-        "entering a new context(dbnd_on_new_context)",
-    )[object]
-
-    user_code_on_fork = parameter(
-        default=None,
-        description="This runs in a sub process, on parallel, kubernetes, or external modes.",
-    )[object]
-
-    # PLUGINS
-    dbnd_plugins_enabled = parameter(
-        description="Enable dbnd plugins system.", default=False
-    )[bool]
-
-    plugins = parameter(
-        description="Specify which plugins should be loaded on Databand context creations.",
-        default=None,
-    )[str]
-    fix_env_on_osx = parameter(
-        description="Enable adding `no_proxy=*` to environment variables, fixing issues with multiprocessing on OSX."
-    )[bool]
-
-    environments = parameter(description="Set a list of enabled environments.")[
-        List[str]
-    ]
-
     #### TO DEPRECATE ## (DONT USE)
     # deprecate in favor of databand_access_token
     dbnd_user = parameter(
@@ -174,19 +131,7 @@ class CoreConfig(Config):
         hidden=True,
     )[str]
 
-    # deprecated at 0.34 (Backward compatibility)
-    tracker_url = parameter(
-        default=None,
-        description="Set the tracker URL to be used for creating links in console logs. This is deprecated!",
-    )[str]
-
     def _validate(self):
-        if not self.databand_url and self.tracker_url:
-            logger.warning(
-                "core.databand_url was not set, using deprecated 'core.tracker_url' instead."
-            )
-            self.databand_url = self.tracker_url
-
         if self.databand_url and self.databand_url.endswith("/"):
             dbnd_log_debug(
                 "Please fix your core.databand_url value, "

@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 from airflow import DAG
 from airflow.settings import TIMEZONE as AIRFLOW_TIMEZONE
 
+from dbnd import set_orchestration_mode
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
     ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
@@ -109,7 +110,10 @@ def get_dags_from_databand(
     try:
 
         # let be sure that we are loaded
+        set_orchestration_mode()
         config.load_system_configs()
+        # we don't want to run the whole bootstrap
+
         if not config.get("core", "databand_url"):
             return {}
 

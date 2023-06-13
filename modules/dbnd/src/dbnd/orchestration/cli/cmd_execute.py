@@ -4,14 +4,15 @@ import logging
 
 from warnings import warn
 
-from dbnd._core.configuration.environ_config import (
-    ENV_DBND__TRACKING,
-    set_orchestration_mode,
-)
+from dbnd._core.configuration.environ_config import ENV_DBND__TRACKING
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.utils.basics.environ_utils import env as env_context
 from dbnd._vendor import click
+from dbnd.orchestration.orchestration_bootstrap import (
+    dbnd_disable_databand_dags_loading,
+)
 from dbnd.orchestration.run_executor.run_executor import (
     RunExecutor,
     set_active_run_context,
@@ -48,7 +49,12 @@ def execute(
     ctx, dbnd_run, disable_tracking_api, expected_dbnd_version, expected_python_version
 ):
     """Execute databand primitives"""
-    set_orchestration_mode()
+    dbnd_bootstrap(enable_dbnd_run=True)
+
+    from dbnd import config
+
+    dbnd_disable_databand_dags_loading(dbnd_config=config)
+
     if expected_python_version and expected_dbnd_version:
         spark_python_version = get_python_version()
         spark_dbnd_version = get_dbnd_version()

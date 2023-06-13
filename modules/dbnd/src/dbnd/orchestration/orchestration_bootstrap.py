@@ -7,7 +7,6 @@ import warnings
 from dbnd._core.configuration.environ_config import (
     get_dbnd_project_config,
     is_unit_test_mode,
-    set_orchestration_mode,
     should_fix_pyspark_imports,
 )
 from dbnd._core.utils.basics.signal_utils import register_graceful_sigterm
@@ -38,6 +37,16 @@ def fix_pyspark_imports():
     sys.path = regular_libs
 
 
+def dbnd_disable_databand_dags_loading(dbnd_config):
+    """
+    if we are running from "dbnd" entrypoint, we probably do not need to load Scheduled DAG
+    this will prevent from every airflow command to access dbnd web api
+    """
+
+    if dbnd_config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
+        os.environ["DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
+
+
 def _dbnd_bootstrap_plugins():
     project_config = get_dbnd_project_config()
 
@@ -46,7 +55,7 @@ def _dbnd_bootstrap_plugins():
 
     from dbnd import dbnd_config
 
-    # if not dbnd_config.getboolean("core", "dbnd_plugins_enabled"):
+    # if not dbnd_config.getboolean("run", "dbnd_plugins_enabled"):
     #     return
     from dbnd.orchestration.plugin.dbnd_plugins import (
         pm,
@@ -77,10 +86,7 @@ def dbnd_bootstrap_orchestration():
         return
     try:
         _dbnd_bootstrap_orchestration_status = "loading"
-        from dbnd import dbnd_bootstrap, dbnd_config
-
-        set_orchestration_mode()
-        dbnd_bootstrap()
+        from dbnd import dbnd_config
 
         _dbnd_bootstrap_plugins()
 
@@ -100,13 +106,8 @@ def dbnd_bootstrap_orchestration():
         if should_fix_pyspark_imports():
             fix_pyspark_imports()
 
-        if dbnd_config.getboolean("core", "fix_env_on_osx"):
+        if dbnd_config.getboolean("run", "fix_env_on_osx"):
             enable_osx_forked_request_calls()
-
-        # if we are running from "dbnd" entrypoint, we probably do not need to load Scheduled DAG
-        # this will prevent from every airflow command to access dbnd web api
-        if dbnd_config.getboolean("airflow", "auto_disable_scheduled_dags_load"):
-            os.environ["DBND_DISABLE_SCHEDULED_DAGS_LOAD"] = "True"
 
         _dbnd_bootstrap_orchestration_status = "loaded"
     except Exception as ex:

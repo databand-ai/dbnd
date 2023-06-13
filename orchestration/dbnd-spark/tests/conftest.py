@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbnd import set_orchestration_mode
+from dbnd import dbnd_bootstrap
 from dbnd.testing.test_config_setter import add_test_configuration
 
 
@@ -14,7 +14,15 @@ pytest_plugins = [
 
 skip_require_java_build = pytest.mark.skip("Requires JAVA project")
 
+### MAIN FIXTURE, USED BY ALL TESTS ###
+@pytest.fixture(autouse=True)
+def dbnd_env_per_test(dbnd_run_pytest_env):
+    add_test_configuration(__file__)
+
+    yield dbnd_run_pytest_env
+
 
 def pytest_configure(config):
-    set_orchestration_mode()
+
+    dbnd_bootstrap(enable_dbnd_run=True)
     add_test_configuration(__file__)

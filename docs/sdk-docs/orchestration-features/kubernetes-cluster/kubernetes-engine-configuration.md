@@ -8,7 +8,7 @@ To direct DBND to interact with your cluster, you need to update the `databand-s
 **Step 1.** In the `environments` configuration, add a new environment for the Kubernetes cluster. For example, `kubernetes_cluster_env` - you can use an existing one, but in this example, let's assume its name is 'kubernetes_cluster_env':
 
 ```ini
-[core]
+[run]
 environments = ['local', 'local_minikube', 'kubernetes_cluster_env']
 ```
 

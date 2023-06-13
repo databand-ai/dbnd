@@ -93,21 +93,23 @@ class GenericSyncer(BaseComponent):
                     Assets(assets_to_state=active_assets_to_states)
                 )
             assets_counter = 0
+            init_assets_last_cursor = None
             for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
                 cursor, batch_size=10
             ):
+                init_assets_last_cursor = last_cursor
                 if init_assets.assets_to_state:
                     assets_size = len(init_assets.assets_to_state)
                     assets_counter += assets_size
                 synced_new_data = self._process_assets_batch(init_assets)
 
-            if last_cursor != None:
+            if init_assets_last_cursor != None:
                 # report last cursor only when all pages saved
                 self.tracking_service.update_last_cursor(
                     integration_id=str(self.config.uid),
                     syncer_instance_id=self.syncer_instance_id,
                     state="update",
-                    data=last_cursor,
+                    data=init_assets_last_cursor,
                 )
             report_total_assets_size(
                 integration_id=self.config.uid,

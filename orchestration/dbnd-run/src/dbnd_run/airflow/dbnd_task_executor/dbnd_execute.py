@@ -6,13 +6,12 @@ import logging
 import sys
 import typing
 
-from dbnd import dbnd_bootstrap
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd.orchestration.run_executor.run_executor import (
     RunExecutor,
     set_active_run_context,
 )
 from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
-from dbnd_run.airflow.bootstrap import dbnd_run_airflow_bootstrap
 from dbnd_run.airflow.dbnd_airflow_contrib.dbnd_operator import DbndOperator
 from dbnd_run.airflow.dbnd_task_executor.airflow_operator_as_dbnd import (
     AirflowOperatorAsDbndTask,
@@ -94,7 +93,6 @@ def dbnd_operator__execute(dbnd_operator, context):
                 sys.stderr = sys.__stderr__
 
             dbnd_bootstrap()
-            dbnd_run_airflow_bootstrap()
             run_executor = RunExecutor.load_run(
                 dump_file=target(driver_dump), disable_tracking_api=False
             )

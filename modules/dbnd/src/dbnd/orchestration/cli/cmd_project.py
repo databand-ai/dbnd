@@ -7,7 +7,7 @@ import os
 
 from distutils.dir_util import copy_tree
 
-from dbnd._core.configuration.environ_config import set_orchestration_mode
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._vendor import click
 
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def project_init(ctx, overwrite, dbnd_home, dbnd_system):
     """Initialize the project structure"""
 
-    set_orchestration_mode()
+    dbnd_bootstrap(enable_dbnd_run=True)
 
     from dbnd import databand_lib_path
     from dbnd._core.errors import DatabandSystemError

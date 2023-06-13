@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from dbnd import dbnd_config
+from dbnd import dbnd_bootstrap, dbnd_config
 from dbnd._core.configuration.environ_config import (
     reset_dbnd_project_config,
     set_dbnd_unit_test_mode,
@@ -42,6 +42,9 @@ def databand_test_context(
 
     name = f"auto-created by pytest fixture databand_test_context: {os.environ.get('PYTEST_CURRENT_TEST')}"
     databand_context_kwargs.setdefault("name", name)
+
+    dbnd_bootstrap()
+
     with dbnd_config(
         config_values={
             "local": {

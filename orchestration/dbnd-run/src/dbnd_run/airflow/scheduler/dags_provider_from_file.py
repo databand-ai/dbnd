@@ -223,8 +223,9 @@ def get_dags_from_file():
         return None
 
     try:
+
+        # we don't want to run full boostrap, as it will load plugins and other hooks
         set_orchestration_mode()
-        # let be sure that we are loaded
         config.load_system_configs()
 
         config_file = config.get("scheduler", "config_file")

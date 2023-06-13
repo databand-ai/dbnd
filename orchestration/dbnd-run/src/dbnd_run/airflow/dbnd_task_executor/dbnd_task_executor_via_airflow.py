@@ -170,11 +170,6 @@ class AirflowTaskExecutor(RunExecutorEngine):
             task_runs=task_runs,
         )
 
-        # we want to use reference to AIRFLOW HOME as it can be changed in runtime
-        from dbnd_run.airflow.bootstrap import dbnd_run_airflow_bootstrap
-
-        dbnd_run_airflow_bootstrap()
-
         self.airflow_config = AirflowConfig()
         self.airflow_task_executor = self._get_airflow_executor()
 

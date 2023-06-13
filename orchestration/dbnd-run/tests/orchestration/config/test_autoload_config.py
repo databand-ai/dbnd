@@ -22,11 +22,11 @@ class TestBuildErrorsDecorators(object):
         with dbnd_config(
             {
                 "autotestconfig": {"param_datetime": "2018-01-01", "param_int": "42"},
-                "core": {
+                "run": {
                     "user_configs": "autotestconfig",
                     "user_init": "tests.orchestration.config.autoloaded_config.user_code_load_config",
+                    "module": "tests.orchestration.config.autoloaded_config",
                 },
-                "databand": {"module": "tests.orchestration.config.autoloaded_config"},
             }
         ):
             # param_int should come from  "autotestconfig"

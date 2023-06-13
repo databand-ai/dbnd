@@ -574,7 +574,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         )
 
         env_vars.update(self.env_vars)
-        env_vars.update(task_run.run.get_context_spawn_env())
+        env_vars.update(task_run.run.run_executor.get_context_spawn_env())
 
         secrets = self.get_secrets(include_system_secrets=include_system_secrets)
 

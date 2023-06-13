@@ -13,7 +13,6 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_TRACKER_URL,
     DBND_ROOT_RUN_UID,
     DBND_RUN_UID,
-    ENV_DBND__USER_PRE_INIT,
 )
 from dbnd._core.constants import (
     AD_HOC_DAG_PREFIX,
@@ -261,8 +260,9 @@ class DatabandRun(SingletonContext):
         if task_af_id is None:
             task_af_id = self.next_af_task_name(task)
 
-        if self.af_context:
-            task_af_id = "_".join([self.af_context.task_id, task_af_id])
+            if self.af_context:
+                # unique ID for airflow sub tasks
+                task_af_id = "_".join([self.af_context.task_id, task_af_id])
 
         tr = TaskRun(task=task, run=self, task_af_id=task_af_id, try_number=try_number)
         self._add_task_run(tr)
@@ -298,9 +298,6 @@ class DatabandRun(SingletonContext):
 
         env[DBND_ROOT_RUN_UID] = str(self.root_run_info.root_run_uid)
         env[DBND_ROOT_RUN_TRACKER_URL] = self.root_run_info.root_run_url
-
-        if self.context.settings.core.user_code_on_fork:
-            env[ENV_DBND__USER_PRE_INIT] = self.context.settings.core.user_code_on_fork
         return env
 
     def load_from_result(self, name=RESULT_PARAM, value_type=None):

@@ -30,12 +30,6 @@ class RunSettings(object):
         super(RunSettings, self).__init__()
         self.databand_context = databand_context  # type: DatabandContext
 
-        self.env = self.get_env_config(self.system.env)
-        databand_context.config.set_values(
-            config_values={"task": {"task_env": self.system.env}},
-            source="DatabandContext[%s]" % databand_context.name,
-        )
-
         from dbnd._core.tracking.registry import register_store
         from dbnd.orchestration.orchestration_tracking.backends.tracking_store_file import (
             FileTrackingStore,
@@ -44,6 +38,13 @@ class RunSettings(object):
         register_store("file", FileTrackingStore)
 
         self.run = RunConfig()
+
+        self.env = self.get_env_config(self.system.env)
+        databand_context.config.set_values(
+            config_values={"task": {"task_env": self.system.env}},
+            source="RunSettings.env",
+        )
+
         self.git = GitConfig()
 
         self.describe = DescribeConfig()
@@ -55,7 +56,7 @@ class RunSettings(object):
         self.singleton_configs = {}
 
         self.user_configs = {}
-        for user_config in databand_context.settings.core.user_configs:
+        for user_config in self.run.user_configs:
             self.user_configs[user_config] = build_task_from_config(user_config)
 
     @property
@@ -68,7 +69,7 @@ class RunSettings(object):
         if isinstance(name_or_env, EnvConfig):
             return name_or_env
 
-        enabled_environments = self.databand_context.settings.core.environments
+        enabled_environments = self.run.environments
         if name_or_env not in enabled_environments:
             raise DatabandConfigError(
                 "Unknown env name '%s', available environments are %s,  please enable it at '[core]environments' "

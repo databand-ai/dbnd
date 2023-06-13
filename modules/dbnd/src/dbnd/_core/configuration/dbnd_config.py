@@ -26,7 +26,6 @@ from dbnd._core.configuration.pprint_config import (
     pformat_all_layers,
     pformat_current_config,
 )
-from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.utils.basics.helpers import parse_bool
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import target
@@ -88,19 +87,12 @@ class _ConfigLayer(object):
 @attr.s(str=False)
 class DbndConfig(object):
     config_layer = attr.ib()  # type: _ConfigLayer
-    # we need to initialize config with environment and config files first
-    # if user already has config() calls , we will need to reapply his changes
-    # on top of file and env configuration
-    # User can run his config() before the first DatabandContext is called,
-    # that means, we'll have to "replay his changes" on top of all this changes
-    initialized_with_env = attr.ib(default=False)
+    """
+    make sure that this object is used after .load_system_configs is called
+    we need to initialize config with environment and config files first
+    """
 
     def _new_config_layer(self, config_values, source=None, priority=None):
-        # let validate that we are initialized
-        # user can call this function out of no-where, so we will create a layer, and will override it
-        # the moment we create more layers on config.system_load
-        dbnd_bootstrap()
-
         if not config_values:
             return self.config_layer
         if not isinstance(config_values, _ConfigStore):
@@ -113,12 +105,22 @@ class DbndConfig(object):
         source = source or config_values.source
         if not source:
             source = "{sig}".format(sig=id(config_values))
+
+        # this is the place where we create a new layer, with merged config
         return self.config_layer.merge_and_create_new_layer(
             name=source, config_values=config_values
         )
 
     @contextlib.contextmanager
     def __call__(self, config_values=None, source=None):
+        """
+        set configuration within specific context
+
+        with dbnd_config(..):
+            ....
+
+        """
+
         new_layer = self._new_config_layer(config_values, source=source)
         with self.config_layer_context(config_layer=new_layer):
             yield self
@@ -126,14 +128,12 @@ class DbndConfig(object):
     @contextlib.contextmanager
     def config_layer_context(self, config_layer):
         current_layer = self.config_layer
-        current_initialized_with_env = self.initialized_with_env
         # this will create new layer
         try:
             self.config_layer = config_layer
             yield self
         finally:
             self.config_layer = current_layer
-            self.initialized_with_env = current_initialized_with_env
 
     def set_values(self, config_values, source=None, priority=None):
         # type: (Union[ Mapping[str, Mapping[str, Any]], _ConfigStore], str, int)-> _ConfigLayer
@@ -176,7 +176,7 @@ class DbndConfig(object):
     def get_multisection_config_value(self, sections, key):
         # type: (List[str], str) -> List[ConfigValue]
         """
-        Looking for the the relevant value to the given key by scan all given sections in the config layer
+        Looking for the relevant value to the given key by scan all given sections in the config layer
          from top to bottom: where the current layer is the top and the parent layer is the bottom.
 
         return a list of collected values through the sections
@@ -228,10 +228,7 @@ class DbndConfig(object):
     def getfloat(self, section, key, **kwargs):
         return float(self.get(section, key, **kwargs))
 
-    def load_system_configs(self, force=False):
-        if self.initialized_with_env and not force:
-            return
-
+    def load_system_configs(self):
         # first, let read from files
         system_config_store = read_from_config_files(_default_configuration_paths())
 
@@ -240,7 +237,6 @@ class DbndConfig(object):
 
         # all configs will be added as one layer called 'system'
         self.set_values(system_config_store, source="system")
-        self.initialized_with_env = True
 
     def __str__(self):
         return "Config[%s]" % self.config_layer.name

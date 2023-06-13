@@ -263,6 +263,12 @@ def bind_create_to_supported_alert(
 def alerts(ctx):
     """Manage Databand alerts"""
 
+    # we need to load configs,
+    # we have multiple get_databand_context().databand_api_client calls
+    from dbnd import dbnd_config
+
+    dbnd_config.load_system_configs()
+
 
 @alerts.group(help=CREATE_HELP_MSG)
 @click.option("--severity", "-s", help="Alert severity", type=Severity(), required=True)

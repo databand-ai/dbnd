@@ -11,7 +11,7 @@ from more_itertools import first_true
 
 import dbnd
 
-from dbnd import config, dbnd_tracking_stop, get_dbnd_project_config
+from dbnd import config, dbnd_bootstrap, dbnd_tracking_stop, get_dbnd_project_config
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.log.buffered_log_manager import BufferedLogManager
@@ -86,26 +86,29 @@ class DbndAirflowHandler(logging.Handler):
         if os.environ.get(task_key, False):
             # This key is already set which means we are in `--raw run`
             return
-        else:
-            # We are in the outer `run`
-            self.task_env_key = task_key
-            # marking the environment with the current key for the
-            environ_utils.set_on(task_key)
-            from dbnd_airflow.tracking.dbnd_airflow_conf import (
-                set_dbnd_config_from_airflow_connections,
-            )
 
-            # When we are in `--raw run`, in tracking, it runs the main airflow process
-            # for every task, which made some of the features to run twice,
-            # once when the `worker` process ran, and once when the `main` one ran,
-            # which made some of the features to run with different configurations.
-            # it still runs twice, but know with the same configurations.
-            set_dbnd_config_from_airflow_connections()
-
-        self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
+        # We are in the outer `run`
+        self.task_env_key = task_key
+        # marking the environment with the current key for the
+        environ_utils.set_on(task_key)
 
         # make sure we are not polluting the airflow logs
         get_dbnd_project_config().quiet_mode = True
+        # make sure we are initialized
+        dbnd_bootstrap()
+
+        from dbnd_airflow.tracking.dbnd_airflow_conf import (
+            set_dbnd_config_from_airflow_connections,
+        )
+
+        # When we are in `--raw run`, in tracking, it runs the main airflow process
+        # for every task, which made some of the features to run twice,
+        # once when the `worker` process ran, and once when the `main` one ran,
+        # which made some of the features to run with different configurations.
+        # it still runs twice, but know with the same configurations.
+        set_dbnd_config_from_airflow_connections()
+
+        self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
 
         # context with disabled logs
         self.dbnd_context_manage: ContextManager[DatabandContext] = new_dbnd_context(

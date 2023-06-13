@@ -8,7 +8,7 @@ from uuid import UUID
 
 from airflow.models import BaseOperator
 
-from dbnd import PythonTask, new_dbnd_context, override, parameter
+from dbnd import PythonTask, dbnd_bootstrap, new_dbnd_context, override, parameter
 from dbnd._core.configuration.environ_config import DBND_RESUBMIT_RUN, DBND_RUN_UID
 from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
@@ -64,6 +64,7 @@ class DbndSchedulerOperator(BaseOperator):
         self.launch(context, scheduled_run_info)
 
     def launch(self, context, scheduled_run_info: ScheduledRunInfo):
+        dbnd_bootstrap(enable_dbnd_run=True)
         with new_dbnd_context(
             name="airflow",
             conf={

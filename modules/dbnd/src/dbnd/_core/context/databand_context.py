@@ -9,7 +9,6 @@ from uuid import UUID
 
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import is_orchestration_mode
-from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log import dbnd_log
 from dbnd._core.settings import DatabandSystemConfig, RunInfoConfig
@@ -57,8 +56,6 @@ class DatabandContext(SingletonContext):
         super(DatabandContext, self).__init__()
         # double checking on bootstrap, as we can run from all kind of locations
         # usually we should be bootstraped already as we run from cli.
-        dbnd_bootstrap()
-
         self.name = name
 
         self.current_context_uid = "%s_%s" % (

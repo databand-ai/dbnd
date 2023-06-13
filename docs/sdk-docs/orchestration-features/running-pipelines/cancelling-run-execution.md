@@ -28,10 +28,4 @@ Example:
 from dbnd import cancel_current_run
 cancel_current_run(message="custom cancel message")
 ```
-or
-
-<!-- noqa -->
-```python
-databand_run.kill_run(message="custom cancel message")
-```
 Since you could have had different reasons for killing a run (for example, you identified corrupt data, reached a resource limit, etc.), setting a custom error message allows you to differentiate between the occasions in which you killed their run, for future analysis.

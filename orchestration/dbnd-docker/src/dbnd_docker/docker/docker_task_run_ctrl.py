@@ -19,7 +19,9 @@ class LocalDockerRunCtrl(DockerRunCtrl):
         t = self.task
         dc = self.docker_config
         environment = dc.environment.copy()
-        environment.update(self.task_run.run.get_context_spawn_env())
+        environment.update(
+            self.task_run.task_run_executor.run_executor.get_context_spawn_env()
+        )
 
         self.runner_op = DockerOperator(
             task_id=self.task.task_id,

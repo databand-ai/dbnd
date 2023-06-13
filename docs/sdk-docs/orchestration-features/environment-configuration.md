@@ -16,7 +16,7 @@ You can also create custom environments and engines.
 Possible values include ` local, gcp, aws, azure`, and `local` - set by default.
 
 ```ini
-[core]
+[run]
 environments = ['local', 'gcp']
 ```
 

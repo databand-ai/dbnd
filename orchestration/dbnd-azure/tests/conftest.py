@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from dbnd._core.configuration.environ_config import set_orchestration_mode
+from dbnd import dbnd_bootstrap
 from dbnd.testing.test_config_setter import add_test_configuration
 
 
@@ -14,5 +14,5 @@ pytest_plugins = [
 
 
 def pytest_configure(config):
-    set_orchestration_mode()
+    dbnd_bootstrap(enable_dbnd_run=True)
     add_test_configuration(__file__)

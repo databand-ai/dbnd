@@ -16,7 +16,7 @@ recursive-include src/dbnd/_vendor *.txt
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-recursive`-exclude * .ipynb_checkpoints
+recursive-exclude * .ipynb_checkpoints
 
 prune test_dbnd
 exclude tox.ini

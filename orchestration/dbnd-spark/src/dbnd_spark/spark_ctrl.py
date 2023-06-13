@@ -9,8 +9,8 @@ import six
 from dbnd import current
 from dbnd._core.configuration.environ_config import (
     DBND_TASK_RUN_ATTEMPT_UID,
-    ENV_DBND__CORE__PLUGINS,
     ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
+    ENV_DBND__RUN__PLUGINS,
     ENV_DBND__TRACKING,
     ENV_DBND_FIX_PYSPARK_IMPORTS,
     get_dbnd_project_config,
@@ -34,7 +34,7 @@ class SparkCtrl(_TaskRunExecutorCtrl):
             self.deploy = self._get_deploy_ctrl()
 
     def _get_deploy_ctrl(self):
-        return self.task_run_executor.executor.deploy
+        return self.task_run_executor.deploy
 
     @property
     def config(self):
@@ -116,6 +116,6 @@ class SparkCtrl(_TaskRunExecutorCtrl):
             plugin_modules = [p[0].replace("-", "_") for p in pm.list_name_plugin()]
             plugin_modules_formatted = ",".join(plugin_modules)
             # Attach all loaded plugins to be manually loaded in submitted run
-            env_vars[ENV_DBND__CORE__PLUGINS] = plugin_modules_formatted
+            env_vars[ENV_DBND__RUN__PLUGINS] = plugin_modules_formatted
 
         return env_vars

@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from dbnd import config, dbnd_config
+from dbnd import config, dbnd_bootstrap, dbnd_config
 from dbnd._core.configuration.environ_config import (
     reset_dbnd_project_config,
     set_orchestration_mode,
@@ -27,16 +27,20 @@ def _run_name_for_test_request(request):
 @pytest.fixture
 def dbnd_clean_project_config():
     reset_dbnd_project_config()
+
+    # dbnd_bootstrap is "sinlge execution",
+    # it will run only once per pytest proces.
+
+    dbnd_bootstrap(enable_dbnd_run=True)
+
     set_orchestration_mode()
+    dbnd_config.reset()
+    dbnd_config.load_system_configs()
 
-    yield
-    reset_dbnd_project_config()
-
-
-@pytest.fixture
-def dbnd_clean_register_for_every_test():
     with tmp_dbnd_registry() as r:
         yield r
+
+    reset_dbnd_project_config()
 
 
 @pytest.fixture
@@ -51,12 +55,6 @@ def dbnd_clean_airflow_vars_for_every_test():
     ]:
         if v in os.environ:
             del os.environ[v]
-
-
-@pytest.fixture
-def dbnd_clean_config():
-    dbnd_config.reset()
-    dbnd_config.load_system_configs(force=True)
 
 
 @pytest.fixture
@@ -81,6 +79,7 @@ def dbnd_config_for_test_run__user():
 
 @pytest.fixture
 def dbnd_run_test_context(
+    dbnd_clean_project_config,
     dbnd_context_kwargs,
     dbnd_config_for_test_run__system,
     dbnd_config_for_test_run__user,
@@ -89,8 +88,6 @@ def dbnd_run_test_context(
     dbnd_context_kwargs.setdefault(
         "name", f"pytest fixture context: {os.environ.get('PYTEST_CURRENT_TEST')}"
     )
-
-    set_orchestration_mode()
 
     with config(
         dbnd_config_for_test_run__system, source="dbnd_config_for_test_run__system"
@@ -103,13 +100,7 @@ def dbnd_run_test_context(
 
 
 @pytest.fixture
-def dbnd_run_pytest_env(
-    dbnd_clean_project_config,
-    dbnd_clean_config,
-    dbnd_clean_register_for_every_test,
-    dbnd_clean_airflow_vars_for_every_test,
-    dbnd_run_test_context,
-):
+def dbnd_run_pytest_env(dbnd_clean_airflow_vars_for_every_test, dbnd_run_test_context):
     """
     all required fixtures to run datband related tests
     add it to your [pytest]usefixtures

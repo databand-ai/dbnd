@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.utils.timeout import timeout
 from dbnd._vendor import click
@@ -26,6 +27,7 @@ def tracker():
     help="Amount of seconds to wait for webserver until timing out",
 )
 def wait(timeout):
+    dbnd_bootstrap()
     with new_dbnd_context(name="new_context") as dbnd_ctx:
         logger.info("Waiting {} seconds for tracker to become ready:".format(timeout))
 

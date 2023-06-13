@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 @dbnd.hookimpl
 def dbnd_setup_plugin():
     from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
-    from dbnd_spark.spark_bootstrap import dbnd_spark_bootstrap
+    from dbnd_spark.spark_bootstrap import workaround_spark_namedtuple_serialization
 
     register_config_cls(SparkLocalEngineConfig)
     register_config_cls(LivySparkConfig)
 
-    dbnd_spark_bootstrap()
+    workaround_spark_namedtuple_serialization()

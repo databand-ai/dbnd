@@ -15,10 +15,6 @@ from dbnd._core.utils.seven import contextlib
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_task_run_attempt_uid_by_task_run, get_uuid
-from dbnd.orchestration.task.task import Task
-from dbnd.orchestration.task_run_executor.task_run_executor import (
-    handle_sigterm_at_dbnd_task_run,
-)
 from dbnd.providers.spark.spark_jvm_context import jvm_context_manager
 
 
@@ -27,12 +23,14 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from dbnd._core.run.databand_run import DatabandRun
+    from dbnd.orchestration.task.task import Task
+    from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
 
 
 class TaskRun(object):
     def __init__(
         self,
-        task: typing.Union[TrackingTask, Task],
+        task: typing.Union[TrackingTask, "Task"],
         run: "DatabandRun",
         task_af_id: str = None,
         try_number: int = 1,
@@ -99,7 +97,7 @@ class TaskRun(object):
         self.tracking_log_manager = TaskRunLogManager(task_run=self)
 
         # orchestration support
-        self.task_run_executor = None
+        self.task_run_executor: "TaskRunExecutor" = None
 
     def __getstate__(self):
         d = self.__dict__.copy()
@@ -165,16 +163,13 @@ class TaskRun(object):
         self.task_run_attempt_uid = get_task_run_attempt_uid_by_task_run(self)
 
     @contextlib.contextmanager
-    def task_run_track_execute(self, handle_sigterm=False, capture_log=True):
+    def task_run_track_execute(self, capture_log=True):
         parent_task = try_get_current_task_run()
         current_task = self
         ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
 
         if capture_log:
             ctx_managers.append(self.tracking_log_manager.capture_task_log())
-
-        if handle_sigterm:
-            ctx_managers.append(handle_sigterm_at_dbnd_task_run())
 
         ctx_managers.append(jvm_context_manager(parent_task, current_task))
 

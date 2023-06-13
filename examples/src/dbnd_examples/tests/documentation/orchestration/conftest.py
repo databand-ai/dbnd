@@ -6,9 +6,7 @@ from dbnd._core.context.use_dbnd_run import disable_airflow_package
 
 disable_airflow_package()
 
-### MAIN FIXTURE, USED BY ALL TESTS ###
-# import fixtures!
-# import fixtures!
+# MAIN FIXTURE, USED BY ALL TESTS ###
 
 
 @pytest.fixture(autouse=True)

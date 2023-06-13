@@ -122,7 +122,7 @@ class TaskRunExecutor(_TaskRunExecutorCtrl):
             return
 
         with self.task_run.task_run_track_execute(
-            handle_sigterm=False, capture_log=False
+            capture_log=False
         ) as tracking_context, self.task_run_execute_context(
             handle_sigterm=handle_sigterm
         ) as execute_context:

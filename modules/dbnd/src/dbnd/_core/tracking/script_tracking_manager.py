@@ -11,6 +11,7 @@ from typing import Optional
 
 import dbnd
 
+from dbnd import dbnd_bootstrap
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
@@ -401,6 +402,8 @@ def tracking_start_base(job_name, project_name=None, airflow_context=None):
 def dbnd_airflow_tracking_start(airflow_context):
     """This function is meant to be used only from inside Airflow for Airflow tracking only."""
     job_name = try_get_script_name()
+
+    dbnd_bootstrap()
     return tracking_start_base(job_name=job_name, airflow_context=airflow_context)
 
 
@@ -429,6 +432,8 @@ def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=No
     # inform the user that we started, without alerting him with a Warning or Error message.
     # This should be a logger info message when tracking and orchestration split.
     print("Databand Tracking Started {version}".format(version=dbnd.__version__))
+
+    dbnd_bootstrap()
 
     if conf:
         config.set_values(

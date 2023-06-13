@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 @fixture
-def databand_context_kwargs():
-    return dict(conf={"local": {"root": "/some_path"}, "databand": {"verbose": "True"}})
+def dbnd_config_for_test_run__user():
+    return {"local": {"root": "/some_path"}, "databand": {"verbose": "True"}}
 
 
 task_target_date = datetime.date(year=2012, month=1, day=1)
@@ -99,7 +99,7 @@ class TestSparkTaskSignature(object):
         }
         assert_signatures(tasks, expected)
 
-    def test_signatures_pipeline(self):
+    def test_spark_task_signatures_with_pipelines(self):
         tasks = [TPipeline(task_target_date=task_target_date)]
 
         # !!!Change these signature only if you know what you are doing! (don't just fix the test)!!!

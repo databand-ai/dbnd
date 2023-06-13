@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def airflow_sync(ctx):
     """Manage synced Airflow instances"""
+    # we need to load configs,
+    # we have multiple get_databand_context().databand_api_client calls
+
+    from dbnd import dbnd_config
+
+    dbnd_config.load_system_configs()
 
 
 @airflow_sync.command("list")

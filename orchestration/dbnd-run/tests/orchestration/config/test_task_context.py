@@ -47,7 +47,7 @@ class TestDatabandContext(object):
     def test_user_code_run(self):
         with new_dbnd_context(
             conf={
-                "core": {
+                "run": {
                     "user_init": "tests.orchestration.config.test_task_context._user_code"
                 }
             }
@@ -59,7 +59,7 @@ class TestDatabandContext(object):
     def test_user_config_inject(self):
         with new_dbnd_context(
             conf={
-                "core": {
+                "run": {
                     "user_init": "tests.orchestration.config.test_task_context.inject_some_params"
                 },
                 "MyConfig22": {"config_id": "1"},
@@ -73,7 +73,7 @@ class TestDatabandContext(object):
         with pytest.raises(Exception, match=r"USER_CODE_ERROR"):
             with new_dbnd_context(
                 conf={
-                    "core": {
+                    "run": {
                         "user_init": "tests.orchestration.config.test_task_context._user_code_raises"
                     }
                 }

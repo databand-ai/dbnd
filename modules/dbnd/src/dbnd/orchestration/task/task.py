@@ -10,7 +10,6 @@ from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 from dbnd._core.configuration.dbnd_config import config as dbnd_config
-from dbnd._core.configuration.environ_config import set_orchestration_mode
 from dbnd._core.constants import (
     DbndTargetOperationStatus,
     DbndTargetOperationType,
@@ -411,7 +410,6 @@ class Task(_TaskWithParams, _TaskCtrlMixin, _TaskParamContainer):
         # this code should be executed under context!
         from dbnd._core.current import get_databand_context
 
-        set_orchestration_mode()
         ctx = get_databand_context()
         run = ctx.dbnd_run_task(self)
         return run

@@ -6,7 +6,7 @@ import threading
 
 from threading import Thread
 
-from dbnd import PythonTask, new_dbnd_context, output
+from dbnd import PythonTask, dbnd_bootstrap, new_dbnd_context, output
 from dbnd._core.utils.basics.signal_utils import register_graceful_sigterm
 from dbnd.orchestration.run_settings import RunConfig
 from dbnd.tasks.basics import SimplestTask
@@ -58,4 +58,5 @@ class TestRunFromThread(object):
 
 
 if __name__ == "__main__":
+    dbnd_bootstrap(enable_dbnd_run=True)
     SimplestTask(task_env="local").dbnd_run()

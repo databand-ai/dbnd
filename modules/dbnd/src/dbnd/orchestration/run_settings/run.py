@@ -177,3 +177,48 @@ class RunConfig(config.Config):
         default=True,
         description="Enable caching target values in memory during execution.",
     )[bool]
+
+    # BOOTSTRAP
+    module = parameter(
+        default=None, description="Auto load this module before resolving user classes"
+    )[str]
+
+    # USER CODE TO RUN ON START
+    user_configs = parameter(
+        empty_default=True,
+        description="Set the config used for creating tasks from user code.",
+    )[List[str]]
+
+    # user_pre_init = defined at Databand System config, dbnd_on_pre_init_context
+    user_init = parameter(
+        default=None,
+        description="This runs in every DBND process with System configuration in place. This is called in "
+        "DatabandContex after entering initialization steps.",
+    )[object]
+    user_driver_init = parameter(
+        default=None,
+        description="This runs in driver after configuration initialization. This is called from DatabandContext when "
+        "entering a new context(dbnd_on_new_context)",
+    )[object]
+
+    user_code_on_fork = parameter(
+        default=None,
+        description="This runs in a sub process, on parallel, kubernetes, or external modes.",
+    )[object]
+
+    # PLUGINS
+    dbnd_plugins_enabled = parameter(
+        description="Enable dbnd plugins system.", default=False
+    )[bool]
+
+    plugins = parameter(
+        description="Specify which plugins should be loaded on Databand context creations.",
+        default=None,
+    )[str]
+    fix_env_on_osx = parameter(
+        description="Enable adding `no_proxy=*` to environment variables, fixing issues with multiprocessing on OSX."
+    )[bool]
+
+    environments = parameter(description="Set a list of enabled environments.")[
+        List[str]
+    ]

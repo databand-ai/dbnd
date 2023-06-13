@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 _DBND_REGISTER_SPARK_TYPES = None
 
 
-def dbnd_spark_bootstrap():
+def workaround_spark_namedtuple_serialization():
     global _DBND_REGISTER_SPARK_TYPES
     if _DBND_REGISTER_SPARK_TYPES:
         return

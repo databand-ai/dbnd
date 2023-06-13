@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from dbnd._core.configuration.environ_config import set_orchestration_mode
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.current import get_databand_context
 from dbnd._core.utils.basics import nested_context
 from dbnd._vendor import click
@@ -17,7 +17,7 @@ def send_heartbeat(
     run_uid, databand_url, heartbeat_interval, driver_pid, tracker, tracker_api
 ):
 
-    set_orchestration_mode()
+    dbnd_bootstrap(enable_dbnd_run=True)
 
     from dbnd import config
     from dbnd.orchestration.run_executor.heartbeat_sender import (

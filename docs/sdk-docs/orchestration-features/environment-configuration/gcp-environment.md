@@ -7,7 +7,7 @@ You must have the `dbnd-gcp` plugin installed.
 ## To Set up an Environment for Google Cloud Platform
 1. Open the **project.cfg** file, and add `gcp` to the list of environments.
 ```ini
-[core]
+[run]
 environments = ['local', 'gcp']
 ```
 
