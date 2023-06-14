@@ -126,7 +126,7 @@ class GenericSyncer(BaseComponent):
                 duration=total_sync_once_duration_seconds,
             )
         except Exception as ex:
-            logger.error("unexpected generic syncer error")
+            logger.error("unexpected generic syncer error", exc_info=True)
             report_generic_syncer_error(
                 integration_id=self.config.uid,
                 syncer_instance_id=self.syncer_instance_id,
