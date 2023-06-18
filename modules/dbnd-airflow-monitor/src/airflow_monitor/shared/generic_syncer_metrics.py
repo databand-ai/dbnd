@@ -43,14 +43,14 @@ generic_syncer_total_max_retry_assets_requests = Counter(
     labelnames=["integration_id", "syncer_instance_id"],
 )
 
-generic_syncer_assets_data_batch_size_bytes = Counter(
-    "dbnd_generic_syncer_assets_data_batch_size_bytes_counter",
+generic_syncer_assets_data_batch_size_bytes = Summary(
+    "dbnd_generic_syncer_assets_data_batch_size_bytes",
     "The size of assets data batch in bytes",
     labelnames=["integration_id", "syncer_instance_id"],
 )
 
-generic_syncer_total_assets_size = Counter(
-    "generic_syncer_assets_total_assets_size_counter",
+generic_syncer_total_assets_size = Summary(
+    "dbnd_generic_syncer_assets_total_assets_size",
     "The total number of assets in sync once iteration",
     labelnames=["integration_id", "syncer_instance_id"],
 )
@@ -58,6 +58,12 @@ generic_syncer_total_assets_size = Counter(
 generic_syncer_save_tracking_data_response_time_seconds = Summary(
     "dbnd_generic_syncer_save_tracking_data_response_time_in_seconds",
     "The time in seconds to get response from save_tracking_data",
+    labelnames=["integration_id", "syncer_instance_id"],
+)
+
+generic_syncer_get_assets_data_response_time_seconds = Summary(
+    "dbnd_generic_syncer_get_assets_data_response_time_in_seconds",
+    "The time in seconds to get response from get_assets_data",
     labelnames=["integration_id", "syncer_instance_id"],
 )
 
@@ -111,22 +117,28 @@ def report_total_assets_max_retry_requests(
 
 
 def report_assets_data_batch_size_bytes(
-    integration_id, syncer_instance_id, assets_data_batch_size
+    integration_id, syncer_instance_id, assets_data_batch_size_bytes
 ):
     generic_syncer_assets_data_batch_size_bytes.labels(
         integration_id=integration_id, syncer_instance_id=syncer_instance_id
-    ).inc(assets_data_batch_size)
+    ).observe(assets_data_batch_size_bytes)
 
 
 def report_total_assets_size(integration_id, syncer_instance_id, assets_size):
     generic_syncer_total_assets_size.labels(
         integration_id=integration_id, syncer_instance_id=syncer_instance_id
-    ).inc(assets_size)
+    ).observe(assets_size)
 
 
 def report_save_tracking_data_response_time(
     integration_id, syncer_instance_id, duration
 ):
     generic_syncer_save_tracking_data_response_time_seconds.labels(
+        integration_id=integration_id, syncer_instance_id=syncer_instance_id
+    ).observe(duration)
+
+
+def report_get_assets_data_response_time(integration_id, syncer_instance_id, duration):
+    generic_syncer_get_assets_data_response_time_seconds.labels(
         integration_id=integration_id, syncer_instance_id=syncer_instance_id
     ).observe(duration)

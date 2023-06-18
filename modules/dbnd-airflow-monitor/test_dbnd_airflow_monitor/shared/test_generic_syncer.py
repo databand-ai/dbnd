@@ -505,3 +505,21 @@ class TestGenericSyncer:
             labels = generic_syncer_total_max_retry_assets_requests.return_value
             # total max retry assets requests value
             assert labels.method_calls[0].args[0] == 2
+
+    def test_get_assets_data_response_duration_metric(
+        self,
+        generic_runtime_syncer: GenericSyncer,
+        mock_tracking_service: MockTrackingService,
+    ):
+        with mock.patch(
+            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_get_assets_data_response_time_seconds.labels"
+        ) as generic_syncer_get_assets_data_response_time_seconds:
+            generic_runtime_syncer.sync_once()
+            generic_runtime_syncer.sync_once()
+            generic_syncer_get_assets_data_response_time_seconds.assert_called_with(
+                integration_id=INTEGRATION_UID, syncer_instance_id="123"
+            )
+            # generic_syncer_save_tracking_data_response_time_seconds.labels
+            labels = generic_syncer_get_assets_data_response_time_seconds.return_value
+            # get_assets_data_duration value is more then 0 seconds
+            assert labels.method_calls[0].args[0] > 0

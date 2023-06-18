@@ -15,6 +15,7 @@ from airflow_monitor.shared.generic_syncer_metrics import (
     report_assets_data_batch_size_bytes,
     report_assets_data_fetch_error,
     report_generic_syncer_error,
+    report_get_assets_data_response_time,
     report_save_tracking_data_response_time,
     report_sync_once_batch_duration_seconds,
     report_sync_once_total_duration_seconds,
@@ -146,7 +147,12 @@ class GenericSyncer(BaseComponent):
                 error_message=str(ex),
             )
             return synced_data
-
+        get_assets_data_duration = (utcnow() - batch_process_start_time).total_seconds()
+        report_get_assets_data_response_time(
+            integration_id=self.config.uid,
+            syncer_instance_id=self.syncer_instance_id,
+            duration=get_assets_data_duration,
+        )
         assets_data_to_report = assets_data.data
         assets_states_to_report = assets_data.assets_to_state
         if not assets_data_to_report:
@@ -165,7 +171,7 @@ class GenericSyncer(BaseComponent):
                 report_assets_data_batch_size_bytes(
                     integration_id=self.config.uid,
                     syncer_instance_id=self.syncer_instance_id,
-                    assets_data_batch_size=assets_data_batch_size,
+                    assets_data_batch_size_bytes=assets_data_batch_size,
                 )
             except TypeError:
                 logger.warning("assets data batch size could not be calculated")
