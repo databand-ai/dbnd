@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 class AirflowRuntimeConfigUpdater(BaseComponent):
     SYNCER_TYPE = "runtime_config_updater"
 
-    def __init__(self, *args, **kwargs):
-        super(AirflowRuntimeConfigUpdater, self).__init__(*args, **kwargs)
-
     @property
     def sleep_interval(self):
         return self.config.config_updater_interval
@@ -33,7 +30,3 @@ class AirflowRuntimeConfigUpdater(BaseComponent):
         dbnd_response = self.tracking_service.get_syncer_info()
         if dbnd_response:
             check_syncer_config_and_set(dbnd_response)
-
-    def stop(self):
-        logger.info("Running runtime_config_updater last time before stopping for")
-        self.sync_once()

@@ -35,13 +35,12 @@ class BaseComponent:
         config: BaseServerConfig,
         tracking_service: BaseTrackingService,
         integration_management_service,
-        data_fetcher: object,
+        data_fetcher: object = None,
     ):
         self.config = config
         self.tracking_service = tracking_service
         self.integration_management_service = integration_management_service
         self.data_fetcher: object = data_fetcher
-        self.last_heartbeat = None
 
     @property
     def sleep_interval(self):
@@ -85,9 +84,6 @@ class BaseComponent:
 
     def _sync_once(self):
         raise NotImplementedError()
-
-    def stop(self):
-        pass
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.config.source_name}|{self.config.uid})"

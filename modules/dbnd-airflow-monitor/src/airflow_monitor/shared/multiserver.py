@@ -4,7 +4,7 @@ import logging
 
 from datetime import timedelta
 from time import sleep
-from typing import Dict, List
+from typing import List
 from uuid import UUID
 
 import airflow_monitor
@@ -35,7 +35,8 @@ class MultiServerMonitor:
     ):
         self.monitor_config = monitor_config
         self.monitor_services_factory = monitor_services_factory
-        self.active_instances: Dict[UUID, List[BaseComponent]] = {}
+        self.active_integrations = {}
+        self.current_integration_configs = []
 
         self.iteration = 0
         self.stop_at = (
@@ -60,31 +61,27 @@ class MultiServerMonitor:
 
         return False
 
-    def _stop_disabled_servers(self, integration_configs: List[BaseServerConfig]):
-        integration_uids = {s.uid for s in integration_configs}
-        for integration_uid in list(self.active_instances.keys()):
-            if integration_uid not in integration_uids:
-                for component in self.active_instances[integration_uid]:
-                    component.stop()
-                self.active_instances.pop(integration_uid)
+    def _stop_disabled_integrations(
+        self, integration_configs_to_remove: List[BaseServerConfig]
+    ):
+        for integration_config in integration_configs_to_remove:
+            self.monitor_services_factory.on_integration_disabled(
+                integration_config, self.integration_management_service
+            )
+            self.active_integrations.pop(integration_config.uid)
 
-    def _start_new_enabled_servers(self, integration_configs: List[BaseServerConfig]):
+    def _start_new_enabled_integrations(
+        self, integration_configs: List[BaseServerConfig]
+    ):
         for integration_config in integration_configs:
             integration_uid = integration_config.uid
-            instance = self.active_instances.get(integration_uid)
-            if not instance:
-                logger.info("Starting components for %s", integration_uid)
-
-                components = self.monitor_services_factory.get_components(
-                    integration_config, self.integration_management_service
-                )
-                self.active_instances[integration_uid] = components
-
+            if integration_uid not in self.active_integrations:
+                logger.info("Started syncing new integration %s", integration_uid)
+                self.active_integrations[integration_uid] = {}
                 self.integration_management_service.clean_error_message(integration_uid)
                 self._report_third_party_data(integration_config)
 
     def _report_third_party_data(self, integration_config):
-
         # This is the version of the monitor, since currently the shared logic exists
         # in airflow_monitor package we import this package and get the version
         metadata = {"monitor_version": airflow_monitor.__version__}
@@ -108,38 +105,28 @@ class MultiServerMonitor:
             integration_config.uid, metadata
         )
 
-    def _component_interval_is_met(self, component: BaseComponent) -> bool:
+    def _component_interval_is_met(
+        self, integration_uid: UUID, component: BaseComponent
+    ) -> bool:
         """
         Every component has an interval, make sure it doesn't run more often than the interval
         """
-        if component.last_heartbeat is None:
+        last_heartbeat = self.active_integrations[integration_uid].get(
+            component.identifier
+        )
+        if last_heartbeat is None:
             return True
 
-        time_from_last_heartbeat = (utcnow() - component.last_heartbeat).total_seconds()
+        time_from_last_heartbeat = (utcnow() - last_heartbeat).total_seconds()
         return time_from_last_heartbeat >= component.sleep_interval
 
     def _create_new_components(self, integration_config: BaseServerConfig):
-        integration_uid = integration_config.uid
-        existing_components = self.active_instances[integration_uid]
-        new_components = self.monitor_services_factory.get_components(
+        new_components_list = self.monitor_services_factory.get_components(
             integration_config=integration_config,
             integration_management_service=self.integration_management_service,
         )
-        existing_components_dict = {
-            component.identifier: component for component in existing_components
-        }
-        new_components_dict = {
-            component.identifier: component for component in new_components
-        }
 
-        # Keep heartbeats from existing components
-        for component_id, component in new_components_dict.items():
-            if component_id in existing_components_dict:
-                component.last_heartbeat = existing_components_dict[
-                    component_id
-                ].last_heartbeat
-
-        self.active_instances[integration_uid] = new_components
+        return new_components_list
 
     def _heartbeat(self, integration_configs: List[BaseServerConfig]):
         for integration_config in integration_configs:
@@ -150,12 +137,14 @@ class MultiServerMonitor:
                 self.iteration,
             )
             # create new syncers with new config every heartbeat
-            self._create_new_components(integration_config)
-            for component in self.active_instances[integration_uid]:
-                if self._component_interval_is_met(component):
+            components_list = self._create_new_components(integration_config)
+            for component in components_list:
+                if self._component_interval_is_met(integration_uid, component):
                     component.refresh_config(integration_config)
                     component.sync_once()
-                    component.last_heartbeat = utcnow()
+                    self.active_integrations[integration_uid][
+                        component.identifier
+                    ] = utcnow()
 
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)
@@ -172,10 +161,23 @@ class MultiServerMonitor:
                 logger.exception("Unknown exception during iteration", exc_info=True)
 
             if self._should_stop():
-                self._stop_disabled_servers([])
+                self._stop_disabled_integrations(self.current_integration_configs)
                 break
 
             sleep(self.monitor_config.interval)
+
+    def partition_integration_configs(self, new_integration_configs):
+        new_integration_uids = {s.uid for s in new_integration_configs}
+        current_integration_uids = {s.uid for s in self.current_integration_configs}
+        configs_to_add = [
+            c for c in new_integration_configs if c.uid not in current_integration_uids
+        ]
+        configs_to_remove = [
+            c
+            for c in self.current_integration_configs
+            if c.uid not in new_integration_uids
+        ]
+        return configs_to_add, configs_to_remove
 
     def run_once(self):
         integration_configs: List[
@@ -183,7 +185,11 @@ class MultiServerMonitor:
         ] = self.integration_management_service.get_all_servers_configuration(
             self.monitor_config
         )
-        self._stop_disabled_servers(integration_configs)
-        self._start_new_enabled_servers(integration_configs)
+        configs_to_add, configs_to_remove = self.partition_integration_configs(
+            integration_configs
+        )
+        self.current_integration_configs = integration_configs
+        self._stop_disabled_integrations(configs_to_remove)
+        self._start_new_enabled_integrations(configs_to_add)
         self._heartbeat(integration_configs)
         create_liveness_file()

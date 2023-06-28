@@ -54,3 +54,10 @@ class MonitorServicesFactory(ABC):
             all_components.append(syncer_instance)
 
         return all_components
+
+    def on_integration_disabled(
+        self,
+        integration_config: BaseServerConfig,
+        integration_management_service: IntegrationManagementService,
+    ):
+        pass

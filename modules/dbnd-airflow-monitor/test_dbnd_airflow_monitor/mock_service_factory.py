@@ -2,6 +2,10 @@
 
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
+from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 
 from .mock_airflow_adapter import MockAirflowAdapter
 from .mock_airflow_data_fetcher import MockDataFetcher
@@ -20,6 +24,7 @@ class MockAirflowServicesFactory(AirflowServicesFactory):
         )
         self.mock_adapter = MockAirflowAdapter()
         self.mock_components_dict = {}
+        self.on_integration_disabled_call_count = 0
 
     def get_data_fetcher(self, server_config):
         return self.mock_data_fetcher
@@ -38,3 +43,10 @@ class MockAirflowServicesFactory(AirflowServicesFactory):
 
     def get_adapter(self, server_config):
         return self.mock_adapter
+
+    def on_integration_disabled(
+        self,
+        integration_config: BaseServerConfig,
+        integration_management_service: IntegrationManagementService,
+    ):
+        self.on_integration_disabled_call_count += 1

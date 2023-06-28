@@ -101,7 +101,7 @@ class TestMultiServer(object):
         multi_server.run_once()
 
         # no servers - should stay empty
-        assert not multi_server.active_instances
+        assert not multi_server.active_integrations
 
     def test_02_config_service_not_available(
         self, multi_server, mock_integration_management_service
@@ -120,8 +120,8 @@ class TestMultiServer(object):
         ]
         multi_server.run_once()
 
-        assert len(multi_server.active_instances) == 2
-        for components_dict in multi_server.active_instances.values():
+        assert len(multi_server.active_integrations) == 2
+        for components_dict in multi_server.active_integrations.values():
             # All components should be there regardless if they are disabled in the config (no longer supported feature)
             assert len(components_dict) == 3
         assert not count_logged_exceptions(caplog)
@@ -140,24 +140,19 @@ class TestMultiServer(object):
         ]
         multi_server.run_once()
         # Should start mock_server, should do 1 iteration
-        assert len(multi_server.active_instances) == 1
-        syncer_instance = multi_server.active_instances[MOCK_SERVER_1_CONFIG["uid"]][0]
-        assert syncer_instance.sync_count == 1
+        assert len(multi_server.active_integrations) == 1
+        assert len(multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]])
 
         multi_server.run_once()
         # Since components are created every single time, should create a new one and do 1 iteration
-        assert len(multi_server.active_instances) == 1
-        new_syncer_instance = multi_server.active_instances[
-            MOCK_SERVER_1_CONFIG["uid"]
-        ][0]
-        assert syncer_instance.sync_count == 1
-        assert new_syncer_instance.sync_count == 1
+        assert len(multi_server.active_integrations) == 1
+        assert len(multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]])
 
         mock_integration_management_service.mock_servers = []
         multi_server.run_once()
         # should remove the server, don't do the additional iteration
-        assert len(multi_server.active_instances) == 0
-        assert syncer_instance.sync_count == 1
+        assert len(multi_server.active_integrations) == 0
+        assert mock_airflow_services_factory.on_integration_disabled_call_count == 1
         assert not count_logged_exceptions(caplog)
 
     def test_05_test_error_cleanup(
@@ -174,7 +169,7 @@ class TestMultiServer(object):
         mock_integration_management_service.error = "some_error"
         multi_server.run_once()
         # should start mock_server, should do 1 iteration
-        assert len(multi_server.active_instances) == 1
+        assert len(multi_server.active_integrations) == 1
 
         # On first run should clean existing error
         assert not mock_integration_management_service.error
@@ -182,7 +177,7 @@ class TestMultiServer(object):
         mock_data_fetcher.alive = False
         multi_server.run_once()
         # still alive
-        assert len(multi_server.active_instances) == 1
+        assert len(multi_server.active_integrations) == 1
         assert mock_integration_management_service.error is not None
 
         first_error_lines = mock_integration_management_service.error.split("\n")
@@ -195,7 +190,7 @@ class TestMultiServer(object):
 
         mock_data_fetcher.alive = True
         multi_server.run_once()
-        assert len(multi_server.active_instances) == 1
+        assert len(multi_server.active_integrations) == 1
         assert not mock_integration_management_service.error
 
     def test_06_liveness_prove(
@@ -250,13 +245,25 @@ class TestMultiServer(object):
         mock_integration_management_service.mock_servers = [config]
         multi_server.run_once()
         # Should start mock_server, should do 1 iteration
-        assert len(multi_server.active_instances) == 1
-        syncer_instance = multi_server.active_instances[MOCK_SERVER_1_CONFIG["uid"]][0]
-        assert syncer_instance.sync_count == 1
+        assert len(multi_server.active_integrations) == 1
+        assert len(multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]]) == 1
+        last_heartbeat = multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]][
+            MockSyncer.SYNCER_TYPE
+        ]
+        assert last_heartbeat is not None
 
-        multi_server._create_new_components(config)
-        assert len(multi_server.active_instances) == 1
+        multi_server.run_once()
 
-        new_component = multi_server.active_instances[MOCK_SERVER_1_CONFIG["uid"]][0]
-        assert isinstance(new_component, MockSyncer)
-        assert new_component.last_heartbeat == syncer_instance.last_heartbeat
+        new_last_heartbeat = multi_server.active_integrations[
+            MOCK_SERVER_1_CONFIG["uid"]
+        ][MockSyncer.SYNCER_TYPE]
+        assert new_last_heartbeat is not None
+        assert new_last_heartbeat != last_heartbeat
+
+        # Now the interval is not met so shouldn't run again the component
+        config.sync_interval = 10
+        multi_server.run_once()
+        newer_last_heartbeat = multi_server.active_integrations[
+            MOCK_SERVER_1_CONFIG["uid"]
+        ][MockSyncer.SYNCER_TYPE]
+        assert newer_last_heartbeat == new_last_heartbeat

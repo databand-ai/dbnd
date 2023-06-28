@@ -1,4 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import logging
+
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
@@ -28,8 +30,9 @@ from dbnd._core.utils.basics.memoized import cached
 
 FETCHERS = {"db": DbFetcher, "web": WebFetcher}
 
-
 MONITOR_TYPE = "airflow"
+
+logger = logging.getLogger(__name__)
 
 
 class AirflowServicesFactory(MonitorServicesFactory):
@@ -75,3 +78,16 @@ class AirflowServicesFactory(MonitorServicesFactory):
 
     def get_adapter(self, server_config: BaseServerConfig) -> Adapter:
         return AirflowAdapter()
+
+    def on_integration_disabled(
+        self,
+        integration_config: BaseServerConfig,
+        integration_management_service: IntegrationManagementService,
+    ):
+        tracking_service = self.get_tracking_service(integration_config)
+
+        logger.info("Running runtime_config_updater last time before stopping")
+        updater = AirflowRuntimeConfigUpdater(
+            integration_config, tracking_service, integration_management_service
+        )
+        updater.sync_once()
