@@ -44,14 +44,16 @@ def set_airflow_connection(
     sh.airflow(airflow_command, _truncate_exc=False)
 
 
-def run_dag_backfill(dag_id, backfill_date):
+def run_dag_backfill(dag_id, backfill_date, ok_exit_codes=None):
     if AIRFLOW_VERSION_2:
         airflow_command = f"dags backfill -s {backfill_date} -e {backfill_date} {dag_id} --reset-dagruns --yes"
     else:
         airflow_command = f"backfill -s {backfill_date} -e {backfill_date} {dag_id} --reset_dagruns --yes"
 
     logging.info("running: airflow {}".format(airflow_command))
-    airflow_process = sh.airflow(airflow_command.split(), _truncate_exc=False)
+    airflow_process = sh.airflow(
+        airflow_command.split(), _truncate_exc=False, _ok_code=ok_exit_codes or 0
+    )
     return airflow_process
 
 
