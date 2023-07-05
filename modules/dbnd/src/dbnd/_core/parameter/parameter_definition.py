@@ -52,8 +52,8 @@ logger = logging.getLogger(__name__)
 if typing.TYPE_CHECKING:
     from dbnd._core.parameter import ParameterValue
     from dbnd._core.settings import TrackingConfig
+    from dbnd._core.task.task_with_params import _TaskWithParams
     from dbnd._core.task_build.task_definition import TaskDefinition
-    from dbnd.orchestration.task.task import Task
 
 
 class _ParameterKind(enum.Enum):
@@ -74,13 +74,13 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
     """
     Parameter whose value is a ``str``, and a base class for other parameter types.
 
-    Parameters are objects set on the Task class level to make it possible to parameterize tasks.
+    Parameters are objects set on the _TaskWithParams class level to make it possible to parameterize tasks.
     For instance::
 
-        class MyTask(dbnd.Task):
+        class MyTask(_TaskWithParams):
             foo = databand.parameter[str]
 
-        class RequiringTask(dbnd.Task):
+        class RequiringTask(_TaskWithParams):
             def requires(self):
                 return MyTask(foo="hello")
 
@@ -361,11 +361,11 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             )
 
     def _store_value_origin_target(self, value, target):
-        dbnd_run = try_get_databand_run()
-        if not dbnd_run:
+        run = try_get_databand_run()
+        if not run:
             return
 
-        dbnd_run.target_origin.add(target, value, self.value_type)
+        run.target_origin.add(target, value, self.value_type)
 
     def normalize(self, x):  # type: (T) -> T
         """
@@ -493,7 +493,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             task_id=task.task_id, parameter_name=self.name, name=self.name
         )
 
-    def build_target(self, task):  # type: (ParameterDefinition, Task) -> DataTarget
+    def build_target(self, task: "_TaskWithParams") -> DataTarget:
         target_config = self.target_config
         if not target_config.format:
             default_config = task.run_settings.output.get_value_target_config(
@@ -520,7 +520,7 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
             except Exception:
                 logger.exception(
                     "Failed to created task output %s for %s : "
-                    " output_factory expected signature is '(Task, Parameter) -> Target(any structure) '",
+                    " output_factory expected signature is '(_TaskWithParams, Parameter) -> Target(any structure) '",
                     self,
                     task,
                 )
@@ -569,11 +569,11 @@ class ParameterDefinition(object):  # generics are broken: typing.Generic[T]
 
     def update_value_meta_conf_from_runtime_value(self, value, tracking_config):
         # type: (Any, TrackingConfig) -> ParameterDefinition
-        return self.modify(
-            value_meta_conf=tracking_config.get_value_meta_conf(
-                self.value_meta_conf, get_value_type_of_obj(value, ValueType())
-            )
+        value_type = get_value_type_of_obj(value, ValueType())
+        updated_value_meta_conf = tracking_config.get_value_meta_conf(
+            meta_conf=self.value_meta_conf, value_type=value_type
         )
+        return self.modify(value_meta_conf=updated_value_meta_conf)
 
 
 def _update_parameter_from_runtime_value_type(parameter, value):

@@ -1,5 +1,4 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
 
@@ -10,23 +9,45 @@ _AIRFLOW_PACKAGE_INSTALLED = None  # apache airflow is installed
 
 def is_dbnd_run_package_installed():
     global _DBND_RUN_PACKAGE_INSTALLED
-    if _DBND_RUN_PACKAGE_INSTALLED is None:
-        # cached answer
-        try:
-            import dbnd_run  # noqa: F401
 
-            _DBND_RUN_PACKAGE_INSTALLED = True
-        except Exception:
-            _DBND_RUN_PACKAGE_INSTALLED = False
+    # cached answer
+    if _DBND_RUN_PACKAGE_INSTALLED is not None:
+        return _DBND_RUN_PACKAGE_INSTALLED
+
+    try:
+        import dbnd_run  # noqa: F401
+
+        _DBND_RUN_PACKAGE_INSTALLED = True
+    except Exception:
+        _DBND_RUN_PACKAGE_INSTALLED = False
 
     return _DBND_RUN_PACKAGE_INSTALLED
 
 
-def is_dbnd_orchestration_enabled():
-    if get_dbnd_project_config().is_no_dbnd_orchestration:
-        return False
+def assert_dbnd_run_package_installed():
+    if not is_dbnd_run_package_installed():
+        raise friendly_error.config.missing_module("dbnd_run")
 
-    return is_dbnd_run_package_installed()
+
+def is_orchestration_mode():
+    return get_dbnd_project_config().is_orchestration_mode()
+
+
+def set_orchestration_mode():
+    """
+    Set the system into orchestration mode.
+
+    Together with `dbnd-run` plugin this enables user to run pipelines.
+    """
+    assert_dbnd_run_package_installed()
+    get_dbnd_project_config().set_orchestration_mode()
+
+
+def assert_dbnd_orchestration_enabled():
+    assert_dbnd_run_package_installed()
+
+    if not is_orchestration_mode():
+        raise Exception("Orchestration mode is not enabled")
 
 
 def is_dbnd_orchestration_via_airflow_enabled():

@@ -13,8 +13,11 @@ from dbnd._core.configuration.config_value import default, extend, override
 from dbnd._core.configuration.dbnd_config import config, config_deco
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
+from dbnd._core.context.use_dbnd_run import (
+    is_dbnd_run_package_installed,
+    set_orchestration_mode,
+)
 from dbnd._core.current import (
-    cancel_current_run,
     current_task,
     current_task_run,
     dbnd_context,
@@ -34,7 +37,6 @@ from dbnd._core.task_build.dbnd_decorator import (
 )
 from dbnd._core.task_build.task_context import current
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
-from dbnd._core.task_ctrl.task_relations import as_task
 from dbnd._core.tracking.dbt.dbt_cloud import collect_data_from_dbt_cloud
 from dbnd._core.tracking.dbt.dbt_core import collect_data_from_dbt_core
 from dbnd._core.tracking.log_data_request import LogDataRequest
@@ -64,31 +66,18 @@ from dbnd._core.utils.project.project_fs import (
     project_path,
     relative_path,
 )
-from dbnd.orchestration.cli.cmd_run import dbnd_run_cmd_main
-from dbnd.orchestration.plugin.dbnd_plugins import hookimpl
-from dbnd.orchestration.task.data_source_task import DataSourceTask
-from dbnd.orchestration.task.pipeline_task import PipelineTask
-from dbnd.orchestration.task.python_task import PythonTask
-from dbnd.orchestration.task.task import Task
-from dbnd.orchestration.task_build import task_namespace
-from dbnd.orchestration.task_build.task_namespace import auto_namespace, namespace
-from dbnd.tasks import basics
 from targets import _set_patches
 
 
 from dbnd._core.configuration.environ_config import (  # isort:skip
     get_dbnd_project_config,
-    set_orchestration_mode,
 )
 
 get_dbnd_project_config().validate_init()  # isort:skip
 
-
 dbnd_config = config
 dbnd_config.__doc__ = """Defines a dictionary of configuration settings that you can pass to your tasks."""
 __all__ = [
-    "cancel_current_run",
-    "hookimpl",
     # context management
     "new_dbnd_context",
     "current",
@@ -101,25 +90,16 @@ __all__ = [
     "dbnd_tracking",
     "dbnd_tracking_start",
     "dbnd_tracking_stop",
-    "auto_namespace",
     "register_config_cls",
     "register_task",
-    "namespace",
-    "task_namespace",
-    "as_task",
     "dont_track",
     # tasks
     "band",
     "pipeline",
     "data_source_pipeline",
     "task",
-    "Task",
-    "basics",
     # class tasks
     "Config",
-    "DataSourceTask",
-    "PipelineTask",
-    "PythonTask",
     # parameters
     "parameter",
     "data",
@@ -135,14 +115,6 @@ __all__ = [
     "ParameterScope",
     "replace_section_with",
     "default",
-    ## Orchestration
-    "set_orchestration_mode",
-    # dbnd run cmds functions
-    "dbnd_main",
-    "dbnd_cmd",
-    "dbnd_run_cmd",
-    "dbnd_run_cmd_main",
-    "dbnd_handle_errors",
     # metrics
     "log_dataframe",
     "dataset_op_logger",
@@ -169,7 +141,48 @@ __all__ = [
     "get_remote_engine_name",
     "collect_data_from_dbt_cloud",
     "collect_data_from_dbt_core",
+    "dbnd_run_cmd",
+    # -= Orchestration =-
+    "set_orchestration_mode",
+    # dbnd run cmds functions
+    "dbnd_main",
+    "dbnd_cmd",
+    "dbnd_run_cmd",
+    "dbnd_handle_errors",
 ]
+
+if is_dbnd_run_package_installed():
+    from dbnd_run.cli.cmd_run import dbnd_run_cmd_main  # noqa: F401
+    from dbnd_run.plugin.dbnd_plugins import hookimpl  # noqa: F401
+    from dbnd_run.task.data_source_task import DataSourceTask  # noqa: F401
+    from dbnd_run.task.pipeline_task import PipelineTask  # noqa: F401
+    from dbnd_run.task.python_task import PythonTask  # noqa: F401
+    from dbnd_run.task.task import Task  # noqa: F401
+    from dbnd_run.task_ctrl import task_namespace  # noqa: F401
+    from dbnd_run.task_ctrl.task_namespace import (  # noqa: F401
+        auto_namespace,
+        namespace,
+    )
+    from dbnd_run.task_ctrl.task_relations import as_task  # noqa: F401
+
+    __all__ += [
+        "as_task",
+        "basics",
+        "dbnd_run_cmd_main",
+        "hookimpl",
+        # namespace implementation
+        "auto_namespace",
+        "namespace",
+        "task_namespace",
+        # class tasks
+        "DataSourceTask",
+        "Task",
+        "PipelineTask",
+        "PythonTask",
+        ## Orchestration
+        # dbnd run cmds functions
+        "dbnd_run_cmd_main",
+    ]
 
 # validate missing __all__
 # imported_vars = set(k for k in locals().keys() if not k.startswith("__"))

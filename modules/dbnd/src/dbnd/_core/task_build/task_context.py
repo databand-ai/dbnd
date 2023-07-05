@@ -4,8 +4,6 @@ import enum
 
 from typing import Optional
 
-import dbnd
-
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 
 
@@ -25,7 +23,7 @@ class TaskContext(SingletonContext):
 
 
 def task_context(task, phase):
-    # type: (dbnd.tasks.Task, TaskContextPhase) -> TaskContext
+    # type: (dbnd_run.tasks.Task, TaskContextPhase) -> TaskContext
     base_stack = []
 
     if has_current_task():
@@ -41,12 +39,12 @@ def has_current_task():
 
 
 def current_task():
-    # type: () -> dbnd.tasks.Task
+    # type: () -> dbnd_run.tasks.Task
     return TaskContext.get_instance().stack[-1]
 
 
 def try_get_current_task():
-    # type: () -> Optional[dbnd.tasks.Task]
+    # type: () -> Optional[dbnd_run.tasks.Task]
     tc = TaskContext.try_get_instance()
     if tc and tc.stack:
         return tc.stack[-1]

@@ -3,7 +3,7 @@
 import pytest
 
 from dbnd import config, relative_path
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.testing.helpers import assert_run_task
 
 
 def _data_for_spark_path(*path):

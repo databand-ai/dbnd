@@ -8,13 +8,13 @@ from mxnet.gluon.data.dataset import ArrayDataset
 from mxnet.gluon.data.vision import transforms
 
 from dbnd import data, namespace, output, parameter
-from dbnd.tasks import PipelineTask
 from dbnd_examples.orchestration.tool_mxnet import (
     DownloadFile,
     MxNetGluonTask,
     fashion_data,
     read_minst,
 )
+from dbnd_run.tasks import PipelineTask
 
 
 namespace("fashion")

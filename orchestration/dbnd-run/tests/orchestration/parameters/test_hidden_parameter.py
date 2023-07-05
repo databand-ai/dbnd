@@ -2,7 +2,6 @@
 
 from dbnd import task
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
 from dbnd._core.tracking.tracking_info_convertor import build_task_run_info
 
 
@@ -31,6 +30,6 @@ class TestHiddenParameter(object):
         my_task = t_f.t("test_string")
         my_task.dbnd_run()
 
-        banner = TaskVisualiser(my_task).banner("some_msg")
+        banner = my_task.ctrl.banner("some_msg")
         print(banner)
         assert "***" in banner and "test_string" not in banner

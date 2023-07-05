@@ -5,8 +5,8 @@ import logging
 from time import sleep
 
 from dbnd import PipelineTask, band, output, parameter, pipeline, task
-from dbnd.tasks.basics import SimplestTask
-from dbnd.tasks.basics.simplest import SimpleTask
+from dbnd_run.tasks.basics import SimplestTask
+from dbnd_run.tasks.basics.simplest import SimpleTask
 from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import target
 

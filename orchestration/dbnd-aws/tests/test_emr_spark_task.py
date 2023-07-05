@@ -8,9 +8,9 @@ import pytest
 from dbnd import config
 from dbnd._core.constants import CloudType, SparkClusters
 from dbnd._core.errors import DatabandRunError
-from dbnd._core.settings import EnvConfig
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_aws.emr.emr_config import EmrConfig
+from dbnd_run.run_settings.env import EnvConfig
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountPySparkTask,

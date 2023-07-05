@@ -25,7 +25,7 @@ from dbnd._core.run.run_banner import RunBanner
 from dbnd._core.run.run_tracker import RunTracker
 from dbnd._core.run.target_identity_source_map import TargetIdentitySourceMap
 from dbnd._core.settings import DatabandSettings, RunInfoConfig
-from dbnd._core.task import Task
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_build.task_context import current_task, has_current_task
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.tracking.airflow_dag_inplace_tracking import AirflowTaskContext
@@ -38,7 +38,7 @@ from dbnd._vendor.namesgenerator import get_random_name
 
 if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
-    from dbnd.orchestration.run_executor.run_executor import RunExecutor
+    from dbnd_run.run_executor.run_executor import RunExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class DatabandRun(SingletonContext):
         self.execution_date = run_info.execution_date or unique_execution_date()
 
         # tracking/orchestration main task
-        self.root_task = None  # type: Optional[Task]
+        self.root_task = None  # type: Optional[_BaseTask]
 
         # task run that wraps execution (tracking or orchestration)
         self._driver_task_run = None
@@ -210,12 +210,8 @@ class DatabandRun(SingletonContext):
         return [self.get_task_run(task_id).task_af_id for task_id in task_ids]
 
     def get_task(self, task_id):
-        # type: (str) -> Task
+        # type: (str) -> _BaseTask
         return self.get_task_run(task_id).task
-
-    @property
-    def describe_dag(self):
-        return self.root_task.ctrl.describe_dag
 
     def set_run_state(self, state):
         self._run_state = state

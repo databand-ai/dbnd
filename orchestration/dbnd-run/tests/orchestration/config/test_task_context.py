@@ -6,7 +6,7 @@ import pytest
 
 from dbnd import Config, config, parameter, task
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd.testing.orchestration_utils import TTask
+from dbnd_run.testing.helpers import TTask
 
 
 logger = logging.getLogger(__name__)

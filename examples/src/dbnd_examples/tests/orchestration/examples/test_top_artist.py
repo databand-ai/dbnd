@@ -2,11 +2,11 @@
 
 from typing import List
 
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.orchestration.examples.top_artists import (
     top_artists_big_report,
     top_artists_report,
 )
+from dbnd_run.testing.helpers import assert_run_task
 
 
 class TestTopArtistExamples(object):

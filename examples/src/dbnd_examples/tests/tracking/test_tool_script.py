@@ -4,7 +4,7 @@ import logging
 import sys
 
 from dbnd import output, relative_path, task
-from dbnd.tasks.basics.shell import bash_cmd
+from dbnd_run.tasks.basics.shell import bash_cmd
 from targets.types import PathStr
 
 

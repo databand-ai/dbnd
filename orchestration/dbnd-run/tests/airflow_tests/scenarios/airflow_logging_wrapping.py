@@ -19,9 +19,9 @@ def main():
     from dbnd import config
     from dbnd._core.constants import TaskExecutorType
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd.orchestration.run_settings import RunConfig
-    from dbnd.tasks.basics import dbnd_sanity_check
     from dbnd_examples.dbnd_airflow import bash_dag
+    from dbnd_run.run_settings import RunConfig
+    from dbnd_run.tasks.basics import dbnd_sanity_check
 
     airflow_task_log = logging.getLogger("airflow.task")
 

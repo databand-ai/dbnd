@@ -34,10 +34,6 @@ from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run_error import TaskRunError
-from dbnd.orchestration.errors.executor_k8s import (
-    KubernetesImageNotFoundError,
-    KubernetesPodConfigFailure,
-)
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
 from dbnd_docker.kubernetes.kube_dbnd_client import (
     PodFailureReason,
@@ -68,6 +64,10 @@ from dbnd_run.airflow.dbnd_airflow_contrib.kubernetes_metrics_logger import (
 from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
     WatcherPodEvent,
+)
+from dbnd_run.errors.executor_k8s import (
+    KubernetesImageNotFoundError,
+    KubernetesPodConfigFailure,
 )
 
 

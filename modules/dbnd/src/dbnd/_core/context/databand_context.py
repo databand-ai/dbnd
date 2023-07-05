@@ -8,7 +8,10 @@ from typing import Optional, Union
 from uuid import UUID
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import is_orchestration_mode
+from dbnd._core.context.use_dbnd_run import (
+    assert_dbnd_orchestration_enabled,
+    is_orchestration_mode,
+)
 from dbnd._core.errors.errors_utils import UserCodeDetector
 from dbnd._core.log import dbnd_log
 from dbnd._core.settings import DatabandSystemConfig, RunInfoConfig
@@ -18,14 +21,13 @@ from dbnd._core.utils import seven
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.singleton_context import SingletonContext
 from dbnd._core.utils.timezone import utcnow
-from dbnd.orchestration.task.task import Task
 
 
 if typing.TYPE_CHECKING:
     from typing import ContextManager
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd.orchestration.run_settings import RunSettings
+    from dbnd_run.run_settings import RunSettings
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +77,8 @@ class DatabandContext(SingletonContext):
 
         self.settings: DatabandSettings = None
 
-        self.run_settings: RunSettings = None
+        self.run_settings: "RunSettings" = None
+        self.system_settings: DatabandSystemConfig = None
 
         self._is_initialized = False
 
@@ -94,7 +97,7 @@ class DatabandContext(SingletonContext):
             self.settings = DatabandSettings(databand_context=self)
 
             if is_orchestration_mode():
-                from dbnd.orchestration.run_settings import RunSettings
+                from dbnd_run.run_settings import RunSettings
 
                 self.run_settings = RunSettings(databand_context=self)
 
@@ -122,7 +125,7 @@ class DatabandContext(SingletonContext):
         if self._tracking_store:
             self.tracking_store.flush()
 
-        if self.system_settings.verbose:
+        if self.system_settings and self.system_settings.verbose:
             dbnd_log.set_verbose(self._original_verbose)
 
     def __repr__(self):
@@ -143,7 +146,9 @@ class DatabandContext(SingletonContext):
         Deprecated in favor of dbnd_run_task
         """
 
-        from dbnd.orchestration.run_executor.run_executor import dbnd_run_task
+        assert_dbnd_orchestration_enabled()
+
+        from dbnd_run.run_executor.run_executor import dbnd_run_task
 
         run_executor = dbnd_run_task(
             task_or_task_name=task_or_task_name,

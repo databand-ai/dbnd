@@ -6,8 +6,8 @@ from typing import List, Tuple
 
 from dbnd import config, config_deco, parameter
 from dbnd._core.configuration.config_path import ConfigPath
-from dbnd.tasks.basics import SimplestTask
-from dbnd.testing.orchestration_utils import TTask
+from dbnd_run.tasks.basics import SimplestTask
+from dbnd_run.testing.helpers import TTask
 
 
 logger = logging.getLogger(__name__)

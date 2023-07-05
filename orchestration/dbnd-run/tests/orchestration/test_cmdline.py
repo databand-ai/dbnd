@@ -16,7 +16,8 @@ from dbnd._core.errors import (
     TaskClassNotFoundException,
 )
 from dbnd._vendor.snippets.edit_distance import get_editdistance
-from dbnd.testing.helpers_pytest import run_locally__raises, skip_on_windows
+from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd_run.testing.helpers import run_locally__raises
 from dbnd_test_scenarios import scenario_path
 from dbnd_test_scenarios.test_common.task.factories import TTask
 

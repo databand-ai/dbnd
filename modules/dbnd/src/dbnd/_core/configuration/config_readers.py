@@ -12,6 +12,8 @@ from typing import Any
 import attr
 import six
 
+import dbnd._core.context.use_dbnd_run
+
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
@@ -38,8 +40,10 @@ def _default_configuration_paths():
 
     yield project_config.dbnd_config_path("databand-core.cfg")
 
-    if project_config.is_orchestration_mode():
-        yield project_config.dbnd_lib_path("orchestration", "conf", "dbnd-run.cfg")
+    if dbnd._core.context.use_dbnd_run.is_orchestration_mode():
+        from dbnd_run.utils.dbnd_run_module import get_dbnd_run_conf_file
+
+        yield get_dbnd_run_conf_file("dbnd-run.cfg")
 
     system_config = os.path.expanduser("/etc/databand.cfg")
     if os.path.isfile(system_config):

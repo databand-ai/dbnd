@@ -3,8 +3,8 @@
 from typing import List
 
 from dbnd import band, output, task
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.utils import data_combine
+from dbnd_run.testing.helpers import assert_run_task
 
 
 @task

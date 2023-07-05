@@ -6,8 +6,8 @@ import logging
 from time import sleep
 
 from dbnd import config, databand_lib_path, override, pipeline, task
-from dbnd.tasks.basics import dbnd_sanity_check
 from dbnd_docker.docker.docker_task import DockerRunTask
+from dbnd_run.tasks.basics import dbnd_sanity_check
 
 
 logger = logging.getLogger(__name__)

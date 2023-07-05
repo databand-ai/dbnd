@@ -5,7 +5,7 @@ import subprocess
 from dbnd import parameter
 from dbnd._core.parameter.validators import NonEmptyString
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd.orchestration.run_settings import EngineConfig
+from dbnd_run.run_settings import EngineConfig
 from targets.values.version_value import VersionStr
 
 

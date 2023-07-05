@@ -9,8 +9,8 @@ import pytest
 
 from dbnd import output, parameter, pipeline, task
 from dbnd._core.errors import DatabandError
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.testing.helpers import assert_run_task
 from targets import target
 from targets.types import PathStr
 

@@ -3,7 +3,7 @@
 import logging
 
 from dbnd import data
-from dbnd.tasks import PythonTask
+from dbnd_run.tasks import PythonTask
 
 
 logger = logging.getLogger(__name__)

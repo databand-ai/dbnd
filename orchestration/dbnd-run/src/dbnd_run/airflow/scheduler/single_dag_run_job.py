@@ -35,15 +35,14 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy.orm.session import make_transient
 
-from dbnd._core import current
 from dbnd._core.constants import TaskRunState, UpdateSource
-from dbnd._core.current import get_databand_run, get_run_executor
+from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandSystemError
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.utils.basics.singleton_context import SingletonContext
-from dbnd.orchestration import errors
+from dbnd_run import errors
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     is_task_instance_finished,
@@ -57,6 +56,7 @@ from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_runtime_zombies_c
     ClearKubernetesRuntimeZombiesForDagRun,
 )
 from dbnd_run.airflow.scheduler.dagrun_zombies import fix_zombie_dagrun_task_instances
+from dbnd_run.current import get_run_executor, is_killed
 
 
 if AIRFLOW_VERSION_2:
@@ -434,7 +434,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         while (len(ti_status.to_run) > 0 or len(ti_status.running) > 0) and len(
             ti_status.deadlocked
         ) == 0:
-            if current.is_killed():
+            if is_killed():
                 raise errors.task_execution.databand_context_killed(
                     "SingleDagRunJob scheduling main loop"
                 )

@@ -6,17 +6,7 @@ import pytest
 
 from pytest import fixture
 
-from dbnd import output, parameter
-from dbnd.tasks import PythonTask
 from targets import DataTarget, target
-
-
-class TTask(PythonTask):
-    t_param = parameter.value("1")
-    t_output = output.data
-
-    def run(self):
-        self.t_output.write("%s" % self.t_param)
 
 
 class TargetTestBase(object):

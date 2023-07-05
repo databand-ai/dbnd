@@ -7,7 +7,7 @@ import numpy as np
 from pytest import fixture
 
 from dbnd import PythonTask, output, parameter, task
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.testing.helpers import assert_run_task
 from targets import target
 
 

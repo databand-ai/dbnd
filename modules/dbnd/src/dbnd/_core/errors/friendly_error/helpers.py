@@ -21,9 +21,9 @@ def _safe_task_family(task):
     if not task:
         return "unknown"
 
-    from dbnd._core.task import Task
+    from dbnd._core.task.base_task import _BaseTask
 
-    if isinstance(task, Task):
+    if isinstance(task, _BaseTask):
         return _task_name(task)
     return str(task)
 

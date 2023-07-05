@@ -2,7 +2,6 @@
 
 from pandas import DataFrame
 
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.orchestration.customizations.custom_output_factory import (
     DataSplitIntoMultipleOutputs,
 )
@@ -14,6 +13,7 @@ from dbnd_examples.orchestration.customizations.custom_value_type import (
     TaskWithCustomValue,
     TaskWithCustomValueInline,
 )
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_test_scenarios.test_common.custom_parameter_feature_store import (
     calculate_features,
     calculate_features_via_classes,

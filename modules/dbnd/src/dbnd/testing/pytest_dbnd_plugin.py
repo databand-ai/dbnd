@@ -49,7 +49,7 @@ def databand_test_context(
         config_values={
             "local": {
                 "root": str(tmpdir.join("local_root"))
-            }  # used for legacy dbnd_run
+            }  # used for legacy dbnd run
         },
         source=name,
     ):

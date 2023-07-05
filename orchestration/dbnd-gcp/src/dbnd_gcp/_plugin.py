@@ -3,8 +3,8 @@
 import dbnd
 
 from dbnd import register_config_cls
-from dbnd.orchestration.plugin.dbnd_plugins import is_plugin_enabled
 from dbnd_gcp.fs import build_gcs_client
+from dbnd_run.plugin.dbnd_plugins import is_plugin_enabled
 from targets.fs import FileSystems, register_file_system
 
 

@@ -4,6 +4,7 @@ from dbnd._core.constants import TaskEssence
 from dbnd._core.errors.base import ConfigLookupError
 from dbnd._core.task.task_with_params import _TaskWithParams
 from dbnd._core.utils.basics.singleton_context import SingletonContext
+from dbnd._core.utils.basics.text_banner import TextBanner
 
 
 class Config(_TaskWithParams, SingletonContext):
@@ -39,6 +40,20 @@ class Config(_TaskWithParams, SingletonContext):
                 )
 
         return get_databand_context().settings.get_config(name)
+
+    def banner(self):
+        from dbnd._core.task_ctrl.task_visualiser import _ParamTableDirector
+
+        banner = TextBanner(self.task_id)
+        table_director = _ParamTableDirector(self, banner)
+        table_director.add_params_table(
+            all_params=True,
+            param_format=True,
+            param_source=True,
+            param_section=True,
+            param_default=True,
+        )
+        return banner.get_banner_str()
 
 
 Config.task_definition.hidden = True

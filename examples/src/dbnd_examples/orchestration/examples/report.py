@@ -11,8 +11,8 @@ from matplotlib.figure import Figure
 from pandas import DataFrame, np
 
 from dbnd import band, log_dataframe, output, task
-from dbnd.tasks.basics.publish import publish_results
 from dbnd.utils import data_combine
+from dbnd_run.tasks.basics.publish import publish_results
 from targets import Target
 
 

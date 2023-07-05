@@ -7,7 +7,7 @@ from typing import Dict
 import six
 
 from dbnd import band, task
-from dbnd._core.task import Task
+from dbnd_run.task.task import Task
 
 
 class _MyObject(object):

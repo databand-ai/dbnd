@@ -4,8 +4,8 @@ from typing import Any
 
 import attr
 
+from dbnd._core.context.use_dbnd_run import assert_dbnd_orchestration_enabled
 from dbnd._core.parameter.parameter_definition import ParameterDefinition, T
-from dbnd.orchestration import errors
 from targets.errors import NotSupportedValue
 from targets.multi_target import MultiTarget
 
@@ -71,7 +71,10 @@ class FuncResultParameter(ParameterDefinition):
         We don't need to dump this value, it's just a map to all other outputs
         """
 
-    def _validate_result(self, result):
+    def validate_result(self, result):
+        assert_dbnd_orchestration_enabled()
+        from dbnd_run import errors
+
         if not isinstance(result, (tuple, list, dict)):
             raise errors.task_execution.wrong_return_value_type(
                 self.task_definition, self.names, result
@@ -89,7 +92,6 @@ class FuncResultParameter(ParameterDefinition):
                 )
 
     def named_results(self, result):
-        self._validate_result(result)
         if isinstance(result, dict):
             return [(name, result[name]) for name in self.names]
         return zip(self.names, result)
@@ -97,6 +99,9 @@ class FuncResultParameter(ParameterDefinition):
     def load_from_target(
         self, target, **kwargs
     ):  # type: (FuncResultParameter, ResultProxyTarget, **Any)-> T
+        assert_dbnd_orchestration_enabled()
+        from dbnd_run import errors
+
         results = []
         for p in self.schema:
             p_target = target.get_sub_result(p.name)

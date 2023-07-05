@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
-from dbnd.tasks.basics import dbnd_sanity_check
 from dbnd_run.airflow.scheduler.dbnd_cmd_operators import dbnd_task_as_bash_operator
+from dbnd_run.tasks.basics import dbnd_sanity_check
 
 
 default_args = {

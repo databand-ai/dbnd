@@ -21,11 +21,25 @@
 
 import datetime
 
-from databand import parameters
-from databand.parameters import MonthParameter, TimeDeltaParameter, YearParameter
 from dbnd import Config, parameter
 from dbnd._core.utils.timezone import utc
 from dbnd.testing.helpers import build_task
+from targets.values import TimeDeltaValueType
+from targets.values.custom_datetime_values import (
+    DateHourValueType,
+    DateMinuteValueType,
+    DateSecondValueType,
+    MonthValueType,
+    YearValueType,
+)
+
+
+TimeDeltaParameter = parameter.type(TimeDeltaValueType)
+MonthParameter = parameter.type(MonthValueType)
+YearParameter = parameter.type(YearValueType)
+DateHourParameter = parameter.type(DateHourValueType)
+DateMinuteParameter = parameter.type(DateMinuteValueType)
+DateSecondParameter = parameter.type(DateSecondValueType)
 
 
 class DateTask(Config):
@@ -33,15 +47,15 @@ class DateTask(Config):
 
 
 class DateHourTask(Config):
-    dh = parameters.DateHourParameter()
+    dh = DateHourParameter()
 
 
 class DateMinuteTask(Config):
-    dm = parameters.DateMinuteParameter()
+    dm = DateMinuteParameter()
 
 
 class DateSecondTask(Config):
-    ds = parameters.DateSecondParameter()
+    ds = DateSecondParameter()
 
 
 class MonthTask(Config):
@@ -68,17 +82,15 @@ class TestDateParameter(object):
 
 class TestDateHourParameter(object):
     def test_parse(self):
-        dh = parameters.DateHourParameter()._p.parse_from_str("2013-02-01T18")
+        dh = DateHourParameter()._p.parse_from_str("2013-02-01T18")
         assert dh == datetime.datetime(2013, 2, 1, 18, 0, 0, tzinfo=utc)
 
     def test_date_to_dh(self):
-        date = parameters.DateHourParameter()._p.normalize(datetime.date(2000, 1, 1))
+        date = DateHourParameter()._p.normalize(datetime.date(2000, 1, 1))
         assert date == datetime.datetime(2000, 1, 1, 0, tzinfo=utc)
 
     def test_serialize(self):
-        dh = parameters.DateHourParameter()._p.to_str(
-            datetime.datetime(2013, 2, 1, 18, 0, 0)
-        )
+        dh = DateHourParameter()._p.to_str(datetime.datetime(2013, 2, 1, 18, 0, 0))
         assert dh == "2013-02-01T18"
 
     def test_parse_interface(self):
@@ -88,23 +100,19 @@ class TestDateHourParameter(object):
 
 class TestDateMinuteParameter(object):
     def test_parse(self):
-        dm = parameters.DateMinuteParameter()._p.parse_from_str("2013-02-01T1842")
+        dm = DateMinuteParameter()._p.parse_from_str("2013-02-01T1842")
         assert dm == datetime.datetime(2013, 2, 1, 18, 42, 0, tzinfo=utc)
 
     def test_parse_padding_zero(self):
-        dm = parameters.DateMinuteParameter()._p.parse_from_str("2013-02-01T1807")
+        dm = DateMinuteParameter()._p.parse_from_str("2013-02-01T1807")
         assert dm == datetime.datetime(2013, 2, 1, 18, 7, 0, tzinfo=utc)
 
     def test_serialize(self):
-        dm = parameters.DateMinuteParameter()._p.to_str(
-            datetime.datetime(2013, 2, 1, 18, 42, 0)
-        )
+        dm = DateMinuteParameter()._p.to_str(datetime.datetime(2013, 2, 1, 18, 42, 0))
         assert dm == "2013-02-01T1842"
 
     def test_serialize_padding_zero(self):
-        dm = parameters.DateMinuteParameter()._p.to_str(
-            datetime.datetime(2013, 2, 1, 18, 7, 0)
-        )
+        dm = DateMinuteParameter()._p.to_str(datetime.datetime(2013, 2, 1, 18, 7, 0))
         assert dm == "2013-02-01T1807"
 
     def test_parse_interface(self):
@@ -114,13 +122,11 @@ class TestDateMinuteParameter(object):
 
 class TestDateSecondParameter(object):
     def test_parse(self):
-        ds = parameters.DateSecondParameter()._p.parse_from_str("2013-02-01T184227")
+        ds = DateSecondParameter()._p.parse_from_str("2013-02-01T184227")
         assert ds == datetime.datetime(2013, 2, 1, 18, 42, 27, tzinfo=utc)
 
     def test_serialize(self):
-        ds = parameters.DateSecondParameter()._p.to_str(
-            datetime.datetime(2013, 2, 1, 18, 42, 27)
-        )
+        ds = DateSecondParameter()._p.to_str(datetime.datetime(2013, 2, 1, 18, 42, 27))
         assert ds == "2013-02-01T184227"
 
     def test_parse_interface(self):
@@ -163,7 +169,7 @@ class TestSerializeDateParameters(object):
         assert YearParameter()._p.to_str(date) == "2013"
         assert MonthParameter()._p.to_str(date) == "2013-02"
         dt = datetime.datetime(2013, 2, 3, 4, 5)
-        assert parameters.DateHourParameter()._p.to_str(dt) == "2013-02-03T04"
+        assert DateHourParameter()._p.to_str(dt) == "2013-02-03T04"
 
 
 class TestSerializeTimeDeltaParameters(object):

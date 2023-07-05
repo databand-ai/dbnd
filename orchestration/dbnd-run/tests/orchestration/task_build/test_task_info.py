@@ -9,8 +9,7 @@ from textwrap import dedent
 from typing import List
 
 from dbnd import dbnd_run_cmd, new_dbnd_context, parameter, task
-from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser
-from dbnd.testing.orchestration_utils import TTask
+from dbnd_run.testing.helpers import TTask
 from targets import target
 from targets.values import DateValueType
 
@@ -89,7 +88,7 @@ class TestTaskInfo(object):
 
     def test_simple_dump(self):
         s = TTask(t_param="my_param")
-        actual = TaskVisualiser(s).banner("Runinng task")
+        actual = s.ctrl.banner("Runinng task")
         assert "my_param" in actual
 
     def test_exception(self):
@@ -97,7 +96,7 @@ class TestTaskInfo(object):
         try:
             raise Exception("MyException")
         except Exception:
-            actual = TaskVisualiser(s).banner("Running task", exc_info=sys.exc_info())
+            actual = s.ctrl.banner("Running task", exc_info=sys.exc_info())
             assert actual
             assert "MyException" in actual
 
@@ -105,12 +104,12 @@ class TestTaskInfo(object):
         s = t_very_long_params.task(t_param="long_string" * 1000)
         assert len(s.t_param) > s.settings.tracking_log.console_value_preview_size * 3
 
-        actual = TaskVisualiser(s).banner("Running task")
+        actual = s.ctrl.banner("Running task")
         logger.warning(actual)
         assert len(actual) < s.settings.tracking_log.console_value_preview_size * 3
 
 
-class TestLogValuePreviewLogs:
+class TestParamsBannerPreviewLogs:
     def test_params_preview(self):
         PARAMS_WITH_PREVIEWS = dedent(
             """
@@ -129,7 +128,7 @@ class TestLogValuePreviewLogs:
 
             run = t_f.dbnd_run()
             task_run = run.root_task_run
-            actual = task_run.task.ctrl.visualiser._banner.get_banner_str()
+            actual = task_run.task.ctrl.banner("test")
         assert PARAMS_WITH_PREVIEWS in actual
         assert "result.pickle" in actual
 
@@ -152,5 +151,5 @@ class TestLogValuePreviewLogs:
 
             run = t_f.dbnd_run()
             task_run = run.root_task_run
-            actual = task_run.task.ctrl.visualiser._banner.get_banner_str()
+            actual = task_run.task.ctrl.banner("test")
             assert PARAMS_WITHOUT_PREVIEWS in actual

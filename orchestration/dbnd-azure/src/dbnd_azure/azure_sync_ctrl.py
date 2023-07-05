@@ -2,7 +2,7 @@
 
 import logging
 
-from dbnd.orchestration.task_run_executor.task_sync_ctrl import TaskSyncCtrl
+from dbnd_run.task_ctrl.task_sync_ctrl import TaskSyncCtrl
 
 
 logger = logging.getLogger(__name__)

@@ -4,13 +4,10 @@ import logging
 import os
 
 import dbnd
+import dbnd._core.context.use_dbnd_run
 
-from dbnd._core.configuration.environ_config import (
-    _env_banner,
-    get_dbnd_project_config,
-    set_orchestration_mode,
-)
-from dbnd.orchestration.orchestration_bootstrap import dbnd_bootstrap_orchestration
+from dbnd._core.configuration.environ_config import _env_banner, get_dbnd_project_config
+from dbnd._core.context.use_dbnd_run import set_orchestration_mode
 
 
 logger = logging.getLogger(__name__)
@@ -51,7 +48,9 @@ def dbnd_bootstrap(enable_dbnd_run=False):
 
         dbnd_config.load_system_configs()
 
-        if project_config.is_orchestration_mode():
+        if dbnd._core.context.use_dbnd_run.is_orchestration_mode():
+            from dbnd_run.orchestration_bootstrap import dbnd_bootstrap_orchestration
+
             dbnd_bootstrap_orchestration()
         else:
             _dbnd_bootstrap_tracking()

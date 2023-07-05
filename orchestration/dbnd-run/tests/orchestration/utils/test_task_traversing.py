@@ -22,9 +22,9 @@
 import collections
 
 from dbnd import output
-from dbnd._core.utils.traversing import getpaths
-from dbnd.tasks import Task
-from targets import Target
+from dbnd._core.utils.traversing import getpaths, traverse
+from dbnd_run.tasks import Task
+from targets import Target, target
 
 
 class TestTraversing(object):
@@ -49,3 +49,13 @@ class TestTraversing(object):
         assert isinstance(struct["list"], list)
         assert isinstance(struct["tuple"], tuple)
         assert hasattr(struct["generator"], "__iter__")
+
+    def test_flattern_file_target(self):
+
+        from dbnd_run.task_ctrl.task_relations import _find_target
+
+        nested_v = target("/tmp")
+        value = {"a": {"b": nested_v}}
+        actual = traverse(value, convert_f=_find_target, filter_none=True)
+        assert actual
+        assert actual.get("a").get("b") == nested_v

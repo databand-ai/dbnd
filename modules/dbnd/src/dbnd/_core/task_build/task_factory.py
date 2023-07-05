@@ -141,9 +141,9 @@ if typing.TYPE_CHECKING:
     from typing import Any, Dict, List, Optional, Type
 
     from dbnd._core.configuration.dbnd_config import DbndConfig
-    from dbnd._core.settings import EnvConfig
     from dbnd._core.task.task_with_params import _TaskWithParams
     from dbnd._core.task_build.task_definition import TaskDefinition
+    from dbnd_run.run_settings.env import EnvConfig
 
 TASK_BAND_PARAMETER_NAME = "task_band"
 logger = logging.getLogger(__name__)
@@ -207,6 +207,7 @@ class TaskFactory(object):
         self.task_kwargs__ctor = task_kwargs.copy()
         self.task_args__ctor = list(task_args)
 
+        # used by orchestration objects only, Config will not use it
         self.task_env_config = None  # type: Optional[EnvConfig]
 
         self.parent_task = try_get_current_task()

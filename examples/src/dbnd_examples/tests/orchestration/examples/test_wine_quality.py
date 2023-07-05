@@ -5,13 +5,13 @@ import six
 
 from dbnd import dbnd_config, relative_path
 from dbnd.testing.helpers import run_test_notebook
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo, dbnd_examples_data_path
 from dbnd_examples.orchestration.examples import wine_quality
 from dbnd_examples.orchestration.examples.wine_quality_as_task_class import (
     PredictWineQuality,
     PredictWineQualityParameterSearch,
 )
+from dbnd_run.testing.helpers import assert_run_task
 
 
 class TestWineQualityClasses(object):

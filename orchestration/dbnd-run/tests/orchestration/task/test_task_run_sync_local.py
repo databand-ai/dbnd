@@ -13,10 +13,8 @@ from mock import call, patch
 
 from dbnd import LogDataRequest, task
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd.orchestration.task_run_executor.task_run_sync_local import (
-    LOCAL_SYNC_CACHE_NAME,
-)
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.task_ctrl.task_run_sync_local import LOCAL_SYNC_CACHE_NAME
 from targets import FileTarget, LocalFileSystem, target
 from targets.multi_target import MultiTarget
 from targets.target_config import TargetConfig
@@ -104,7 +102,7 @@ class TestTaskRunSyncLocal(TargetTestBase):
     @pytest.fixture
     def mock_file_metadata_registry(self):
         return patch(
-            "dbnd.orchestration.task_run_executor.task_run_sync_local.DbndLocalFileMetadataRegistry"
+            "dbnd_run.task_ctrl.task_run_sync_local.DbndLocalFileMetadataRegistry"
         )
 
     def test_task_run_sync_local_multi_target(

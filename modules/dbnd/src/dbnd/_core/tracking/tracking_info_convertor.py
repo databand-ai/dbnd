@@ -4,10 +4,12 @@ import logging
 import typing
 
 from functools import partial
+from typing import Dict, List
 
 from dbnd._core.configuration import get_dbnd_project_config
-from dbnd._core.constants import RunState, TaskRunState, UpdateSource
+from dbnd._core.constants import RunState, TaskRunState, UpdateSource, _TaskDbndRun
 from dbnd._core.context.use_dbnd_airflow_tracking import should_use_airflow_monitor
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TargetInfo,
@@ -24,11 +26,8 @@ from dbnd.api.tracking_api import InitRunArgs, TaskRunsInfo
 
 
 if typing.TYPE_CHECKING:
-    from typing import Dict, List
-
     from dbnd._core.context.databand_context import DatabandContext
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd._core.task import Task
     from dbnd._core.task_run.task_run import TaskRun
     from targets import Target
 
@@ -178,8 +177,9 @@ class TrackingInfoBuilder(object):
             parent_task_run_attempt_uid=run.root_run_info.root_task_run_attempt_uid,
         )
 
-    def task_to_targets(self, task, targets):
-        # type: (Task, Dict[str, TargetInfo]) -> List[TargetInfo]
+    def task_to_targets(
+        self, task: "_BaseTask", targets: Dict[str, "TargetInfo"]
+    ) -> List[TargetInfo]:
         """
         :param task:
         :param targets: all known targets for current run, so we have uniq list of targets (by path)
@@ -189,8 +189,7 @@ class TrackingInfoBuilder(object):
         run = self.run
         task_targets = []
 
-        def process_target(target, name):
-            # type: (Target, str) -> None
+        def process_target(target: "Target", name: str):
             target_path = str(target)
             dbnd_target = targets.get(target_path)
             if not dbnd_target:
@@ -226,8 +225,7 @@ class TrackingInfoBuilder(object):
         return task_targets
 
 
-def task_to_task_def(ctx, task):
-    # type: (DatabandContext, Task) -> TaskDefinitionInfo
+def task_to_task_def(ctx: "DatabandContext", task: _BaseTask) -> TaskDefinitionInfo:
     td = task.task_definition
 
     task_param_definitions = [
@@ -300,6 +298,18 @@ def build_task_run_info(task_run):
             )
         )
 
+    kwargs = {}
+    if isinstance(t, _TaskDbndRun):
+        kwargs.update(
+            {
+                "command_line": t.ctrl.task_repr.task_command_line,
+                "functional_call": t.ctrl.task_repr.task_functional_call,
+                "env": t.task_env.name if t.task_env else "local",
+            }
+        )
+    else:
+        kwargs.update({"command_line": "", "functional_call": "", "env": ""})
+
     return TaskRunInfo(
         run_uid=task_run.run.run_uid,
         task_definition_uid=task_run.task.task_definition.task_definition_uid,
@@ -311,9 +321,6 @@ def build_task_run_info(task_run):
         task_signature=t.task_signature_obj.signature,
         task_signature_source=t.task_signature_obj.signature_source,
         output_signature=t.task_outputs_signature_obj.signature,
-        command_line=t.ctrl.task_repr.task_command_line,
-        env=t.task_env.name if t.task_env else "local",
-        functional_call=t.ctrl.task_repr.task_functional_call,
         has_downstreams=bool(task_dag.downstream),
         has_upstreams=bool(task_dag.upstream),
         state=TaskRunState.SCHEDULED
@@ -330,4 +337,5 @@ def build_task_run_info(task_run):
         task_run_params=task_run_params,
         execution_date=task_run.run.execution_date,
         is_root=task_run.is_root,
+        **kwargs
     )

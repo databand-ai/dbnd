@@ -9,17 +9,15 @@ from typing import List, Optional, Tuple, Union
 
 import numpy
 import pandas as pd
-import pytest
 
 from numpy.testing import assert_array_equal
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 from dbnd import band, data, dbnd_run_cmd, log_metric, output, parameter, task
-from dbnd._core.errors import DatabandBuildError
 from dbnd._core.task_build.task_context import current_task
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.testing.helpers import assert_run_task
 from targets import FileTarget, Target
 from targets.providers.pandas.pandas_values import DataFrameValueType
 from targets.types import DataList
@@ -157,16 +155,6 @@ class TestUserFuncTaskDecorator(TargetTestBase):
             return a
 
         err_f_unknown_return_type.dbnd_run(1)
-
-    def test_double_definition(self):
-        with pytest.raises(DatabandBuildError):
-
-            @task(a=parameter[int])
-            def err_f_unknown_return_type(a=parameter[str]):
-                # type: (str) -> None
-                return a
-
-            err_f_unknown_return_type()  # ???
 
     def test_signature(self):
         @task

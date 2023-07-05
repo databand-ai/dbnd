@@ -29,7 +29,6 @@ from airflow.utils.db import provide_session
 from airflow.utils.net import get_hostname
 from airflow.utils.state import State
 
-from dbnd._core import current
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.errors import DatabandError, show_error_once
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, get_task_log_reader
@@ -37,6 +36,7 @@ from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     SimpleTaskInstance,
     get_airflow_conf_remote_logging,
 )
+from dbnd_run.current import is_killed
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class InProcessExecutor(BaseExecutor):
                 self.change_state(key, State.UPSTREAM_FAILED)
                 continue
 
-            if current.is_killed():
+            if is_killed():
                 logger.info(
                     "Databand Context is killed! Stopping %s to %s", key, State.FAILED
                 )

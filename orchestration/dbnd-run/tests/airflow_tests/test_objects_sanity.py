@@ -1,8 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from dbnd import task
-from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.tasks.basics import SimplestTask
 
 
 class TestTaskObjectSanity(TargetTestBase):

@@ -1,32 +1,27 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from dbnd._core.cli.click_utils import _help
-from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._vendor import click
-from dbnd.orchestration.utils.user_code import load_user_modules
 
 
 @click.command()
 @click.argument("search", default="")
-@click.option("--module", "-m", help="Used for dynamic loading of modules")
 @click.pass_context
-def show_configs(ctx, module, search):
+def show_configs(ctx, search):
     """Show and search configurations"""
-    _list_tasks(ctx, module, search, is_config=True)
+    _list_tasks(ctx, search, is_config=True)
 
 
 COMMON_PARAMS = {"task_version", "task_env", "task_target_date"}
 
 
-def _list_tasks(ctx, module, search, is_config):
+def _list_tasks(ctx, search, is_config):
     from dbnd import Config
     from dbnd._core.context.databand_context import new_dbnd_context
     from dbnd._core.parameter.parameter_definition import _ParameterKind
 
     formatter = ctx.make_formatter()
-
-    load_user_modules(config, modules=module)
 
     with new_dbnd_context():
         tasks = get_task_registry().list_dbnd_task_classes()

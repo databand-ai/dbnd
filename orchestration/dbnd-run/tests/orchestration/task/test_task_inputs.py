@@ -11,8 +11,8 @@ from pytest import fixture
 
 from dbnd import PipelineTask, new_dbnd_context, output, parameter
 from dbnd._core.errors import DatabandRunError
-from dbnd.tasks import PythonTask
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.tasks import PythonTask
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_test_scenarios.test_common.task.factories import TTask, TTaskWithInput
 from targets import Target, target
 

@@ -2,8 +2,8 @@
 
 from typing import List
 
-from dbnd import Task
 from dbnd._core.errors import DatabandError
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 
 
@@ -16,8 +16,7 @@ class TaskDescendants(TaskSubCtrl):
     def add_child(self, task_id):
         self.children.add(task_id)
 
-    def get_children(self):
-        # type: (...)-> List[Task]
+    def get_children(self) -> List[_BaseTask]:
         tic = self.dbnd_context.task_instance_cache
         children = []
         for c_id in self.children:

@@ -2,7 +2,7 @@
 
 from dbnd import PipelineTask, Task, dbnd_config, parameter
 from dbnd._core.current import try_get_databand_context
-from dbnd.orchestration.run_settings import RunConfig
+from dbnd_run.run_settings import RunConfig
 
 
 class NoneStringPipeline(PipelineTask):

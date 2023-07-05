@@ -5,9 +5,9 @@ import logging
 from functools import partial
 
 from dbnd import output, parameter, task
-from dbnd._core.task.decorated_callable_task import DecoratedPythonTask
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.task.decorated_callable_task import DecoratedPythonTask
+from dbnd_run.testing.helpers import assert_run_task
 
 
 class MyExpTask(DecoratedPythonTask):

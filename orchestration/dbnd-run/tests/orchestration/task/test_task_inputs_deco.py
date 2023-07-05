@@ -8,8 +8,8 @@ from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 from dbnd import output, task
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.testing.helpers import assert_run_task
 from targets import target
 from targets.types import DataList, Path, PathStr
 

@@ -5,13 +5,13 @@ import logging
 import pandas as pd
 import pytest
 
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
 from dbnd_examples.orchestration.features import (
     example_dict_of_data_frames,
     example_folder,
     example_output_per_id,
 )
+from dbnd_run.testing.helpers import assert_run_task
 from targets.dir_target import DirTarget
 
 

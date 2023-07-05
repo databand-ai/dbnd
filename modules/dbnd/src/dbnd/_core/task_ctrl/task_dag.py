@@ -4,13 +4,13 @@ import logging
 import re
 import typing
 
+from dbnd._core.constants import _TaskDbndRunDataSource
 from dbnd._core.errors import DatabandError, friendly_error
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.task.task_mixin import _TaskCtrlMixin
 from dbnd._core.task_ctrl.task_ctrl import TaskSubCtrl
 from dbnd._core.utils.task_utils import _try_get_task_from_airflow_op, to_tasks
 from dbnd._core.utils.traversing import flatten
-from dbnd.orchestration.run_executor_engine.local_task_executor import topological_sort
-from dbnd.orchestration.task.task import Task
 
 
 if typing.TYPE_CHECKING:
@@ -72,12 +72,10 @@ class _TaskDagNode(TaskSubCtrl):
         # don't set to itself for now, leafs are good enough
         # self.set_upstream(task_or_task_list=task_or_task_list)
 
-        from dbnd.tasks import DataSourceTask
-
         children = {
             c
             for c in self.task.descendants.get_children()
-            if not isinstance(c, DataSourceTask)
+            if not isinstance(c, _TaskDbndRunDataSource)
         }
         # do it only for leafs
         if not children:
@@ -93,7 +91,7 @@ class _TaskDagNode(TaskSubCtrl):
             if not children & upstreams:
                 c.set_global_upstream(task_or_task_list=task_or_task_list)
 
-    def _task_id_to_tasks(self, task_ids):  # type: (Collection[str])->Set[Task]
+    def _task_id_to_tasks(self, task_ids):  # type: (Collection[str])->Set[_BaseTask]
         return {self.get_task_by_task_id(task_id) for task_id in task_ids}
 
     @property
@@ -102,7 +100,7 @@ class _TaskDagNode(TaskSubCtrl):
         return self._upstream_tasks
 
     @property
-    def upstream(self):  # type: ()->Set[Task]
+    def upstream(self):  # type: ()->Set[_BaseTask]
         """list of tasks directly upstream"""
         return self._task_id_to_tasks(self._upstream_tasks)
 
@@ -112,7 +110,7 @@ class _TaskDagNode(TaskSubCtrl):
         return self._downstream_tasks
 
     @property
-    def downstream(self):  # type: ()->Set[Task]
+    def downstream(self):  # type: ()->Set[_BaseTask]
         """list of tasks directly downstream"""
         return self._task_id_to_tasks(self._downstream_tasks)
 
@@ -174,20 +172,6 @@ class _TaskDagNode(TaskSubCtrl):
                 logger.debug("Re adding new implementation %s to %s", task, self.task)
         else:
             connected.add(task.task_id)
-
-    def topological_sort(self):
-        """
-        Sorts tasks in topographical order, such that a task comes after any of its
-        upstream dependencies.
-
-        Heavily inspired by:
-        http://blog.jupo.org/2012/04/06/topological-sorting-acyclic-directed-graphs/
-
-        :return: list of tasks in topological order
-        """
-
-        tasks = self.subdag_tasks()
-        return topological_sort(tasks)
 
     def select_by_task_names(self, tasks_regexes, tasks=None):
         tasks = tasks or self.subdag_tasks()

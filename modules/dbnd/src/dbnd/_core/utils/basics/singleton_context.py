@@ -113,7 +113,6 @@ class SingletonContext(object):
                     )
                 )
                 logger.warning(msg)
-                raise DatabandSystemError(msg)
 
             cls._instance._on_exit()
             cls._instance = orig_value

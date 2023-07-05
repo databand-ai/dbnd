@@ -2,9 +2,9 @@
 
 from pytest import fixture
 
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo
 from dbnd_examples.orchestration.examples.salad import prepare_salad
+from dbnd_run.testing.helpers import assert_run_task
 from targets import target
 
 

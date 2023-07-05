@@ -23,7 +23,7 @@ from dbnd import (
 )
 from dbnd._core.constants import OutputMode
 from dbnd._core.current import get_databand_context
-from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_test_scenarios.test_common.task.factories import TTask
 from targets import Target
 from targets.target_config import file, folder
@@ -79,7 +79,6 @@ class TestTaskDataOutputs(object):
         assert file.csv == task.data_output.config
         assert file.json == task.json_output.config
 
-    @skip_on_windows
     def test_data_values_unix_only(self):
         t = assert_run_task(TTaskDataOutput())
         assert t.simple_output.read() == "test"

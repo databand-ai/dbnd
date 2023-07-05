@@ -6,7 +6,6 @@ import os
 import sys
 import typing
 
-from subprocess import list2cmdline
 from typing import Optional
 
 import dbnd
@@ -18,7 +17,7 @@ from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import try_get_script_name
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.current import try_get_databand_run
+from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
@@ -114,10 +113,6 @@ def _build_inline_root_task(root_task_name):
         task_definition=task_definition,
         task_params=Parameters(source="inline_root_task", param_values=[]),
     )
-
-    root_task.ctrl.task_repr.task_command_line = list2cmdline(sys.argv)
-    root_task.ctrl.task_repr.task_functional_call = "bash_cmd(args=%s)" % repr(sys.argv)
-
     return root_task
 
 
@@ -263,7 +258,7 @@ class _DbndScriptTrackingManager(object):
 
         from dbnd._core.run.databand_run import DatabandRun
 
-        run = self._enter_cm(
+        run: DatabandRun = self._enter_cm(
             DatabandRun.new_context(
                 context=dc,
                 job_name=job_name,
@@ -302,6 +297,9 @@ class _DbndScriptTrackingManager(object):
             run.root_task_run.task_run_track_execute(capture_log=should_capture_log)
         )
         self._task_run = run.root_task_run
+
+        if is_verbose():
+            logger.info("Databand script tracking is started for %s", run.job_name)
 
         return self._task_run
 
@@ -410,7 +408,9 @@ def dbnd_airflow_tracking_start(airflow_context):
     return tracking_start_base(job_name=job_name, airflow_context=airflow_context)
 
 
-def dbnd_tracking_start(job_name=None, run_name=None, project_name=None, conf=None):
+def dbnd_tracking_start(
+    job_name=None, run_name=None, project_name=None, conf=None
+) -> TaskRun:
     """
     This function is used for tracking Python scripts only and should be added at the beginning of the script.
 
@@ -486,6 +486,8 @@ def dbnd_tracking(job_name=None, run_name=None, project_name=None, conf=None):
         tr = dbnd_tracking_start(
             job_name=job_name, run_name=run_name, project_name=project_name, conf=conf
         )
+        if is_verbose() and tr:
+            logging.info("Databand Tracking %s via dbnd_tracking()", tr.job_name)
         yield tr
     finally:
         dbnd_tracking_stop()

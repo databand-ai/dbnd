@@ -4,7 +4,7 @@ import logging
 import math
 
 from dbnd._core.errors import DatabandConfigError
-from dbnd.orchestration.errors import executor_k8s
+from dbnd_run.errors import executor_k8s
 
 
 logger = logging.getLogger(__name__)

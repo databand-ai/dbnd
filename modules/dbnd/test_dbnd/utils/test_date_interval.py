@@ -23,7 +23,11 @@ import datetime
 
 import pytest
 
-from databand.parameters import DateIntervalParameter as DI
+from dbnd import parameter
+from targets.values import DateIntervalValueType
+
+
+DI = parameter.type(DateIntervalValueType)
 
 
 class TestDateInterval(object):

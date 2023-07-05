@@ -2,8 +2,8 @@
 
 import logging
 
-from dbnd.tasks import dbnd_doctor
-from dbnd.tasks.doctor.system_logging import logging_status
+from dbnd.doctor.check import dbnd_doctor
+from dbnd.doctor.system_logging import logging_status
 
 
 logger = logging.getLogger(__name__)

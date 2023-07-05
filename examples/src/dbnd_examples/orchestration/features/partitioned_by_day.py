@@ -10,8 +10,8 @@ from pandas import DataFrame
 import dbnd
 
 from dbnd import ParameterScope, data, output, parameter, task
-from dbnd.tasks import PythonTask
 from dbnd.utils import data_combine, period_dates
+from dbnd_run.tasks import PythonTask
 from targets.types import DataList
 
 

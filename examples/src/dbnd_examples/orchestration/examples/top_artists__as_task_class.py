@@ -10,7 +10,7 @@ from heapq import nlargest
 import six
 
 from dbnd import data, output, parameter
-from dbnd.tasks import DataSourceTask, PipelineTask, PythonTask
+from dbnd_run.tasks import DataSourceTask, PipelineTask, PythonTask
 from targets import target
 
 

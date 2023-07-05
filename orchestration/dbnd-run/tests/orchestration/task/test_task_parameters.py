@@ -23,7 +23,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 
 from dbnd import band, config, parameter, task
-from dbnd.orchestration.task.task import TASK_PARAMS_COUNT
+from dbnd_run.task.task import TASK_PARAMS_COUNT
 from dbnd_test_scenarios.test_common.task.factories import TTask
 
 

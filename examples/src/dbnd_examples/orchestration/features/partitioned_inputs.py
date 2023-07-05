@@ -7,9 +7,9 @@ from datetime import timedelta
 import dbnd
 
 from dbnd import data, output, parameter
-from dbnd.tasks import DataSourceTask, PythonTask
 from dbnd.utils import data_combine, period_dates
 from dbnd_examples.data import data_repo
+from dbnd_run.tasks import DataSourceTask, PythonTask
 from targets import target
 from targets.target_config import folder
 

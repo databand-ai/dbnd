@@ -5,13 +5,13 @@ import logging
 import pytest
 
 from dbnd import dbnd_config, get_databand_context
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.orchestration.features.partitioned_by_day import (
     ByDayExamplePipeline,
     FetchData,
     FetchIds,
     ProductionIdsAndData,
 )
+from dbnd_run.testing.helpers import assert_run_task
 
 
 logger = logging.getLogger(__name__)

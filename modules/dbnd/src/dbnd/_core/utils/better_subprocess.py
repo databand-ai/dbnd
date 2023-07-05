@@ -8,8 +8,8 @@ import subprocess
 
 import six
 
+from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.log.logging_utils import raw_log_formatting
-from dbnd.orchestration.errors.task_execution import failed_to_run_cmd
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 
 def _print_log(msg):
     print(msg, end="")
+
+
+def failed_to_run_cmd(name, cmd_str, return_code):
+    return DatabandRuntimeError(
+        "{name} has failed, returncode='{return_code}'. Failed to run: {cmd}".format(
+            name=name, return_code=return_code, cmd=cmd_str
+        ),
+        show_exc_info=False,
+        help_msg="Inspect logs for more info.",
+    )
 
 
 def run_cmd(

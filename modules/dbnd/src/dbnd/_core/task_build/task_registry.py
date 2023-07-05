@@ -20,8 +20,8 @@ from dbnd._vendor.snippets.luigi_registry import get_best_candidate, module_pare
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
+    from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.task_build.task_definition import TaskDefinition
-    from dbnd.orchestration.task.task import Task
 
 
 def _validate_no_recursion_in_config(task_name, config_task_type, param):
@@ -118,7 +118,7 @@ class DbndTaskRegistry(SingletonContext):
             )
         )
 
-    def _get_registered_task_cls(self, name):  # type: (str) -> Type[Task]
+    def _get_registered_task_cls(self, name):  # type: (str) -> Type[_BaseTask]
         """
         Returns an task class based on task_family, or full task class name
         We don't preload/check anything here
@@ -238,7 +238,7 @@ class DbndTaskRegistry(SingletonContext):
         task_kwargs = task_kwargs or dict()
         task_kwargs.setdefault("task_name", task_name)
 
-        task_cls = self.get_task_cls(task_name)  # type: Type[Task]
+        task_cls: Type["_BaseTask"] = self.get_task_cls(task_name)
         try:
             logger.debug("Building %s task", task_cls.task_definition.full_task_family)
             obj = task_cls(**task_kwargs)

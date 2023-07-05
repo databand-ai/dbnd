@@ -7,6 +7,12 @@ recursive-exclude * .ipynb_checkpoints
 include src/dbnd_run/airflow/dbnd_airflow_contrib/README.md
 include src/dbnd_run/airflow/airflow_overrride/dbnd_airflow_windows/README.md
 
+include src/dbnd_run/conf/dbnd-run.cfg
+include src/dbnd_run/conf/kubernetes-pod-tensorflow.yaml
+include src/dbnd_run/conf/kubernetes-pod.yaml
+include src/dbnd_run/conf/project_init/project.cfg
+
+
 recursive-include src/dbnd_run/airflow_dbnd_packages *.py
 recursive-include src/dbnd_run/airflow_dbnd_packages *.md
 

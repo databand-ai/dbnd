@@ -1,7 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
-import os
 import typing
 
 from typing import Any, Dict, List, Optional, Type
@@ -28,17 +27,12 @@ from dbnd._core.task_build.task_results import FuncResultParameter
 from dbnd._core.task_build.task_signature import Signature, user_friendly_signature
 from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_ctrl.task_ctrl import TrackingTaskCtrl
-from dbnd._core.task_ctrl.task_relations import traverse_and_set_target
-from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.basics.nothing import NOTHING, is_not_defined
 from dbnd._core.utils.callable_spec import CallableSpec, args_to_kwargs
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_uuid
-from dbnd.orchestration.task_run_executor.task_output_builder import windows_drive_re
-from targets import InMemoryTarget, target
+from targets import InMemoryTarget
 from targets.base_target import TargetSource
-from targets.target_config import folder
-from targets.utils.path import no_trailing_slash
 
 
 if typing.TYPE_CHECKING:
@@ -207,7 +201,9 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
 
             # This is used to keep backward compatibility for tracking luigi behaviour
             # This is not something we want to keep, at least not in this form
-            value = traverse_and_set_target(value, parameter._target_source(self))
+            # from dbnd_run.task_ctrl.task_relations import traverse_and_set_target
+            # value = traverse_and_set_target(value, parameter._target_source(self))
+
             self.task_outputs[parameter.name] = value
 
         self.ctrl._initialize_task()
@@ -246,33 +242,6 @@ class TrackingTask(_BaseTask, _TaskCtrlMixin, _TaskParamContainer):
     @property
     def task_in_memory_outputs(self):
         return True
-
-    @property
-    @cached()
-    def _meta_output(self):
-        # in some sense this is a duplication of dbnd._core.task_ctrl.task_output_builder.calculate_path
-        # but it also breaking an awful abstraction and a lot of inner functions which is good
-        task_env = self.task_env
-        sep = "/"
-        root = no_trailing_slash(str(task_env.root))
-        if windows_drive_re.match(root):
-            sep = os.sep
-        path = sep.join(
-            (
-                root,
-                task_env.env_label,
-                str(self.task_target_date),
-                self.task_name,
-                self.task_name + "_" + self.task_signature,
-                "_meta_output",
-                "meta",
-            )
-        )
-
-        # meta_output is directory
-        path += sep
-
-        return target(path, folder)
 
     def _complete(self):
         return None

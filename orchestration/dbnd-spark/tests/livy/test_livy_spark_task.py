@@ -6,7 +6,7 @@ import pytest
 
 from dbnd import relative_path
 from dbnd._core.errors import DatabandRunError
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_spark.spark_config import SparkConfig
 from dbnd_test_scenarios.spark.spark_tasks import (
     WordCountPySparkTask,

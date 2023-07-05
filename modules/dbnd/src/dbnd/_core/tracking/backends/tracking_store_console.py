@@ -73,15 +73,10 @@ class ConsoleStore(TrackingStore):
                 )
             )
 
-            if run.context.name == "interactive":
-                from dbnd.orchestration.tools import ipython
-
-                ipython.show_run_url(run.run_url)
-
     def set_task_reused(self, task_run):
         task = task_run.task
         logger.info(
-            task.ctrl.visualiser.banner(
+            task.ctrl.banner(
                 "Task %s has been completed already!" % task.task_id,
                 "magenta",
                 task_run=task_run,
@@ -142,9 +137,7 @@ class ConsoleStore(TrackingStore):
             return
 
         try:
-            logger.log(
-                level, task.ctrl.visualiser.banner(task_msg, color, task_run=task_run)
-            )
+            logger.log(level, task.ctrl.banner(task_msg, color, task_run=task_run))
         except Exception as ex:
             logger.log(level, "%s , failed to create banner: %s" % (task_msg, ex))
 

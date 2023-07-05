@@ -13,7 +13,7 @@ from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.utils.basics import fast_subprocess
 from dbnd._core.utils.platform import windows_compatible_mode
 from dbnd._core.utils.project.project_fs import abs_join
-from dbnd.orchestration.tools.jupyter.notebook import notebook_run
+from dbnd.testing.notebook import notebook_run
 
 
 logger = logging.getLogger(__name__)

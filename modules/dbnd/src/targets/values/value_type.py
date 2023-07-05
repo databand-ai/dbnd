@@ -8,6 +8,7 @@ import typing
 
 import six
 
+from dbnd._core.constants import _TaskDbndRun
 from dbnd._core.errors import friendly_error
 from dbnd._core.utils.basics.load_python_module import run_user_func
 from dbnd._vendor import fast_hasher
@@ -250,9 +251,7 @@ class ValueType(object):
 
                 return MultiTarget(list_of_targets)
 
-        from dbnd._core.task import Task
-
-        if isinstance(value, Task):
+        if isinstance(value, _TaskDbndRun):
             return to_targets(value)
 
         if isinstance(value, Target):

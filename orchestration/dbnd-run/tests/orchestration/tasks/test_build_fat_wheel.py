@@ -4,7 +4,7 @@ import os
 import zipfile
 
 from dbnd import dbnd_config
-from dbnd.tasks.py_distribution.fat_wheel_tasks import ProjectWheelFile
+from dbnd_run.tasks.py_distribution.fat_wheel_tasks import ProjectWheelFile
 from dbnd_test_scenarios.scenarios_repo import test_scenario_path
 
 

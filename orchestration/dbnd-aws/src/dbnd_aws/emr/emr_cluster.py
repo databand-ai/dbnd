@@ -5,8 +5,8 @@ import logging
 import time
 
 from dbnd._core.errors import DatabandRuntimeError
-from dbnd.orchestration.errors.task_execution import failed_to_run_emr_step
 from dbnd_aws.credentials import get_boto_emr_client
+from dbnd_run.errors.task_execution import failed_to_run_emr_step
 from dbnd_spark._core.spark_error_parser import parse_spark_log_safe
 from targets import target
 

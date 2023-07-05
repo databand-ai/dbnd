@@ -8,7 +8,7 @@ import pandas as pd
 import six
 
 from dbnd import band, parameter, task
-from dbnd._core.task import Task
+from dbnd_run.task.task import Task
 
 
 class _MyObject(object):
@@ -61,7 +61,7 @@ def t_band_dict():
 class TestParameterDataFrame(object):
     def test_nested_dict(self):
         tr = t_band_dict.dbnd_run()
-        t_df_task = tr.task.result.task  # type: Task
+        t_df_task: Task = tr.task.result.task
         logging.warning(t_df_task.ctrl.task_dag.downstream)
 
     def test_inplace_dict(self):

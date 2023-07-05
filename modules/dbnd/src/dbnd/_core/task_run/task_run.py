@@ -4,6 +4,7 @@ import logging
 import typing
 
 from dbnd._core.constants import TaskRunState
+from dbnd._core.context.use_dbnd_run import is_dbnd_run_package_installed
 from dbnd._core.current import try_get_current_task_run
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import TaskContextPhase
@@ -23,8 +24,10 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from dbnd._core.run.databand_run import DatabandRun
-    from dbnd.orchestration.task.task import Task
-    from dbnd.orchestration.task_run_executor.task_run_executor import TaskRunExecutor
+
+    if is_dbnd_run_package_installed():
+        from dbnd_run.task.task import Task
+        from dbnd_run.task_ctrl.task_run_executor import TaskRunExecutor
 
 
 class TaskRun(object):

@@ -6,7 +6,7 @@ import pytest
 
 from dbnd import Config, config, parameter, task
 from dbnd._core.errors import DatabandBuildError
-from dbnd.tasks.basics import SimplestTask
+from dbnd_run.tasks.basics import SimplestTask
 
 
 logger = logging.getLogger(__name__)

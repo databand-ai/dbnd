@@ -3,9 +3,9 @@
 from datetime import date
 
 from dbnd import data, dbnd_run_cmd, output, parameter
-from dbnd.tasks import Task
-from dbnd.tasks.basics.sanity import dbnd_sanity_check
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.tasks import Task
+from dbnd_run.tasks.basics.sanity import dbnd_sanity_check
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_test_scenarios.pipelines.pipe_4tasks import MainPipeline
 from tests.scenarios.pipelines.advance_pipeline import TComplicatedPipeline
 

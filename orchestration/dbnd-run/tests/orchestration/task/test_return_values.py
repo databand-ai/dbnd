@@ -11,8 +11,8 @@ from pandas.util.testing import assert_frame_equal
 
 from dbnd import PipelineTask, Task, output, parameter, task
 from dbnd._core.errors import DatabandBuildError, DatabandRunError
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.testing.helpers import assert_run_task
 
 
 class TestTaskDecoReturnValues(TargetTestBase):
@@ -121,7 +121,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             def t_f(same_name=3, a=5):
                 return {"o_a": [str(a)], "o_b": same_name}
 
-            t_f()  # ???
+            t_f.dbnd_run()  # ???
 
     def test_fails_on_dict_spec(self):
         with pytest.raises(
@@ -133,7 +133,7 @@ class TestTaskDecoReturnValues(TargetTestBase):
             def t_f(same_name=3, a=5):
                 return {"o_a": [str(a)], "o_b": same_name}
 
-            t_f()  # ???
+            t_f.dbnd_run()  # ???
 
     def test_fails_on_wrong_ret_type(self):
         @task

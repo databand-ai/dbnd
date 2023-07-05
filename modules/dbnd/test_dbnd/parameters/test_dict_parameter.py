@@ -1,3 +1,8 @@
+# © Copyright Databand.ai, an IBM Company 2022
+
+import collections
+import json
+
 # -*- coding: utf-8 -*-
 #
 # Copyright 2012-2015 Spotify AB
@@ -17,29 +22,26 @@
 #
 #
 # This file has been modified by databand.ai to support dbnd orchestration.
-
-
-import collections
-import json
+from typing import Dict
 
 import pytest
 
-from databand import parameters
-from dbnd import Config
+from dbnd import Config, parameter
 from dbnd.testing.helpers import build_task
 
 
+DictParameter = parameter[Dict]
+
+
 class DictParameterTask(Config):
-    param = parameters.DictParameter()
+    param = DictParameter()
 
 
 class TestDictParameter(object):
     _dict = collections.OrderedDict([("username", "me"), ("password", "secret")])
 
     def test_parse(self):
-        d = parameters.DictParameter()._p.parse_from_str(
-            json.dumps(TestDictParameter._dict)
-        )
+        d = DictParameter()._p.parse_from_str(json.dumps(TestDictParameter._dict))
         assert d == TestDictParameter._dict
 
     def test_parse_and_serialize(self):
@@ -48,7 +50,7 @@ class TestDictParameter(object):
             '{"password": "secret", "username": "me"}',
         ]
         for json_input in inputs:
-            _dict = parameters.DictParameter()._p.parse_from_str(json_input)
+            _dict = DictParameter()._p.parse_from_str(json_input)
             assert json.loads(json_input) == _dict
 
     def test_parse_interface(self):
@@ -59,4 +61,4 @@ class TestDictParameter(object):
 
     def test_parse_invalid_input(self):
         with pytest.raises(ValueError):
-            parameters.DictParameter()._p.parse_from_str('{"invalid"}')
+            DictParameter()._p.parse_from_str('{"invalid"}')

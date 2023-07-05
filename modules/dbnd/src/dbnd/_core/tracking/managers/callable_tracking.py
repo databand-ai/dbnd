@@ -8,7 +8,6 @@ from typing import Any, Dict, Tuple
 
 import attr
 
-from dbnd import ParameterDefinition
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.constants import (
     RESULT_PARAM,
@@ -19,6 +18,7 @@ from dbnd._core.constants import (
 from dbnd._core.current import get_databand_run, is_verbose, try_get_current_task_run
 from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.external_exception_logging import log_exception_to_server
+from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_definition import TaskDefinition
@@ -138,14 +138,14 @@ class CallableTrackingManager(object):
 
             # checking if any of the inputs are the outputs of previous task.
             # we can add that task as upstream.
-            dbnd_run = get_databand_run()
-            call_kwargs_as_targets = dbnd_run.target_origin.get_for_map(kwargs)
+            run = get_databand_run()
+            call_kwargs_as_targets = run.target_origin.get_for_map(kwargs)
             for value_origin in call_kwargs_as_targets.values():
                 up_task = value_origin.origin_target.task
                 task.set_upstream(up_task)
 
             # creating task_run_executor as a task we found mid-run
-            task_run = dbnd_run.build_task_run_and_track(task)
+            task_run = run.build_task_run_and_track(task)
 
             should_capture_log = (
                 parent_task_run.run.context.settings.tracking.capture_tracking_log

@@ -9,7 +9,6 @@ from dbnd._core.settings.run_info import RunInfoConfig  # noqa: F401
 from dbnd._core.settings.tracking_config import TrackingConfig
 from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 from dbnd._core.task import Config
-from dbnd.orchestration.run_settings.env import EnvConfig  # noqa: F401
 
 
 if typing.TYPE_CHECKING:
@@ -19,10 +18,10 @@ if typing.TYPE_CHECKING:
 class DatabandSettings(object):
     def __init__(self, databand_context):
         super(DatabandSettings, self).__init__()
-        self.databand_context = databand_context  # type: DatabandContext
+        self.databand_context: "DatabandContext" = databand_context
 
         self.core = CoreConfig()
-        self.tracking = TrackingConfig()  # type: TrackingConfig
+        self.tracking = TrackingConfig()
         self.tracking_log = TrackingLoggingConfig()
 
         self.singleton_configs = {}

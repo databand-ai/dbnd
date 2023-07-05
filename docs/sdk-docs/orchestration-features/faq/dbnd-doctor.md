@@ -13,7 +13,7 @@ dbnd run dbnd_doctors
 
 In order to print the logging state of the system, please run the following command
 ```bash
-dbnd run dbnd.tasks.doctor.system_logging.logging_status --task-version now
+dbnd run dbnd.doctor.system_logging.logging_status --task-version now
 ```
 >if you are running using [Kubernetes Integration](doc:kubernetes-cluster), please also run `--no-submit-tasks` in addition to the run described above. This will execute all the diagnostic code at the "driver" pod as well.
 

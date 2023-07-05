@@ -6,8 +6,8 @@ import dbnd
 
 from dbnd import Config, data, output, parameter, pipeline, task
 from dbnd._core.current import current_task_run
-from dbnd.tasks import PipelineTask, PythonTask
-from dbnd.testing.orchestration_utils import TTask
+from dbnd_run.tasks import PipelineTask, PythonTask
+from dbnd_run.testing.helpers import TTask
 
 
 class TTaskWithInput(TTask):

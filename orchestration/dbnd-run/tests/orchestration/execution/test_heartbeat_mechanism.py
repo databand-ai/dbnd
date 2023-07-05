@@ -7,9 +7,9 @@ from mock import MagicMock, PropertyMock, patch
 from dbnd import new_dbnd_context
 from dbnd._core.configuration.environ_config import ENV_DBND__ORCHESTRATION__NO_PLUGINS
 from dbnd._core.run.databand_run import DatabandRun
-from dbnd.orchestration.run_executor.heartbeat_sender import start_heartbeat_sender
-from dbnd.orchestration.run_executor.run_executor import RunExecutor
-from dbnd.orchestration.run_settings import RunConfig
+from dbnd_run.run_executor.heartbeat_sender import start_heartbeat_sender
+from dbnd_run.run_executor.run_executor import RunExecutor
+from dbnd_run.run_settings import RunConfig
 
 
 logger = logging.getLogger(__name__)

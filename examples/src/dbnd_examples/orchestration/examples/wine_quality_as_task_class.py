@@ -16,8 +16,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 from dbnd import data, log_dataframe, log_metric, output, parameter
-from dbnd.tasks import PipelineTask, PythonTask
 from dbnd_examples.data import data_repo
+from dbnd_run.tasks import PipelineTask, PythonTask
 
 
 logger = logging.getLogger(__name__)

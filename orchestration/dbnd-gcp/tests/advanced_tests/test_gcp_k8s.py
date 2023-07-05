@@ -8,8 +8,8 @@ import pytest
 
 from dbnd import new_dbnd_context
 from dbnd._core.settings import DatabandSystemConfig, EnvConfig
-from dbnd.tasks.basics import dbnd_sanity_check
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+from dbnd_run.tasks.basics import dbnd_sanity_check
 
 
 logger = logging.getLogger(__name__)

@@ -8,9 +8,9 @@ from threading import Thread
 
 from dbnd import PythonTask, dbnd_bootstrap, new_dbnd_context, output
 from dbnd._core.utils.basics.signal_utils import register_graceful_sigterm
-from dbnd.orchestration.run_settings import RunConfig
-from dbnd.tasks.basics import SimplestTask
 from dbnd.testing.helpers import run_dbnd_subprocess
+from dbnd_run.run_settings import RunConfig
+from dbnd_run.tasks.basics import SimplestTask
 from dbnd_test_scenarios.test_common.task.factories import TTask, ttask_simple
 
 

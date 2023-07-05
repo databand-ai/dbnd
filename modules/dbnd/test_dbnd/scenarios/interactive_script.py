@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from dbnd import output
-from dbnd.tasks import PythonTask
+from dbnd_run.tasks import PythonTask
 
 
 class SomeTask(PythonTask):

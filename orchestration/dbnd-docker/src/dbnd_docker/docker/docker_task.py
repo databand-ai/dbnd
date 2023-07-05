@@ -5,9 +5,9 @@ from __future__ import absolute_import
 import logging
 
 from dbnd import parameter
-from dbnd.tasks import Task
 from dbnd_docker.container_engine_config import ContainerEngineConfig
 from dbnd_docker.docker_ctrl import DockerRunCtrl
+from dbnd_run.tasks import Task
 
 
 logger = logging.getLogger(__name__)

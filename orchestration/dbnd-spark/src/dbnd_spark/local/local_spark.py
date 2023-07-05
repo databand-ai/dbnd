@@ -8,7 +8,7 @@ from logging import StreamHandler
 
 from dbnd._core.context.use_dbnd_run import is_airflow_package_installed
 from dbnd._core.utils.structures import list_of_strings
-from dbnd.orchestration.errors.task_execution import (
+from dbnd_run.errors.task_execution import (
     failed_spark_status,
     failed_to_run_spark_script,
 )

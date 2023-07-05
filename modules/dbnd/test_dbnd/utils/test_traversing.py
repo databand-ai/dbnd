@@ -21,10 +21,7 @@
 
 import pytest
 
-from dbnd._core.task_ctrl.task_relations import _find_target
 from dbnd._core.utils import traversing
-from dbnd._core.utils.traversing import traverse
-from targets import target
 
 
 class TestTraversing(object):
@@ -36,10 +33,3 @@ class TestTraversing(object):
         assert flatten(42) == [42]
         assert flatten((len(i) for i in ["foo", "troll"])) == [3, 5]
         pytest.raises(TypeError, flatten, (len(i) for i in ["foo", "troll", None]))
-
-    def test_flattern_file_target(self):
-        nested_v = target("/tmp")
-        value = {"a": {"b": nested_v}}
-        actual = traverse(value, convert_f=_find_target, filter_none=True)
-        assert actual
-        assert actual.get("a").get("b") == nested_v

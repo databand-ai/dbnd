@@ -10,6 +10,7 @@ from itertools import chain
 import six
 
 from dbnd._core.current import get_databand_run
+from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.logging_utils import TaskContextFilter
 from dbnd._core.task_build.task_context import task_context
 from dbnd._core.utils.basics.nested_context import nested
@@ -20,11 +21,10 @@ if typing.TYPE_CHECKING:
 
     from dbnd._core.context.databand_context import DatabandContext
     from dbnd._core.parameter.parameter_value import Parameters
-    from dbnd._core.settings import DatabandSettings, EnvConfig
+    from dbnd._core.settings import DatabandSettings
+    from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.task_ctrl.task_dag import _TaskDagNode
-    from dbnd._core.task_ctrl.task_relations import TaskRelations
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd.orchestration.task.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class TaskSubCtrl(object):
     def __init__(self, task):
         super(TaskSubCtrl, self).__init__()
 
-        self.task = task  # type: Task
+        self.task = task  # type: _BaseTask
 
     @property
     def dbnd_context(self):
@@ -42,7 +42,7 @@ class TaskSubCtrl(object):
 
     @property
     def ctrl(self):
-        # type: (TaskSubCtrl) -> TaskCtrl
+        # type: (TaskSubCtrl) -> _BaseTaskCtrl
         return self.task.ctrl
 
     @property
@@ -56,29 +56,12 @@ class TaskSubCtrl(object):
         return self.ctrl._task_dag
 
     @property
-    def visualiser(self):
-        return self.ctrl._visualiser
-
-    @property
-    def meta_info_serializer(self):
-        return self.ctrl._meta_info_serializer
-
-    @property
     def params(self):  # type: () -> Parameters
         return self.task._params
 
     @property
     def settings(self):  # type: ()-> DatabandSettings
         return self.task.settings
-
-    @property
-    def relations(self):  # type: () -> TaskRelations
-        return self.ctrl._relations
-
-    @property
-    def task_env(self):
-        # type: ()-> EnvConfig
-        return self.task.task_env
 
     def get_task_by_task_id(self, task_id):
         return self.dbnd_context.task_instance_cache.get_task_by_id(task_id)
@@ -89,35 +72,29 @@ class TaskSubCtrl(object):
 
 @six.add_metaclass(ABCMeta)
 class _BaseTaskCtrl(TaskSubCtrl):
+    """
+    task.ctrl
+    Main dispatcher for task sub-actions
+    1. used by Tracking via  TrackingTaskCtrl
+    """
+
     def __init__(self, task):
         super(_BaseTaskCtrl, self).__init__(task)
 
         from dbnd._core.task_ctrl.task_dag import _TaskDagNode  # noqa: F811
-        from dbnd._core.task_ctrl.task_dag_describe import DescribeDagCtrl
         from dbnd._core.task_ctrl.task_descendant import (
             TaskDescendants as _TaskDescendants,
         )
-        from dbnd._core.task_ctrl.task_repr import TaskRepr
-        from dbnd._core.task_ctrl.task_visualiser import TaskVisualiser  # noqa: F811
 
         self._task_dag = _TaskDagNode(task)
         self.descendants = _TaskDescendants(task)
-
-        self._visualiser = TaskVisualiser(task)
-        self.describe_dag = DescribeDagCtrl(task)
-
-        self.task_repr = TaskRepr(self.task)
 
         # will be assigned by the latest Run
         self.last_task_run = None  # type: Optional[TaskRun]
         self.force_task_run_uid = None  # force task run uid
 
     def _initialize_task(self):
-        # only at the end we can build the final version of "function call"
-        self.task_repr.initialize()
-
-    def banner(self, msg, color=None, task_run=None):
-        return self.visualiser.banner(msg=msg, color=color, task_run=task_run)
+        return
 
     @property
     def task_run(self):
@@ -172,3 +149,19 @@ class TrackingTaskCtrl(_BaseTaskCtrl):
 
     def should_run(self):
         return True
+
+    def banner(self, msg, color=None, task_run=None):
+        try:
+            from dbnd._core.task_ctrl.task_visualiser import _TaskBannerBuilder
+
+            builder = _TaskBannerBuilder(task=self.task, msg=msg, color=color)
+
+            return builder.build_tracking_banner(task_run=task_run)
+
+        except Exception as ex:
+            log_exception(
+                "Failed to calculate banner for '%s'" % self.task_id,
+                ex,
+                non_critical=True,
+            )
+            return msg + (" ( task_id=%s)" % self.task_id)

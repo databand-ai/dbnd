@@ -254,13 +254,13 @@ def test_dbt_sdk_functions_are_importable_from_top_level():
 
 def test_undefined_error_not_called():
     values = {"env_var_key": "{{ env_var('env_var_identifier') }}"}
-    with patch("logging.Logger.debug") as mock:
+    with patch("dbnd._core.tracking.dbt.dbt_core.log_exception") as mock:
         with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
             _extract_jinja_values(values)
         assert mock.call_count == 0
 
 
-def test_undefined_error_called():
+def test_undefined_error_called(caplog):
     values = {"test_jinja_error": "{{ test_undefined_for_jinja(whatever) }}"}
     with patch("dbnd._core.tracking.dbt.dbt_core.log_exception") as mock:
         with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
@@ -274,6 +274,9 @@ def test_undefined_error_called():
             == "'test_undefined_for_jinja' is undefined"
         )
         assert mock.called
+        assert "'test_undefined_for_jinja' is undefined" in str(
+            mock.call_args.kwargs["ex"]
+        )
 
 
 @patch("dbnd._core.tracking.dbt.dbt_core._get_tracker")

@@ -7,9 +7,9 @@ from os import path
 from typing import List
 
 from dbnd import PipelineTask, data, output, parameter
-from dbnd.tasks import Config, DataSourceTask
-from dbnd.tasks.basics import SimplestTask
 from dbnd.utils import data_combine, period_dates
+from dbnd_run.tasks import Config, DataSourceTask
+from dbnd_run.tasks.basics import SimplestTask
 from targets import target
 from targets.target_config import folder
 

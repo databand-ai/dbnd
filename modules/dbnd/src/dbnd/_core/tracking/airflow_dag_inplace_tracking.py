@@ -22,7 +22,6 @@ from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
 from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
-from dbnd._core.utils.airflow_cmd_utils import generate_airflow_cmd
 from dbnd._core.utils.type_check_utils import is_instance_by_class_name
 from dbnd._core.utils.uid_utils import (
     get_job_run_uid,
@@ -137,14 +136,6 @@ def build_run_time_airflow_task(
         source_code=source_code,
         user_params=user_params,
     )  # type: TrackingTask
-
-    root_task.ctrl.task_repr.task_functional_call = ""
-    root_task.ctrl.task_repr.task_command_line = generate_airflow_cmd(
-        dag_id=af_context.dag_id,
-        task_id=af_context.task_id,
-        execution_date=af_context.execution_date,
-        is_root_task=False,
-    )
 
     root_run_uid = get_job_run_uid(
         airflow_instance_uid=af_context.airflow_instance_uid,

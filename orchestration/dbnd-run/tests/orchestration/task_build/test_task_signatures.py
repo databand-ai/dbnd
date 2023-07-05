@@ -11,7 +11,7 @@ from pytest import fixture
 from dbnd import PipelineTask, PythonTask, data, output, parameter
 from dbnd._core.current import get_databand_context
 from dbnd._core.run.databand_run import new_databand_run
-from dbnd.tasks import Task
+from dbnd_run.tasks import Task
 
 
 logger = logging.getLogger(__name__)

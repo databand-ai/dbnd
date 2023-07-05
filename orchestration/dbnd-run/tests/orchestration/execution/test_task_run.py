@@ -6,9 +6,7 @@ import pytest
 
 from pandas import DataFrame
 
-import dbnd
-import dbnd._core.task_run.task_run
-import dbnd.orchestration.task_run_executor.task_validator
+import dbnd_run.task_ctrl.task_validator
 
 from dbnd import (
     ParameterScope,
@@ -24,9 +22,9 @@ from dbnd import (
 )
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors import DatabandRunError
-from dbnd.tasks.basics import SimplestTask
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.tasks.basics import SimplestTask
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_test_scenarios.pipelines.pipe_4tasks import (
     MainPipeline as Scenario4_MainPipeline,
 )
@@ -188,7 +186,7 @@ class TestTaskRun(TargetTestBase):
                 m.setattr(FileTarget, "exist_after_write_consistent", lambda a: False)
                 m.setattr(FileTarget, "exists", lambda a: False)
                 m.setattr(
-                    dbnd.orchestration.task_run_executor.task_validator,
+                    dbnd_run.task_ctrl.task_validator,
                     "EVENTUAL_CONSISTENCY_MAX_SLEEPS",
                     1,
                 )

@@ -7,8 +7,8 @@ import pytest
 
 from dbnd import config, dbnd_config, extend, parameter
 from dbnd._core.errors import DatabandRunError
-from dbnd.tasks import Config
-from dbnd.testing.helpers_pytest import assert_run_task
+from dbnd_run.tasks import Config
+from dbnd_run.testing.helpers import assert_run_task
 from dbnd_spark import SparkConfig
 from dbnd_spark.local.local_spark_config import SparkLocalEngineConfig
 from dbnd_test_scenarios.spark.spark_tasks import (

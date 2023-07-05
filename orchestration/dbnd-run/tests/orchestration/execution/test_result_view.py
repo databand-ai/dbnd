@@ -7,8 +7,9 @@ from typing import Tuple
 
 from dbnd import pipeline, task
 from dbnd._core.utils.basics.path_utils import relative_path
-from dbnd.orchestration.run_executor.run_executor import RunResultBand
-from dbnd.testing.helpers_pytest import assert_run, skip_on_windows
+from dbnd.testing.helpers_pytest import skip_on_windows
+from dbnd_run.run_executor.run_executor import RunResultBand
+from dbnd_run.testing.helpers import assert_run
 from targets import target
 from tests.orchestration.execution.utils import DbndCmdTest
 

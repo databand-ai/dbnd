@@ -9,7 +9,6 @@ from airflow import AirflowException
 from dbnd._core.current import current_task_run
 from dbnd._core.utils.basics.text_banner import TextBanner
 from dbnd._core.utils.structures import list_of_strings
-from dbnd.orchestration.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd_databricks.databricks_config import (
     DatabricksAwsConfig,
     DatabricksAzureConfig,
@@ -20,6 +19,7 @@ from dbnd_databricks.errors import (
     failed_to_run_databricks_job,
     failed_to_submit_databricks_job,
 )
+from dbnd_run.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd_spark.spark import SparkTask
 from dbnd_spark.spark_ctrl import SparkCtrl
 

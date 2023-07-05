@@ -16,6 +16,7 @@ from dbnd._core.cli.cmd_deprecated import add_deprecated_commands
 from dbnd._core.cli.cmd_show import show_configs
 from dbnd._core.cli.cmd_tracker import tracker
 from dbnd._core.context.bootstrap import dbnd_bootstrap
+from dbnd._core.context.use_dbnd_run import is_dbnd_run_package_installed
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.log.config import configure_basic_logging
 from dbnd._core.utils.platform import windows_compatible_mode
@@ -23,14 +24,6 @@ from dbnd._vendor import click
 from dbnd._vendor.click_didyoumean import DYMGroup
 from dbnd.cli.cmd_airflow_sync import airflow_sync
 from dbnd.cli.cmd_alerts import alerts
-from dbnd.orchestration.cli.cmd_execute import execute
-from dbnd.orchestration.cli.cmd_heartbeat import send_heartbeat
-from dbnd.orchestration.cli.cmd_project import project_init
-from dbnd.orchestration.cli.cmd_run import cmd_run
-from dbnd.orchestration.cli.cmd_scheduler_management import schedule
-from dbnd.orchestration.cli.cmd_show import show_tasks
-from dbnd.orchestration.cli.cmd_utils import collect_logs
-from dbnd.orchestration.plugin.dbnd_plugins import register_dbnd_cli_commands
 
 
 logger = logging.getLogger(__name__)
@@ -41,30 +34,17 @@ def cli():
     return
 
 
-# project
-cli.add_command(project_init)
-
-# run
-cli.add_command(cmd_run)
-cli.add_command(execute)
-
-# show
-cli.add_command(show_configs)
-cli.add_command(show_tasks)
-
-# tracker
-cli.add_command(tracker)
-
-# heartbeat sender
-cli.add_command(send_heartbeat)
-
 # clients for the web-api
+cli.add_command(tracker)
 cli.add_command(alerts)
 cli.add_command(airflow_sync)
-cli.add_command(schedule)
 
-# error reporting
-cli.add_command(collect_logs)
+cli.add_command(show_configs)
+
+if is_dbnd_run_package_installed():
+    from dbnd_run.cli import add_dbnd_run_cli
+
+    add_dbnd_run_cli(cli)
 
 add_deprecated_commands(cli)
 
@@ -115,8 +95,6 @@ def _register_legacy_airflow_monitor_commands(cli):
 def main():
     """Script's main function and start point."""
     configure_basic_logging(None)
-
-    register_dbnd_cli_commands(cli)
 
     _register_legacy_airflow_monitor_commands(cli)
     try:

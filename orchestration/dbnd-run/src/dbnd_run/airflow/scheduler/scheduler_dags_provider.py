@@ -14,9 +14,9 @@ from dbnd._core.constants import TaskExecutorType
 from dbnd._core.run.databand_run import DatabandRun
 from dbnd._core.tracking.no_tracking import dont_track
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
-from dbnd.orchestration.run_settings import RunConfig
-from dbnd.orchestration.run_settings.log import RunLoggingConfig
-from dbnd.tasks.basics.shell import bash_cmd
+from dbnd_run.run_settings import RunConfig
+from dbnd_run.run_settings.log import RunLoggingConfig
+from dbnd_run.tasks.basics.shell import bash_cmd
 
 
 logger = logging.getLogger(__name__)

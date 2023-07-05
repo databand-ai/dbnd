@@ -1,6 +1,7 @@
-# © Copyright Databand.ai, an IBM Company 2022
-
 from dbnd._core.constants import _TaskParamContainer
+
+# © Copyright Databand.ai, an IBM Company 2022
+from dbnd._core.context.use_dbnd_run import is_orchestration_mode
 from dbnd._core.current import get_settings
 from dbnd._core.task import Config
 from dbnd._core.task_build.task_registry import (
@@ -15,9 +16,9 @@ class TaskValueType(ValueType):
     A value that takes another databand task class.
 
     When used programatically, the parameter should be specified
-    directly with the :py:class:`dbnd.tasks.Task` (sub) class. Like
+    directly with the :py:class:`_TaskWithParams` (sub) class. Like
     ``MyMetaTask(my_task_param=my_tasks.MyTask)``. On the command line,
-    you specify the :py:meth:`dbnd.tasks.Task.get_task_family`. Like
+    you specify the :py:meth:`_TaskWithParams.get_task_family`. Like
 
     .. code-block:: console
 
@@ -25,7 +26,7 @@ class TaskValueType(ValueType):
 
     Where ``my_namespace.MyTask`` is defined in the ``my_tasks`` python module.
 
-    When the :py:class:`dbnd.tasks.Task` class is instantiated to an object.
+    When the :py:class:`_TaskWithParams` class is instantiated to an object.
     The value will always be a task class (and not a string).
     """
 
@@ -41,7 +42,7 @@ class TaskValueType(ValueType):
 
     def to_str(self, cls):
         """
-        Converts the :py:class:`dbnd.tasks.Task` (sub) class to its family name.
+        Converts the :py:class:`_TaskWithParams` (sub) class to its family name.
         """
         return cls.get_task_family()
 
@@ -61,15 +62,17 @@ class ConfigValueType(ValueType):
         Parse a task_famly using the :class:`~dbnd._core.register.Register`
         """
 
-        from dbnd.orchestration.run_settings.env import EnvConfig
+        if is_orchestration_mode():
+            from dbnd_run.run_settings.env import EnvConfig
 
-        if isinstance(self.config_cls, EnvConfig):
-            return get_settings().get_env_config(input)
+            if isinstance(self.config_cls, EnvConfig):
+                return get_settings().get_env_config(input)
+
         return build_task_from_config(input, expected_type=self.config_cls)
 
     def to_str(self, x):
         """
-        Converts the :py:class:`dbnd.tasks.Task` (sub) class to its family name.
+        Converts the :py:class:`_TaskWithParams` (sub) class to its family name.
         """
         if x:
             return x.task_name

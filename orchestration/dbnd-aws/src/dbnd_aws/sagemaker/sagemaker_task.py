@@ -1,9 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from dbnd import output, parameter
-from dbnd.orchestration.task.task import Task
 from dbnd_aws.sagemaker.estimator_config import BaseEstimatorConfig
 from dbnd_aws.sagemaker.sagemaker_ctrl import SageMakerCtrl
+from dbnd_run.task.task import Task
 from targets import Target
 
 

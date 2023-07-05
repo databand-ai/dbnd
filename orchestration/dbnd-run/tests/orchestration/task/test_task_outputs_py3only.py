@@ -9,8 +9,8 @@ import pandas as pd
 from pandas import DataFrame
 
 from dbnd import task
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd.testing.orchestration_utils import TargetTestBase
+from dbnd_run.testing.helpers import assert_run_task
 
 
 logger = logging.getLogger(__name__)

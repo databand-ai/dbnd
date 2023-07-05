@@ -4,7 +4,7 @@ import pytest
 
 from dbnd import PipelineTask, Task, dbnd_config, dbnd_run_cmd, output, parameter
 from dbnd._vendor.pendulum import now
-from dbnd.tasks.basics import SimplestTask
+from dbnd_run.tasks.basics import SimplestTask
 
 
 class First(Task):

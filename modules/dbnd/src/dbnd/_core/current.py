@@ -12,9 +12,8 @@ if typing.TYPE_CHECKING:
     from dbnd._core.context.databand_context import DatabandContext
     from dbnd._core.run.databand_run import DatabandRun
     from dbnd._core.settings import DatabandSettings
-    from dbnd._core.task import Task
+    from dbnd._core.task.base_task import _BaseTask
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd.orchestration.run_executor.run_executor import RunExecutor
 
 
 def get_databand_context():
@@ -85,8 +84,7 @@ def is_orchestration_run():
     return False
 
 
-def current_task():
-    # type: () -> Task
+def current_task() -> "_BaseTask":
     """
     Returns the current task's object.
 
@@ -109,8 +107,7 @@ def try_get_current_task():
     return tgct()
 
 
-def get_task_by_task_id(task_id):
-    # type: (str) -> Task
+def get_task_by_task_id(task_id: str) -> "_BaseTask":
     return get_databand_context().task_instance_cache.get_task_by_id(task_id)
 
 
@@ -162,33 +159,3 @@ def get_target_logging_level():
         )
 
     return default_level
-
-
-### ORCHESTRATION
-def get_run_executor():
-    # type: () -> RunExecutor
-    """Returns current Task/Pipeline/Flow instance."""
-    from dbnd.orchestration.run_executor.run_executor import RunExecutor as _RunExecutor
-
-    v = _RunExecutor.get_instance()
-    return v
-
-
-def try_get_run_executor():
-    # type: () -> Optional[RunExecutor]
-    from dbnd.orchestration.run_executor.run_executor import RunExecutor as _RunExecutor
-
-    if _RunExecutor.has_instance():
-        return get_run_executor()
-    return None
-
-
-def is_killed():
-    run_executor = try_get_run_executor()
-    return run_executor and run_executor.is_killed()
-
-
-def cancel_current_run(message=None):
-    """Kills a run's execution from within the execution."""
-    run_executor = try_get_run_executor()
-    return run_executor.kill_run(message)

@@ -14,7 +14,7 @@ from dbnd.testing.test_config_setter import add_test_configuration
 # we need to dbnd module before airflow, otherwise we will not get airflow_bome
 pytest_plugins = [
     "dbnd.testing.pytest_dbnd_home_plugin",
-    "dbnd.orchestration.testing.pytest_dbnd_run_plugin",
+    "dbnd_run.testing.pytest_dbnd_run_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
 ]
 

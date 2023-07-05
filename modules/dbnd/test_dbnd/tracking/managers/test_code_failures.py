@@ -7,6 +7,7 @@ import mock
 from pytest import fixture
 
 from dbnd import dbnd_tracking_stop, log_metric, task
+from dbnd._core.configuration.environ_config import reset_dbnd_project_config
 from dbnd._core.context.databand_context import DatabandContext
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
 from dbnd._core.task_run.task_run_tracker import TaskRunTracker
@@ -39,6 +40,7 @@ patch_dict = {
 def set_env():
     # patch.dict updates only the given variables (without touching others)
     with mock.patch.dict(os.environ, patch_dict):
+        reset_dbnd_project_config()
         yield
 
 

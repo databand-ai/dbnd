@@ -4,7 +4,7 @@ from airflow.operators.bash_operator import BashOperator
 
 from dbnd import Task, pipeline
 from dbnd.testing.helpers_pytest import skip_on_windows
-from dbnd.testing.orchestration_utils import TTask
+from dbnd_run.testing.helpers import TTask
 
 
 @skip_on_windows

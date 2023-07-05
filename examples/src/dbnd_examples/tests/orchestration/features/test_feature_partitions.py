@@ -4,7 +4,6 @@ import logging
 
 from datetime import timedelta
 
-from dbnd.testing.helpers_pytest import assert_run_task
 from dbnd_examples.data import data_repo
 from dbnd_examples.orchestration.features.partitioned_calculations_pipeline import (
     ExamplePartitionedCalculations,
@@ -16,6 +15,7 @@ from dbnd_examples.orchestration.features.partitioned_inputs import (
     DeviceLogsPipeline,
     ExamplePartitionedPipeline,
 )
+from dbnd_run.testing.helpers import assert_run_task
 
 
 logger = logging.getLogger(__name__)

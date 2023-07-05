@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from dbnd.orchestration.cli.utils import PrefixStore
+from dbnd_run.cli.utils import PrefixStore
 
 
 class TestAutoCompleterCache(object):

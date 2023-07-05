@@ -12,7 +12,7 @@ from dbnd._core.utils.basics.nothing import NOTHING, is_defined
 
 
 if typing.TYPE_CHECKING:
-    from dbnd._core.task import Task
+    from dbnd._core.task.base_task import _BaseTask
 
 
 def _short_name(name):
@@ -40,8 +40,7 @@ class TaskPassport(object):
     task_config_section = attr.ib()
 
     @classmethod
-    def from_task_cls(cls, task_class):
-        # type: (Type[Task]) -> TaskPassport
+    def from_task_cls(cls, task_class: Type["_BaseTask"]):
         if task_class.task_decorator:
             return task_class.task_decorator.task_passport
 

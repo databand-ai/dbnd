@@ -5,7 +5,7 @@ import pytest
 # inline conftest
 
 pytest_plugins = [
-    "dbnd.orchestration.testing.pytest_dbnd_run_plugin",
+    "dbnd_run.testing.pytest_dbnd_run_plugin",
     "dbnd.testing.pytest_dbnd_markers_plugin",
     "dbnd.testing.pytest_dbnd_home_plugin",
 ]

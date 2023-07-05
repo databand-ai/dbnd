@@ -8,11 +8,14 @@ from typing import Any, Optional, Union
 
 import six
 
-from dbnd._core.configuration.environ_config import is_orchestration_mode
-from dbnd._core.context.use_dbnd_run import is_dbnd_orchestration_via_airflow_enabled
+from dbnd._core.constants import _TaskDbndRun
+from dbnd._core.context.use_dbnd_run import (
+    is_dbnd_orchestration_via_airflow_enabled,
+    is_orchestration_mode,
+)
 from dbnd._core.errors import DatabandSystemError, friendly_error
+from dbnd._core.task.base_task import _BaseTask
 from dbnd._core.utils.traversing import traverse
-from dbnd.orchestration.task.task import Task
 from targets.base_target import Target
 from targets.multi_target import MultiTarget
 from targets.target_factory import target
@@ -33,9 +36,11 @@ def _try_get_task_from_airflow_op(value):
 
         return try_operator_to_dbnd_task(value)
 
+    return
+
 
 def _to_task(value):
-    if isinstance(value, Task):
+    if isinstance(value, _BaseTask):
         return value
 
     if isinstance(value, Target):
@@ -68,7 +73,7 @@ def _to_target(value, from_string_kwargs=None):
     if isinstance(value, Target):
         return value
 
-    if isinstance(value, Task):
+    if isinstance(value, _TaskDbndRun):
         if value.task_definition.single_result_output:
             return value.result
         return value.task_outputs
@@ -144,7 +149,7 @@ def get_task_name_safe(task_or_task_name):
     if task_or_task_name is None or isinstance(task_or_task_name, six.string_types):
         return task_or_task_name
 
-    if isinstance(task_or_task_name, Task):
+    if isinstance(task_or_task_name, _BaseTask):
         return task_or_task_name.task_name
     raise DatabandSystemError(
         "Can't calculate task name from %s - %s",
@@ -161,6 +166,8 @@ def get_project_name_safe(project_name, task_or_task_name):
     if task_or_task_name is None or isinstance(task_or_task_name, six.string_types):
         return None
 
-    if isinstance(task_or_task_name, Task) and hasattr(task_or_task_name, "project"):
+    if isinstance(task_or_task_name, _BaseTask) and hasattr(
+        task_or_task_name, "project"
+    ):
         return task_or_task_name.project
     return None

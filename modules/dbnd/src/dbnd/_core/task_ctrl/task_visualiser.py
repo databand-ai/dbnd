@@ -3,9 +3,7 @@
 import logging
 import typing
 
-import six
-
-from dbnd._core.constants import SystemTaskName, TaskEssence, TaskRunState
+from dbnd._core.constants import TaskRunState
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandBuildError, get_help_msg, show_exc_info
 from dbnd._core.errors.errors_utils import log_exception, nested_exceptions_str
@@ -19,7 +17,7 @@ from targets import DataTarget, InMemoryTarget, Target
 
 if typing.TYPE_CHECKING:
     from dbnd._core.task_run.task_run import TaskRun
-    from dbnd.orchestration.task.task import Task
+    from dbnd_run.task.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -62,56 +60,6 @@ def _f_none_default(value, default):
     return value
 
 
-class TaskVisualiser(object):
-    def __init__(self, task):
-        self.task = task
-
-    def banner(
-        self,
-        msg,
-        color=None,
-        verbose=False,
-        print_task_band=False,
-        task_run=None,
-        exc_info=None,
-    ):
-        task_id = self.task.task_id
-        try:
-            # Saving banner for testability
-            self._banner = TextBanner(msg, color)
-
-            if verbose or is_verbose():
-                verbosity = FormatterVerbosity.HIGH
-            else:
-                verbosity = FormatterVerbosity.NORMAL
-
-            builder = _TaskBannerBuilder(
-                task=self.task,
-                banner=self._banner,
-                verbosity=verbosity,
-                print_task_band=print_task_band,
-            )
-
-            # different banners for tracking and orchestration
-            if TaskEssence.TRACKING.is_instance(self.task):
-                builder.build_tracking_banner(task_run=task_run, exc_info=exc_info)
-            else:
-                if TaskEssence.CONFIG.is_instance(self.task):
-                    builder.build_config_banner()
-                else:
-                    builder.build_orchestration_banner(
-                        task_run=task_run, exc_info=exc_info
-                    )
-
-            return self._banner.get_banner_str()
-
-        except Exception as ex:
-            log_exception(
-                "Failed to calculate banner for '%s'" % task_id, ex, non_critical=True
-            )
-            return msg + (" ( task_id=%s)" % task_id)
-
-
 class _TaskBannerBuilder(TaskSubCtrl):
     """
     Describe how to build a banner for different scenarios.
@@ -119,59 +67,18 @@ class _TaskBannerBuilder(TaskSubCtrl):
     todo: can be extracted to builder and director
     """
 
-    def __init__(self, task, banner, verbosity, print_task_band, task_run=None):
-        # type: (_TaskBannerBuilder, Task, TextBanner, int, bool,  ...) -> None
+    def __init__(self, task: "_BaseTask", msg: str, color: str, verbose: bool = False):
         super(_TaskBannerBuilder, self).__init__(task)
-        self.banner = banner
-        self.task_run = task_run
+
+        if verbose or is_verbose():
+            verbosity = FormatterVerbosity.HIGH
+        else:
+            verbosity = FormatterVerbosity.NORMAL
 
         self.verbosity = verbosity
-        self.print_task_band = print_task_band
 
-        self.is_driver_or_submitter = (
-            self.task.task_name in SystemTaskName.driver_and_submitter
-        )
-
-        self.table_director = _ParamTableDirector(task, banner)
-
-    def build_orchestration_banner(self, task_run=None, exc_info=None):
-        # type: (_TaskBannerBuilder, TaskRun, ...) -> TextBanner
-        """building the banner for orchestration scenario"""
-
-        self.add_task_info()
-
-        if not self.task.ctrl.should_run():
-            self.add_disabled_info()
-
-        if task_run:
-            self.add_time_info(task_run)
-            self.add_tracker_info(task_run)
-            self.add_task_run_info(task_run)
-
-            if task_run.external_resource_urls:
-                self.add_external_resource_info(task_run)
-
-            self.add_task_run_executor_log_info(task_run)
-
-        all_info = self.verbosity >= FormatterVerbosity.HIGH
-        self.table_director.add_params_table(
-            all_params=all_info,
-            param_format=True,
-            param_source=True,
-            param_section=all_info,
-            param_default=all_info,
-        )
-
-        if self.verbosity >= FormatterVerbosity.HIGH:
-            self._add_verbose_info()
-
-        elif self.print_task_band:
-            self._add_task_band_info()
-
-        self.task._task_banner(self.banner, verbosity=self.verbosity)
-        self.add_stack_and_errors(exc_info, task_run, self.verbosity)
-
-        return self.banner
+        self.banner = TextBanner(msg, color)
+        self.table_director = _ParamTableDirector(task, self.banner)
 
     def build_tracking_banner(self, task_run=None, exc_info=None):
         # type: (_TaskBannerBuilder, TaskRun, ...) -> TextBanner
@@ -184,17 +91,11 @@ class _TaskBannerBuilder(TaskSubCtrl):
 
         self.add_stack_and_errors(exc_info, task_run, self.verbosity)
 
-        return self.banner
+        return self.banner.get_banner_str()
 
-    def build_config_banner(self):
-        self.table_director.add_params_table(
-            all_params=True,
-            param_format=True,
-            param_source=True,
-            param_section=True,
-            param_default=True,
-        )
-        return self.banner
+    def add_tracker_info(self, task_run):
+        if task_run.tracking_store.has_tracking_store("api", channel_name="web"):
+            self.banner.column("TRACKER URL", task_run.task_tracker_url)
 
     def add_stack_and_errors(self, exc_info, task_run, verbosity):
         if (
@@ -210,77 +111,8 @@ class _TaskBannerBuilder(TaskSubCtrl):
         elif verbosity >= FormatterVerbosity.HIGH:
             self._task_create_stack()
 
-    def add_task_run_executor_log_info(self, task_run):
-        log_manager = task_run.task_run_executor.log_manager
-        logs = [("local", log_manager.local_log_file)]
-        if log_manager.remote_log_file:
-            logs.append(("remote", log_manager.remote_log_file))
-        self.banner.column("LOG", self.banner.f_simple_dict(logs))
-
-    def add_external_resource_info(self, task_run):
-        self.banner.column_properties(
-            "EXTERNAL",
-            [(k, v) for k, v in six.iteritems(task_run.external_resource_urls)],
-        )
-
-    def add_tracker_info(self, task_run):
-        if task_run.tracking_store.has_tracking_store("api", channel_name="web"):
-            self.banner.column("TRACKER URL", task_run.task_tracker_url)
-
-    def add_task_run_info(self, task_run):
-        self.banner.column_properties(
-            "TASK RUN",
-            [
-                ("task_run_uid", task_run.task_run_uid),
-                ("task_run_attempt_uid", task_run.task_run_attempt_uid),
-                ("state", task_run.task_run_state),
-            ],
-        )
-
-    def add_task_info(self):
-        from dbnd.orchestration.task.task import DEFAULT_CLASS_VERSION
-
-        task_params = [
-            ("task_id", self.task.task_id),
-            ("task_version", self.task.task_version),
-        ]
-
-        if self.task.task_class_version != DEFAULT_CLASS_VERSION:
-            task_class_version = (
-                _f_none_default(self.task.task_class_version, DEFAULT_CLASS_VERSION),
-            )
-            task_params.append(("task_class_version", task_class_version))
-
-        task_params.extend(
-            [
-                ("env", self.task.task_env.task_name),
-                ("env_cloud", self.task.task_env.cloud_type),
-                ("env_label", _f_env(self.task.task_env.env_label)),
-                ("task_target_date", self.task.task_target_date),
-            ]
-        )
-        self.banner.column("TASK", self.banner.f_simple_dict(task_params))
-
-    def add_disabled_info(self):
-        disable = [
-            ("task_enabled", self.task.task_enabled),
-            ("task_enabled_in_prod", self.task.task_enabled_in_prod),
-        ]
-
-        self.banner.column("DISABLED", self.banner.f_simple_dict(disable))
-
-    def add_time_info(self, task_run):
-        time_fields = [("start", "%s" % task_run.start_time)]
-
-        if task_run.finished_time:
-            time_fields.append(("finished", "%s" % task_run.finished_time))
-            task_duration = task_run.finished_time - task_run.start_time
-            time_fields.append(("duration", "%s" % task_duration))
-
-        self.banner.column("TIME", self.banner.f_simple_dict(time_fields))
-
     def _task_create_stack(self):
-        if not hasattr(self.task, "task_call_source") or self.is_driver_or_submitter:
+        if not hasattr(self.task, "task_call_source"):
             return
 
         task_call_source = task_call_source_to_str(self.task.task_call_source)
@@ -328,44 +160,6 @@ class _TaskBannerBuilder(TaskSubCtrl):
             raw_name=True,
             skip_if_empty=True,
         )
-
-    def _add_verbose_info(self):
-        self.banner.new_section()
-        self.banner.column(
-            "INPUTS USER", self.banner.f_io(self.relations.task_inputs_user)
-        )
-        self.banner.column(
-            "INPUTS SYSTEM", self.banner.f_struct(self.relations.task_inputs_system)
-        )
-        self.banner.new_section()
-
-        task = self.task
-        self.banner.column("TASK_BAND", task.task_band)
-        self.banner.column(
-            "OUTPUTS USER", self.banner.f_io(self.relations.task_outputs_user)
-        )
-        self.banner.column(
-            "OUTPUTS SYSTEM", self.banner.f_struct(self.relations.task_outputs_system)
-        )
-        self.banner.write("\n")
-
-        self.banner.column("SIGNATURE", task.task_signature_obj.signature)
-        self.banner.column("SIGNATURE SOURCE", task.task_signature_obj.signature_source)
-        if (
-            task.task_outputs_signature_obj
-            and task.task_outputs_signature_obj != task.task_signature_obj
-        ):
-            self.banner.column(
-                "TASK OUTPUTS SIGNATURE", task.task_outputs_signature_obj.signature
-            )
-            self.banner.column(
-                "TASK OUTPUTS SIGNATURE SOURCE",
-                task.task_outputs_signature_obj.signature_source,
-            )
-
-    def _add_task_band_info(self):
-        self.banner.new_section()
-        self.banner.column("TASK_BAND", self.task.task_band)
 
 
 ## Building Params Table ##

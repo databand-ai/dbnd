@@ -6,11 +6,8 @@ import typing
 import six
 
 from dbnd._core.configuration.environ_config import is_databand_enabled
+from dbnd._core.context.use_dbnd_run import is_dbnd_run_package_installed
 from dbnd._core.parameter.parameter_builder import parameter
-from dbnd._core.task.decorated_callable_task import (
-    DecoratedPipelineTask,
-    DecoratedPythonTask,
-)
 from dbnd._core.task_build.task_decorator import (
     TaskDecorator,
     _UserClassWithTaskDecoratorMetaclass,
@@ -42,7 +39,10 @@ def task(*args, **kwargs):
         def prepare_data(data: pd.DataFrame) -> pd.DataFrame:
             return data
     """
-    kwargs.setdefault("_task_type", DecoratedPythonTask)
+    if is_dbnd_run_package_installed():
+        from dbnd_run.task.decorated_callable_task import DecoratedPythonTask
+
+        kwargs.setdefault("_task_type", DecoratedPythonTask)
     kwargs.setdefault("_task_default_result", _default_output)
     return build_task_decorator(*args, **kwargs)
 
@@ -63,7 +63,10 @@ def pipeline(*args, **kwargs):
             model = train_model(prepared_data)
             return model
     """
-    kwargs.setdefault("_task_type", DecoratedPipelineTask)
+    if is_dbnd_run_package_installed():
+        from dbnd_run.task.decorated_callable_task import DecoratedPipelineTask
+
+        kwargs.setdefault("_task_type", DecoratedPipelineTask)
     kwargs.setdefault("_task_default_result", parameter.output)
     return build_task_decorator(*args, **kwargs)
 
@@ -81,7 +84,7 @@ Example::
         prepared_data = output.csv.data
 
         def band(self):
-            self.prepared_data = gather_data.dbnd_run()"""
+            self.prepared_data = gather_data()"""
 
 data_source_pipeline = pipeline
 

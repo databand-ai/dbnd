@@ -7,7 +7,7 @@ from dbnd._core.errors import UnknownParameterError
 from dbnd._core.errors.base import DatabandRunError
 from dbnd._core.failures import dbnd_handle_errors
 from dbnd._core.task_build.dbnd_decorator import task
-from dbnd.orchestration.run_settings.log import RunLoggingConfig
+from dbnd_run.run_settings.log import RunLoggingConfig
 
 
 @task

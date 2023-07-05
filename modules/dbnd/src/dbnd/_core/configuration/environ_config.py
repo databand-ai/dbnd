@@ -136,19 +136,6 @@ def in_airflow_tracking_mode():
     return get_dbnd_project_config().is_in_airflow_tracking_mode()
 
 
-def is_orchestration_mode():
-    return get_dbnd_project_config().is_orchestration_mode()
-
-
-def set_orchestration_mode():
-    """
-    Set the system into orchestration mode.
-
-    Together with `dbnd-run` plugin this enables user to run pipelines.
-    """
-    get_dbnd_project_config().set_orchestration_mode()
-
-
 def is_unit_test_mode():
     return get_dbnd_project_config().unit_test_mode
 

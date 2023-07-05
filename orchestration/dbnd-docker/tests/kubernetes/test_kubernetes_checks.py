@@ -7,9 +7,9 @@ import pytest
 from kubernetes.client import ApiClient
 from mock import Mock
 
-from dbnd.orchestration.errors.executor_k8s import KubernetesRunningPodConditionFailure
 from dbnd_docker.kubernetes.kube_dbnd_client import DbndPodCtrl
 from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
+from dbnd_run.errors.executor_k8s import KubernetesRunningPodConditionFailure
 
 
 def _check_runtime(pod_v1_resp_raw):

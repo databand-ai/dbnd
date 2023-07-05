@@ -5,7 +5,7 @@ import logging
 from functools import partial
 
 from dbnd import output, parameter, task
-from dbnd._core.task.decorated_callable_task import DecoratedPythonTask
+from dbnd_run.task.decorated_callable_task import DecoratedPythonTask
 
 
 class ExperiementTask(DecoratedPythonTask):

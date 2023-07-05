@@ -8,8 +8,8 @@ from airflow import settings
 
 from dbnd import PipelineTask, dbnd_run_cmd, parameter
 from dbnd._core.errors import DatabandConfigError
-from dbnd.tasks.basics import SimplestTask
-from dbnd.testing.helpers_pytest import assert_run_task, skip_on_windows
+from dbnd_run.tasks.basics import SimplestTask
+from dbnd_run.testing.helpers import assert_run_task
 
 
 class SleepyTask(SimplestTask):
@@ -39,7 +39,6 @@ class TestTasksParallelExample(object):
 
     # @with_context(conf={'executor': {'local': 'true'},
     #                     'databand': {'module': ParallelTasksPipeline.__module__}})
-    @skip_on_windows
     def test_parallel_local_executor(self):
         cmd = [
             "-m",

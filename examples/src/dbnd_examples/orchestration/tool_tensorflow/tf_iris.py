@@ -8,8 +8,8 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from dbnd import ConfigPath, data, output, parameter
-from dbnd.tasks import PipelineTask, PythonTask
 from dbnd_examples.orchestration.tool_tensorflow import iris
+from dbnd_run.tasks import PipelineTask, PythonTask
 
 
 CSV_COLUMN_NAMES = ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth", "Species"]

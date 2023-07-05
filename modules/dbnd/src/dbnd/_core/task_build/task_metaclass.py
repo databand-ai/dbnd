@@ -7,8 +7,8 @@ import typing
 import six
 
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import is_orchestration_mode
 from dbnd._core.constants import TaskEssence
+from dbnd._core.context.use_dbnd_run import is_orchestration_mode
 from dbnd._core.task_build.task_context import try_get_current_task
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_factory import TaskFactory

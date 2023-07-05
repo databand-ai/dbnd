@@ -2,7 +2,7 @@
 
 from dbnd import parameter
 from dbnd._core.constants import CloudType
-from dbnd._core.settings import EnvConfig
+from dbnd_run.run_settings.env import EnvConfig
 
 
 class GcpEnvConfig(EnvConfig):
