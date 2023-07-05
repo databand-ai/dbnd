@@ -26,6 +26,7 @@ setuptools.setup(
             # airflow 2.3 has a problem with pluggy <1.0, that makes pytest 4 incompatible
             "pytest==6.2.4",
             "coverage==7.0.1",
+            "pytest-cov==3.0.0",
             "boto3",
             "mock",
             "sh",
