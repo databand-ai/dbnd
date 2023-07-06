@@ -188,7 +188,10 @@ class _DbndScriptTrackingManager(object):
     def _close_all_context_managers(self):
         while self._context_managers:
             cm = self._context_managers.pop()
-            cm.__exit__(None, None, None)
+            try:
+                cm.__exit__(None, None, None)
+            except Exception:
+                _handle_tracking_error("dbnd-tracking-context-shutdown")
 
     def update_run_from_airflow_context(self, airflow_context):
         if not airflow_context or not airflow_context.context:
