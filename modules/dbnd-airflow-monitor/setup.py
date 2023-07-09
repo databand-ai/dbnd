@@ -23,7 +23,7 @@ setuptools.setup(
             "PyJWT==2.4.0",
             "cryptography==37.0.2",
             "google-auth==1.10.0",
-            "requests==2.22.0",
+            "requests==2.31.0",
             "requests_toolbelt==0.9.1",
             "tzlocal>=1.5.1",
         ],

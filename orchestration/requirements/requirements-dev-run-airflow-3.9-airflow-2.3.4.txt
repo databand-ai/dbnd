@@ -779,7 +779,7 @@ redis==4.5.1
     # via pyox
 redshift-connector==2.0.910
     # via apache-airflow-providers-amazon
-requests==2.28.1
+requests==2.31.0
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.3.4-constraints-no-providers-3.9-FIXED-DBND-RUN.txt
     #   apache-airflow-providers-databricks
