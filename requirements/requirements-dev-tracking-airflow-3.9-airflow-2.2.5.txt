@@ -620,7 +620,7 @@ redshift-connector==2.0.905
     #   -c requirements/../requirements/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-amazon
     #   dbnd-redshift
-requests==2.31.0
+requests==2.27.1
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.2.5-constraints-3.9-FIXED-DBND-TRACKING.txt
     #   apache-airflow-providers-databricks
