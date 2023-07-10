@@ -82,7 +82,7 @@ Now, the lifecycle is the following:
 
 ### Advance Example
 ```bash
-dbnd run dbnd_sanity_check  --task-version now --env=kubernetes_cluster_env --interactive --set-config kubernetes.namespace=my_namespace  --set-config kubernetes.container_tag=dbnd-dbnd_examples-py39-branch-release --set kubernetes.debug=true
+dbnd run dbnd_sanity_check  --task-version now --env=kubernetes_cluster_env --interactive --set-config kubernetes.namespace=my_namespace  --set-config kubernetes.container_tag=dbnd-dbnd_orchestration_examples-py39-branch-release --set kubernetes.debug=true
 ```
 
 Let's break it down:

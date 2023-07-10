@@ -54,5 +54,5 @@ class TestDocExplicitDatasetLogging:
 
         register_value_type(KoalasValueType())
         #### DOC END
-        prepare_data.dbnd_run()
+        prepare_data()
         """

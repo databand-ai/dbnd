@@ -5,7 +5,7 @@ class TestTarget(object):
     def test_http_to_wasb(self):
         from targets.marshalling.spark import _convert_http_to_wasb_for_azure
 
-        local_target = "dbnd_examples/data/people.txt"
+        local_target = "dbnd_examples_orchestration/data/people.txt"
 
         azure_http_target = "http://account_name.blob.core.windows.net/container/file/"
         azure_wasb_target = "wasb://container@account_name.blob.core.windows.net/file/"

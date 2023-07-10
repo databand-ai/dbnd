@@ -35,4 +35,4 @@ class TestDocPysparkDataframe:
                 sys.exit(-1)
             prepare_data(sys.argv[1], sys.argv[2])
         #### DOC END
-        # prepare_data.dbnd_run(data_repo.vegetables, "~/Data/example")
+        # prepare_data(data_repo.vegetables, "~/Data/example")

@@ -21,4 +21,4 @@ class TestDocTrackingMlflow:
             end_run()
 
         #### DOC END
-        calculate_alpha.dbnd_run()"""
+        calculate_alpha()"""

@@ -1,0 +1,39 @@
+# data
+recursive-include data *.csv
+recursive-include data *.txt
+recursive-include data *.parquet
+recursive-include data *.gz
+include data/examples_config.cfg
+
+# src
+recursive-include src README.md
+recursive-include src/data_generation *.py
+recursive-include src/dbnd_examples_orchestration *.py *.ipynb *.png *.sh *.yml
+recursive-include src/dbnd_examples_orchestration Dockerfile
+recursive-include src/dbnd_examples_orchestration/dbnd_airflow *.py
+recursive-include src/dbnd_examples_orchestration/dbnd_spark/spark_jvm *.java
+recursive-include src/dbnd_examples_orchestration/dbnd_spark/spark_jvm pom.xml
+recursive-include src/dbnd_examples_orchestration/tool_cli *.py
+data/examples_config.cfg
+
+prune airflow
+prune src/dbnd_examples_orchestration/dbnd_spark/spark_deequ_gradle
+prune src/dbnd_examples_orchestration/dbnd_spark/spark_deequ_sbt
+prune src/dbnd_examples_orchestration/notebooks/.ipynb_checkpoints
+prune src/dbnd_examples_orchestration/example_wine_quality/.ipynb_checkpoints
+prune src/dbnd_examples_orchestration/example_salad/.ipynb_checkpoints
+prune src/dbnd_examples_orchestration/orchestration/dbnd_spark/data_for_spark_examples/read_from_multiple_sources
+
+include LICENSE
+include tox.ini
+exclude MANIFEST.in
+exclude requirements.txt
+exclude Dockerfile.*
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.md
+
+prune **/.ipynb_checkpoints
+# Just to keep check-manifest happy; on releases those files are gone.
+# Last rule wins!

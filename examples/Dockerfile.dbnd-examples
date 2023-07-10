@@ -70,12 +70,8 @@ RUN set -ex && \
 
 COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
     ./dbnd-core/dist-python/dbnd-airflow.requirements.txt \
-    ./dbnd-core/dist-python/dbnd-docker.requirements.txt \
-    ./dbnd-core/dist-python/dbnd-gcp.requirements.txt \
     ./dbnd-core/dist-python/dbnd-mlflow.requirements.txt \
-    ./dbnd-core/dist-python/dbnd-aws.requirements.txt \
     ./dbnd-core/dist-python/dbnd-examples.requirements.txt \
-    ./dbnd-core/dist-python/dbnd-test-scenarios.requirements.txt \
     /dist-python/
 
 ARG AIRFLOW_VERSION=1.10.15
@@ -87,35 +83,25 @@ RUN SHORT_PYTHON_VERSION=$(echo ${PYTHON_VERSION} | cut -f1,2 -d'.') && \
 
 RUN pip install -r /dist-python/dbnd.requirements.txt \
     -r /dist-python/dbnd-airflow.requirements.txt \
-    -r /dist-python/dbnd-docker.requirements.txt \
-    -r /dist-python/dbnd-gcp.requirements.txt \
     -r /dist-python/dbnd-mlflow.requirements.txt \
-    -r /dist-python/dbnd-aws.requirements.txt \
-    -r /dist-python/dbnd-examples.requirements.txt \
-    -r /dist-python/dbnd-test-scenarios.requirements.txt
+    -r /dist-python/dbnd-examples.requirements.txt
 
 COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd-*.whl \
-    ./dbnd-core/dist-python/dbnd_aws-*.whl \
-    ./dbnd-core/dist-python/dbnd_gcp-*.whl \
-    ./dbnd-core/dist-python/dbnd_docker-*.whl \
     ./dbnd-core/dist-python/dbnd_airflow-*.whl \
     ./dbnd-core/dist-python/dbnd_mlflow-*.whl \
     /dist-python/
 ENV DBND_VERSION=1.0.14.0
-RUN pip install databand[aws,gcp,docker,mlflow]==$DBND_VERSION --find-links /dist-python/
+RUN pip install databand[mlflow]==$DBND_VERSION --find-links /dist-python/
 
 
 COPY ./dbnd-core/setup.cfg \
-    dbnd-core/orchestration/dbnd-test-scenarios/scripts/trigger_ui_functionality.sh \
-    /app/
+     /app/
 
 COPY .dbnd  /app/.dbnd
 
 COPY ./dbnd-core/examples /app/examples
-COPY ./dbnd-core/orchestration/dbnd-test-scenarios /app/orchestration/dbnd-test-scenarios
-RUN pip install -e /app/examples && \
-    pip install -e /app/orchestration/dbnd-test-scenarios
+RUN pip install -e /app/examples
 
 ENV DBND_HOME=/app
 WORKDIR  /app

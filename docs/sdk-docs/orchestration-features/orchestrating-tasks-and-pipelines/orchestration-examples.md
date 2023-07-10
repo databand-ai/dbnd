@@ -1,12 +1,12 @@
 ---
 "title": "Orchestration Examples"
 ---
-There is a project with multiple examples of DBND usage. You can find it at https://github.com/databand-ai/dbnd/blob/master/examples. 
+There is a project with multiple examples of DBND usage. You can find it at https://github.com/databand-ai/dbnd/blob/master/examples.
 
 > For orchestration use cases, see [DBND orchestration examples on GitHub](https://github.com/databand-ai/dbnd/blob/master/examples/src/dbnd_examples/orchestration)
- 
+
 ## Predict Wine Quality
- 
+
 [This example ](https://github.com/databand-ai/dbnd/blob/master/examples/src/dbnd_examples/orchestration/examples/wine_quality/wine_quality_decorators_py3.py) shows a more complex version of the Predict Wine Quality tutorial to demonstrate:
 *  conditional task invocation
 *  a pipeline that calls another pipeline
@@ -14,11 +14,11 @@ There is a project with multiple examples of DBND usage. You can find it at http
 
 We start with a basic ```predict_wine_quality``` pipeline.
 
-Run a pipeline and set `data` parameter from the command line 
+Run a pipeline and set `data` parameter from the command line
 
 ```bash
-dbnd run predict_wine_quality --set data=dbnd_examples/data/wine_quality_minimized.csv
-dbnd run predict_wine_quality_parameter_search  --set predict_wine_quality.data=dbnd_examples/data/wine_quality_minimized.csv
+dbnd run predict_wine_quality --set data=dbnd_examples_orchestration/data/wine_quality_minimized.csv
+dbnd run predict_wine_quality_parameter_search  --set predict_wine_quality.data=dbnd_examples_orchestration/data/wine_quality_minimized.csv
 ```
 
 Every parameter at any task in a pipeline can be set from the command line.

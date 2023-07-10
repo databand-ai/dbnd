@@ -1,0 +1,117 @@
+ARG DOCKER_IMAGE_BASE=python:3.9.15-slim
+FROM ${DOCKER_IMAGE_BASE}
+
+# Never prompts the user for choices on installation/configuration of packages
+ENV DEBIAN_FRONTEND noninteractive
+ENV TERM linux
+
+ARG DATABAND_USER_HOME=/usr/local/databand
+
+
+# Define en_US.
+ENV LANGUAGE en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+ENV LC_MESSAGES en_US.UTF-8
+
+# install docker client for k8s staging jobs
+RUN set -ex && \
+    apt-get update -yqq && apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
+    && add-apt-repository \
+    "deb [arch=amd64] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) \
+    stable" \
+    && apt-get update -yqq \
+    && apt-get install -y docker-ce docker-ce-cli containerd.io \
+    && buildDeps=' \
+    python-dev \
+    libkrb5-dev \
+    libsasl2-dev \
+    libssl-dev \
+    libffi-dev \
+    libblas-dev \
+    liblapack-dev \
+    libpq-dev \
+    git \
+    ' \
+    && apt-get install -yqq --no-install-recommends \
+    $buildDeps \
+    build-essential \
+    apt-utils \
+    curl \
+    rsync \
+    netcat \
+    locales \
+    moreutils \
+    && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
+    && locale-gen \
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+    && useradd -ms /bin/bash -d ${DATABAND_USER_HOME} databand \
+    && echo "install pip==21.3.1 for python 3.6" \
+    && pip install -U pip==21.3.1 'setuptools<58' wheel apache-airflow[statsd] pytest mock \
+    && apt-get purge --auto-remove -yqq $buildDeps \
+    && apt-get autoremove -yqq --purge \
+    && apt-get clean \
+    && rm -rf \
+    /var/lib/apt/lists/* \
+    /tmp/* \
+    /var/tmp/* \
+    /usr/share/man \
+    /usr/share/doc \
+    /usr/share/doc-base
+
+
+COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-docker.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-gcp.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-aws.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-examples.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-test-scenarios.requirements.txt \
+    /dist-python/
+
+ARG AIRFLOW_VERSION=1.10.15
+
+# cut after second `.` -> 3.6.15 -> 3.6
+RUN SHORT_PYTHON_VERSION=$(echo ${PYTHON_VERSION} | cut -f1,2 -d'.') && \
+    pip install apache-airflow==$AIRFLOW_VERSION \
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${SHORT_PYTHON_VERSION}.txt"
+
+RUN pip install -r /dist-python/dbnd.requirements.txt \
+    -r /dist-python/dbnd-docker.requirements.txt \
+    -r /dist-python/dbnd-gcp.requirements.txt \
+    -r /dist-python/dbnd-aws.requirements.txt \
+    -r /dist-python/dbnd-examples.requirements.txt \
+    -r /dist-python/dbnd-test-scenarios.requirements.txt
+
+COPY ./dbnd-core/dist-python/databand-*.whl \
+    ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_aws-*.whl \
+    ./dbnd-core/dist-python/dbnd_gcp-*.whl \
+    ./dbnd-core/dist-python/dbnd_docker-*.whl \
+    /dist-python/
+ENV DBND_VERSION=1.0.14.0
+RUN pip install databand[aws,gcp,docker,mlflow]==$DBND_VERSION --find-links /dist-python/
+
+
+COPY ./dbnd-core/setup.cfg \
+    dbnd-core/orchestration/dbnd-test-scenarios/scripts/trigger_ui_functionality.sh \
+    /app/
+
+COPY .dbnd  /app/.dbnd
+
+COPY ./dbnd-core/examples /app/examples
+COPY ./dbnd-core/orchestration/dbnd-test-scenarios /app/orchestration/dbnd-test-scenarios
+RUN pip install -e /app/examples && \
+    pip install -e /app/orchestration/dbnd-test-scenarios
+
+ENV DBND_HOME=/app
+WORKDIR  /app
+
+ENV DBND__RUN_INFO__SOURCE_VERSION ${SOURCE_VERSION:-""}

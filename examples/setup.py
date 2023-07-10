@@ -37,5 +37,4 @@ setup(
     include_package_data=True,
     install_requires=INSTALL_REQUIRES,
     extras_require=EXTRAS_REQUIRE,
-    entry_points={"dbnd": ["dbnd-examples = dbnd_examples._plugin"]},
 )

@@ -42,5 +42,5 @@ class TestDocTrackingPandasDataframe:
                           with_histograms=LogDataRequest(include_all_numeric=True,
                                                          exclude_columns=["name", "phone"]))
         #### DOC END
-        prepare_data.dbnd_run()
+        prepare_data()
 """
