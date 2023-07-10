@@ -41,7 +41,11 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         component.report_sync_metrics(is_success=True)
     except Exception:
         syncer_logger.exception(
-            "Error when running function %s from %s", function_name, class_name
+            "Error when running function %s from %s, integration_uid: %s, tracking_source_uid: %s",
+            function_name,
+            class_name,
+            component.config.uid,
+            str(component.config.tracking_source_uid),
         )
 
         err_message = traceback.format_exc()
