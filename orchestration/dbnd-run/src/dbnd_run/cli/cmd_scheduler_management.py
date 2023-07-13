@@ -217,7 +217,7 @@ def _click_echo_jobs(jobs):
         ScheduledJobNamedTuple(**dict(j.pop("DbndScheduledJob"), **j)) for j in jobs
     ]
 
-    click.echo(tabulate_objects(job_objects, headers=headers))
+    click.echo(tabulate_objects(job_objects, headers=headers, to_local_time=False))
 
 
 def _replace_special_intervals(schedule_interval: str):

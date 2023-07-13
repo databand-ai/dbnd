@@ -16,6 +16,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
     SCHEDULED_DAG_RUN_ID_ENV,
     SCHEDULED_DATE_ENV,
+    SCHEDULED_JOB_NAME_ENV,
     SCHEDULED_JOB_UID_ENV,
 )
 from dbnd._core.constants import RunState, _DbndDataClass
@@ -70,7 +71,7 @@ class RunInfo(_DbndDataClass):
 class ScheduledRunInfo(_DbndDataClass):
     scheduled_job_uid = attr.ib(default=None)  # type: Optional[UUID]
     scheduled_date = attr.ib(default=None)  # type: datetime
-    scheduled_job_dag_run_id = attr.ib(default=None)  # type: int
+    scheduled_job_dag_run_id = attr.ib(default=None)  # type: str
     # for manual association with scheduled job from dbnd run cli
     scheduled_job_name = attr.ib(default=None)  # type: Optional[str]
     scheduled_job_extra_args = attr.ib(default=None)  # type: Optional[str]
@@ -78,7 +79,8 @@ class ScheduledRunInfo(_DbndDataClass):
     @classmethod
     def from_env(cls, run_uid):
         scheduled_job_uid = os.environ.get(SCHEDULED_JOB_UID_ENV, None)
-        if not scheduled_job_uid:
+        scheduled_job_name = os.environ.get(SCHEDULED_JOB_NAME_ENV, None)
+        if not scheduled_job_uid and not scheduled_job_name:
             # there is no scheduled job
             return
         scheduled_date = os.environ.get(SCHEDULED_DATE_ENV, None)
@@ -90,6 +92,7 @@ class ScheduledRunInfo(_DbndDataClass):
             scheduled_date=scheduled_date,
             scheduled_job_dag_run_id=scheduled_job_dag_run_id,
             scheduled_job_uid=scheduled_job_uid,
+            scheduled_job_name=scheduled_job_name,
         )
 
 
