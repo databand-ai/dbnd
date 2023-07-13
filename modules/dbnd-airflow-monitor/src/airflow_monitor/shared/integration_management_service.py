@@ -2,6 +2,7 @@
 
 import logging
 
+from collections import defaultdict
 from typing import Dict, List, Optional, Type
 from uuid import UUID
 
@@ -12,7 +13,10 @@ import dbnd
 
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.error_aggregator import ErrorAggregator
+from airflow_monitor.shared.error_aggregator import (
+    ErrorAggregator,
+    ErrorAggregatorResult,
+)
 from airflow_monitor.shared.utils import _get_api_client
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._core.utils.timezone import utcnow
@@ -45,7 +49,9 @@ class IntegrationManagementService:
         self._api_client: ApiClient = _get_api_client()
         self.server_monitor_config = server_monitor_config
 
-        self._error_aggregator = ErrorAggregator()
+        self._error_aggregators: defaultdict[UUID, ErrorAggregator] = defaultdict(
+            ErrorAggregator
+        )
         self._integrations_name_filter = integrations_name_filter
 
     @retry(
@@ -104,18 +110,27 @@ class IntegrationManagementService:
         )
 
     def report_error(
-        self, integration_uid: UUID, full_function_name: str, err_message: str
+        self, integration_uid: UUID, full_function_name: str, err_message: Optional[str]
     ):
-        res = self._error_aggregator.report(full_function_name, err_message)
-        if res.should_update:
-            self._api_client.api_request(
-                endpoint=f"integrations/{integration_uid}/error?type={self.monitor_type}",
-                method="PATCH",
-                data={"monitor_error_message": res.message},
-            )
+        res = self._error_aggregators[integration_uid].report(
+            full_function_name, err_message
+        )
+        self._report_error(integration_uid, res)
 
     def clean_error_message(self, integration_uid: UUID):
-        self.report_error(integration_uid, "clean", "")
+        self._report_error(
+            integration_uid, ErrorAggregatorResult(None, should_update=True)
+        )
+
+    def _report_error(self, integration_uid, res: ErrorAggregatorResult):
+        if not res.should_update:
+            return
+
+        self._api_client.api_request(
+            endpoint=f"integrations/{integration_uid}/error?type={self.monitor_type}",
+            method="PATCH",
+            data={"monitor_error_message": res.message},
+        )
 
     def send_metrics(self, name: str):
         metrics = generate_latest().decode("utf-8")

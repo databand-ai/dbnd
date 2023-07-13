@@ -5,6 +5,7 @@ import traceback
 
 from contextlib import contextmanager
 from datetime import timedelta
+from typing import Optional
 from uuid import UUID
 
 from airflow_monitor.shared.base_component import BaseComponent
@@ -81,7 +82,7 @@ def _report_error(
     integration_management_service: IntegrationManagementService,
     syncer_id: UUID,
     function_name: str,
-    err_message: str,
+    err_message: Optional[str],
 ):
     try:
         integration_management_service.report_error(

@@ -13,6 +13,7 @@ from airflow_monitor.common.airflow_data import (
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.error_aggregator import ErrorAggregatorResult
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
@@ -195,7 +196,6 @@ class MockIntegrationManagementService(IntegrationManagementService):
     def report_metadata(self, integration_uid, metadata):
         self.metadata = metadata
 
-    def report_error(self, integration_uid, full_function_name, err_message):
-        res = self._error_aggregator.report(full_function_name, err_message)
+    def _report_error(self, integration_uid, res: ErrorAggregatorResult):
         if res.should_update:
-            self.error = err_message
+            self.error = res.message
