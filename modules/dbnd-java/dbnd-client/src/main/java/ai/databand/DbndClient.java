@@ -177,7 +177,9 @@ public class DbndClient {
             LOG.error("[root_run_uid: {}, job_name: {}, run_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName);
         }
 
-        throw new RuntimeException("Unable to init run because HTTP request to tracker failed");
+        throw new RuntimeException("Unable to init run because HTTP request to the tracker failed. " +
+            "Check messages above for error details. " +
+            "Your run will continue but it won't be tracked by Databand");
     }
 
     /**
@@ -462,31 +464,36 @@ public class DbndClient {
             if (res.isSuccessful()) {
                 return Optional.of(new Object());
             } else {
-                LOG.error("HTTP request failed: {}/{}", res.code(), res.message());
+                logOrPrintToStdout(String.format("HTTP request to the Databand tracker failed: %s %s", res.code(), res.message()), logToStdout);
                 if (res.code() == 401) {
-                    LOG.error("Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is missing or wrong");
+                    logOrPrintToStdout("Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is missing or wrong", logToStdout);
+                } else if (res.code() >= 500) {
+                    logOrPrintToStdout(String.format("Check if Databand server is running at %s", config.databandUrl()), logToStdout);
+                } else {
+                    logOrPrintToStdout(String.format("Make sure Databand tracker is up and running at the %s", config.databandUrl()), logToStdout);
                 }
                 return Optional.empty();
             }
         } catch (ConnectException ex) {
-            String msg = String.format("Could not connect to server: %s, %s", call.request().url(), ex.getMessage());
-            if (logToStdout) {
-                System.out.println(msg);
-            } else {
-                LOG.error(msg);
-            }
+            String msg = String.format("Could not connect to the tracking server at %s. " +
+                "Check that server is available and Databand tracker is up and running.\n" +
+                "Exception: %s", config.databandUrl(), ex.getMessage());
+            logOrPrintToStdout(msg, logToStdout);
             return Optional.empty();
         } catch (IOException e) {
-            String msg = String.format("Unable to perform HTTP request to server: %s, %s", call.request().url(), e.getMessage());
-            if (logToStdout) {
-                System.out.println(msg);
-            } else {
-                LOG.error(msg);
-            }
+            String msg = String.format("HTTP request to the tracking server at %s failed.\nException: %s", config.databandUrl(), e.getMessage());
+            logOrPrintToStdout(msg, logToStdout);
             return Optional.empty();
         }
     }
 
+    private void logOrPrintToStdout(String message, boolean logToStdout) {
+        if (logToStdout) {
+            System.out.println(message);
+        } else {
+            LOG.error(message);
+        }
+    }
 
     /**
      * API client.
