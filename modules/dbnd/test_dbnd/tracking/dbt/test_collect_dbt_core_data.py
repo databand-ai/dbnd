@@ -5,7 +5,7 @@ import os
 
 from pathlib import Path
 from unittest import mock
-from unittest.mock import mock_open
+from unittest.mock import ANY, mock_open
 
 import dateutil.parser
 import pytest
@@ -262,11 +262,16 @@ def test_undefined_error_not_called():
 
 def test_undefined_error_called():
     values = {"test_jinja_error": "{{ test_undefined_for_jinja(whatever) }}"}
-    with patch("logging.Logger.debug") as mock:
+    with patch("dbnd._core.tracking.dbt.dbt_core.log_exception") as mock:
         with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
             _extract_jinja_values(values)
+
         mock.assert_called_with(
-            "Jinja template error has occurred: 'test_undefined_for_jinja' is undefined"
+            "Jinja template error has occurred", ex=ANY, non_critical=True
+        )
+        assert (
+            mock.call_args.kwargs["ex"].message
+            == "'test_undefined_for_jinja' is undefined"
         )
         assert mock.called
 
