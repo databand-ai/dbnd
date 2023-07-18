@@ -184,6 +184,7 @@ class Adapter(ABC):
 
         Yields: Tuple[Assets, object]: A tuple containing assets with assets to init state mapping and a next cursor
         object representing each batch.
+            example: (Assets(data=None, assets_to_state={run_id: state.Init}), new_cursor)
         """
 
         raise NotImplementedError()

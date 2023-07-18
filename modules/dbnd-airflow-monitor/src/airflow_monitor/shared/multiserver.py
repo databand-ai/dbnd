@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 class MultiServerMonitor:
     monitor_config: BaseMonitorConfig
     monitor_services_factory: MonitorServicesFactory
+    integration_management_service: IntegrationManagementService
 
     def __init__(
         self,
