@@ -9,6 +9,7 @@ from typing import Optional
 from uuid import UUID
 
 from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.errors import ClientConnectionError
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
@@ -17,6 +18,7 @@ from dbnd._vendor.cachetools import TTLCache, cached
 
 
 logger = logging.getLogger(__name__)
+ERRORS_TO_IGNORE = [ClientConnectionError]
 
 
 @contextmanager
@@ -40,7 +42,8 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         )
 
         component.report_sync_metrics(is_success=True)
-    except Exception:
+
+    except Exception as exc:
         syncer_logger.exception(
             "Error when running function %s from %s, integration_uid: %s, tracking_source_uid: %s",
             function_name,
@@ -50,7 +53,10 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         )
 
         err_message = traceback.format_exc()
-        _log_exception_to_server(err_message, component.integration_management_service)
+        if not should_ignore_error(exc):
+            _log_exception_to_server(
+                err_message, component.integration_management_service
+            )
 
         err_message += f"\nTimestamp: {utcnow()}"
 
@@ -90,3 +96,8 @@ def _report_error(
         )
     except Exception:
         logger.warning("Error sending error message", exc_info=True)
+
+
+def should_ignore_error(exc: Exception) -> bool:
+    """returns whether an error should be logged to server"""
+    return any([isinstance(exc, error) for error in ERRORS_TO_IGNORE])
