@@ -426,7 +426,7 @@ def dbnd_tracking_start(
         conf = {}
 
     if run_name:
-        conf.setdefault("run", {}).setdefault("name", run_name)
+        conf.setdefault("run_info", {}).setdefault("name", run_name)
 
     # send logs to webserver by default
     conf.setdefault("tracking", {}).setdefault("capture_tracking_log", True)
