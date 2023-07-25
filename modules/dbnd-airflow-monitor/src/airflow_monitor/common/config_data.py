@@ -80,7 +80,6 @@ class AirflowServerConfig(BaseServerConfig):
             source_type="airflow",
             source_name=server_config["name"],
             tracking_source_uid=server_config["tracking_source_uid"],
-            is_sync_enabled=server_config["is_sync_enabled"],
             base_url=server_config["base_url"],
             api_mode=server_config["api_mode"],
             fetcher_type=monitor_config.fetcher or server_config["fetcher"],

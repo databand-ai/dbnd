@@ -10,7 +10,7 @@ from attr.converters import optional
 
 @attr.s(auto_attribs=True)
 class BaseMonitorConfig:
-    _env_prefix = "<override me>"
+    _env_prefix = "DBND__MONITOR__"
 
     # Set which port will be used for prometheus.
     prometheus_port: int = attr.ib(default=8000, converter=int)
@@ -26,6 +26,8 @@ class BaseMonitorConfig:
 
     # Log format to use: text/json
     log_format: str = "text"
+
+    send_exception_to_webserver: bool = attr.ib(default=True)
 
     @property
     def use_json_logging(self):
