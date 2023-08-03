@@ -23,6 +23,10 @@ def is_verbose():
 def set_verbose(verbose: bool = True):
     global _VERBOSE
     _VERBOSE = verbose
+    if _VERBOSE:
+        dbnd_logger = logging.getLogger("dbnd")
+        if is_verbose() and dbnd_logger.level == logging.WARNING:
+            dbnd_logger.setLevel(logging.INFO)
 
 
 def dbnd_log_debug(msg, *args, **kwargs):
@@ -64,4 +68,4 @@ def dbnd_log_tracking(msg, *args, **kwargs):
 
 def dbnd_log_init_msg(msg):
     if _VERBOSE:
-        eprint("DBND INIT: %s" % msg)
+        eprint("DBND __init__: %s" % msg)

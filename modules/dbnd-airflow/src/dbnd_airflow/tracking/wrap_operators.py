@@ -5,6 +5,7 @@ import logging
 from collections import OrderedDict
 from typing import Any, ContextManager, Dict, Optional
 
+from dbnd._core.current import is_verbose
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     track_databricks_submit_run_operator,
@@ -46,10 +47,6 @@ _EXECUTE_TRACKING = OrderedDict(
         ),
         (
             "airflow.providers.amazon.aws.operators.emr_pyspark.EmrPySparkOperator",
-            track_emr_add_steps_operator,
-        ),
-        (
-            "airflow.providers.amazon.aws.operators.emr_create_job_flow.EmrCreateJobFlowOperator",
             track_emr_add_steps_operator,
         ),
         (
@@ -102,6 +99,9 @@ def wrap_operator_with_tracking_info(
     """
     Wrap the operator with relevant tracking method, if found such method.
     """
+
+    if is_verbose():
+        logger.info("Checking for the relevant wrapper for operator '%s'", operator)
     for cls in operator.__class__.mro():
         # for user operators we support only FQN matching
         tracking_wrapper = _get_loaded_tracking_wrapper(
@@ -110,6 +110,10 @@ def wrap_operator_with_tracking_info(
             airflow_operator_handlers, f"{cls.__module__}.{cls.__qualname__}"
         )
         if tracking_wrapper:
+            if is_verbose():
+                logger.warning(
+                    "Patching airflow operator %s with %s", operator, tracking_wrapper
+                )
             return tracking_wrapper(operator, tracking_info)
     return None
 

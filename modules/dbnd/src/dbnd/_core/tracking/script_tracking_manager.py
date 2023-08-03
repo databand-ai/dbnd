@@ -155,6 +155,8 @@ def has_level_handler(loggr: logging.Logger):
 
 def _configure_dbnd_logger(logging_level):
     dbnd_logger = logging.getLogger("dbnd")
+    if is_verbose() and logging_level == "WARNING":
+        logging_level = "INFO"
     dbnd_logger.setLevel(logging_level)
     # we don't add any console handlers or anything else
     # it can have a conflict with existing system
@@ -471,8 +473,9 @@ def is_dbnd_tracking_active() -> bool:
 
 
 @seven.contextlib.contextmanager
-def dbnd_tracking(job_name=None, run_name=None, project_name=None, conf=None):
-    # type: (...) -> TaskRun
+def dbnd_tracking(
+    job_name=None, run_name=None, project_name=None, conf=None
+) -> TaskRun:
     """
     This function is used for tracking Python scripts only and should be used with a with statement.
 

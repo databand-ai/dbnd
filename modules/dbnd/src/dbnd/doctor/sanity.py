@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import logging
 import random
 
 from dbnd import dbnd_tracking, log_metric
@@ -16,4 +16,5 @@ def dbnd_sanity_check_tracking():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     dbnd_sanity_check_tracking()

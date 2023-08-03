@@ -283,7 +283,7 @@ class DbndProjectConfig(object):
         return abs_join(self.dbnd_home(), *path)
 
     def validate_init(self):
-        dbnd_log_init_msg("Successfully created dbnd project config")
+        dbnd_log_init_msg("DbndProjectConfig has been created.")
 
     def set_is_airflow_runtime(self):
         self._is_airflow_runtime = True

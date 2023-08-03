@@ -202,10 +202,10 @@ class CallableTrackingManager(object):
 
 def _handle_tracking_error(msg, func_call=None):
     log_exception_to_server()
-    location = " for %s" % func_call.callable if func_call else ""
-    msg = "Failed during dbnd %s for %s, ignoring, and continue without tracking" % (
-        msg,
-        location,
+    location = " %s" % func_call.callable if func_call else ""
+    msg = (
+        "Failed during dbnd '%s' step at '%s', ignoring, and continue without tracking"
+        % (msg, location)
     )
     if is_verbose():
         logger.warning(msg, exc_info=True)
