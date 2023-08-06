@@ -52,7 +52,7 @@ class TaskSyncCtrl(TaskRunCtrl):
         return file.fs.name != FileSystems.local
 
     def _md5(self, local_path):
-        with open(local_path, "rb+") as f:
+        with open(local_path, "rb") as f:
             checksum = hashlib.md5(f.read())  # nosec B324
         return checksum.hexdigest()
 
