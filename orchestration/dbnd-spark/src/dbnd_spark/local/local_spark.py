@@ -89,7 +89,7 @@ class LocalSparkExecutionCtrl(SparkCtrl):
                         log_buffer.getvalue().split(os.linesep)
                     )
                     raise failed_to_run_spark_script(
-                        self,
+                        self.task.ctrl,
                         spark._build_spark_submit_command(application=application),
                         application,
                         return_code,

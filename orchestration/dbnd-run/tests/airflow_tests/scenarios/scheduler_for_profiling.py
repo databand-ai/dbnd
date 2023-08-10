@@ -42,7 +42,7 @@ def main():
         log_scheduler,
     )
 
-    dbnd_bootstrap()
+    dbnd_bootstrap(enable_dbnd_run=True)
     conf.set("core", "unit_test_mode", "True")
 
     logging.root.addHandler(create_file_handler(log_file=log_scheduler))

@@ -89,7 +89,7 @@ def dbnd_operator__execute(dbnd_operator, context):
                 sys.stdout = sys.__stdout__
                 sys.stderr = sys.__stderr__
 
-            dbnd_bootstrap()
+            dbnd_bootstrap(enable_dbnd_run=True)
             run_executor = RunExecutor.load_run(
                 dump_file=target(driver_dump), disable_tracking_api=False
             )

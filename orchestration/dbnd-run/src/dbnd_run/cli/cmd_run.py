@@ -208,7 +208,8 @@ def cmd_run(
     To see all available tasks use `dbnd show-tasks` (tab completion is available).
     `dbnd show-configs` will print all available configs.
     """
-
+    # double checking on bootstrap, as we can run from all kind of locations
+    # usually we should be bootstraped already as we run from cli.
     dbnd_bootstrap(enable_dbnd_run=True)
 
     # make all these tasks discoverable from cli
@@ -307,10 +308,6 @@ def cmd_run(
                 "CLI config: \n%s", pformat_config_store_as_table(cmd_line_config)
             )
         config.set_values(cmd_line_config, source="cmdline")
-
-    # double checking on bootstrap, as we can run from all kind of locations
-    # usually we should be bootstraped already as we run from cli.
-    dbnd_bootstrap()
 
     # initialize basic logging (until we get to the context logging
     if not config.getboolean("log", "disabled"):

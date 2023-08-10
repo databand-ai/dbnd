@@ -402,6 +402,27 @@ class AirflowTaskExecutor(RunExecutorEngine):
         # we don't want to be stopped by zombie jobs/tasks
         if AIRFLOW_VERSION_2:
             airflow_conf.set("core", "max_active_tasks_per_dag", str(10000))
+
+            dbnd_task_runner = (
+                "dbnd_run.airflow.compat.dbnd_task_runner.DbndStandardTaskRunner"
+            )
+
+            # workaround for --pickle and --dag in the same command line
+            # we pickle our dags, while standard airflow is not doing that anymore
+            # some code paths are broken, this is a workaround to remove
+            # pickle_id from the command line of "--raw", as this will run via .fork,
+            # while dag object is loaded already from DB
+
+            # fix value in the current process
+            from airflow.task import task_runner as airflow_task_runner_module
+
+            airflow_task_runner_module._TASK_RUNNER_NAME = dbnd_task_runner
+
+            # bypass new value to spawned processes
+            os.environ["AIRFLOW__CORE__TASK_RUNNER"] = dbnd_task_runner
+
+            # consistent config, but there is no side-affect of this statement
+            airflow_conf.set("core", "task_runner", dbnd_task_runner)
         else:
             airflow_conf.set("core", "dag_concurrency", str(10000))
 

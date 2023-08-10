@@ -290,7 +290,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         task_run = databand_run.get_task_run_by_af_id(task_id)
 
         pod_command = [str(c) for c in command]
-        task_engine = task_run.task_engine  # type: KubernetesEngineConfig
+        task_engine = (
+            task_run.task_run_executor.task_engine
+        )  # type: KubernetesEngineConfig
         pod: "k8s.V1Pod" = task_engine.build_pod(
             task_run=task_run,
             cmds=pod_command,

@@ -103,7 +103,9 @@ def calculate_task_executor_type(submit_tasks, remote_engine, run_config):
         all_executor_types.extend(AirflowTaskExecutorType.all())
 
     if task_executor_type not in all_executor_types:
-        raise DatabandConfigError("Unsupported engine type %s" % task_executor_type)
+        raise DatabandConfigError(
+            f"Unsupported engine type '{task_executor_type}' (supported: {all_executor_types})"
+        )
 
     return task_executor_type, parallel
 

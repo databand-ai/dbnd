@@ -37,8 +37,6 @@ class TestTasksParallelExample(object):
         target.dbnd_run()
         assert target._complete()
 
-    # @with_context(conf={'executor': {'local': 'true'},
-    #                     'databand': {'module': ParallelTasksPipeline.__module__}})
     def test_parallel_local_executor(self):
         cmd = [
             "-m",

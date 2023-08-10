@@ -47,6 +47,7 @@ from dbnd_docker.kubernetes.dns1123_clean_names import (
 from dbnd_run import errors
 from dbnd_run.airflow.compat import AIRFLOW_ABOVE_10, AIRFLOW_VERSION_2
 from dbnd_run.errors import executor_k8s
+from dbnd_run.utils.dbnd_run_module import get_dbnd_run_conf_file
 from targets import target
 from targets.values import TimeDeltaValueType
 
@@ -235,9 +236,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         str
     ]
 
-    pod_yaml = parameter(
-        default="${DBND_LIB}/orchestration/conf/kubernetes-pod.yaml"
-    ).help("Base YAML to use to run databand task/driver")[str]
+    pod_yaml = parameter(default=get_dbnd_run_conf_file("kubernetes-pod.yaml")).help(
+        "Base YAML to use to run databand task/driver"
+    )[str]
 
     trap_exit_file_flag = parameter(default=None).help("trap exit file")[str]
     auto_remove = parameter(
