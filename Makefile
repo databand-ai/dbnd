@@ -86,6 +86,7 @@ prj_dist := \
 		orchestration/dbnd-qubole\
 		\
 		orchestration/dbnd-test-scenarios\
+		orchestration/examples-orchestration\
 		\
 		examples
 

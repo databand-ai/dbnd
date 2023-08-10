@@ -13,7 +13,7 @@ export PYTHON_VERSION = $(shell python -c "import sys; print('{0}.{1}'.format(*s
 export PYTHON_VERSION_PREFIX = py$(subst .,,${PYTHON_VERSION})
 
 # use env value if exists
-export AIRFLOW_VERSION ?= 2.2.5
+export AIRFLOW_VERSION ?= 2.3.4
 export AIRFLOW_VERSION_PREFIX = airflow_$(subst .,_,${AIRFLOW_VERSION})
 
 ### VIRTUAL ENVs NAMES

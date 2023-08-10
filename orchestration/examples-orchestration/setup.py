@@ -29,7 +29,7 @@ INSTALL_REQUIRES = [
 ]
 
 setup(
-    name="dbnd-orchestration-examples",
+    name="dbnd-examples-orchestration",
     package_dir={"": "src"},
     version=version,
     zip_safe=False,

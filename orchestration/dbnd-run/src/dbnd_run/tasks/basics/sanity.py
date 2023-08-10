@@ -5,7 +5,7 @@ import logging
 import random
 import time
 
-from dbnd._core.task_build.dbnd_decorator import task
+from dbnd._core.task_build.dbnd_decorator import pipeline, task
 from dbnd._core.tracking.metrics import log_metric
 
 
@@ -47,3 +47,11 @@ def dbnd_simple_task(
             raise Exception("Failed accordingly to fail_chance: %f" % fail_chance)
 
     return "Databand has been checked at %s" % check_time
+
+
+@pipeline
+def dbnd_simple_parallel_pipeline(tasks_num=2):
+    return {
+        str(i): dbnd_simple_task(task_name=f"dbnd_simple_task_{i}")
+        for i in range(tasks_num)
+    }
