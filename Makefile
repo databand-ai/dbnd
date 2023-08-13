@@ -39,24 +39,6 @@ prj_tracking_airflow = \
            plugins/dbnd-airflow-auto-tracking \
            plugins/dbnd-airflow-export
 
-
-
-prj_dbnd_run = \
-            modules/dbnd \
-            orchestration/dbnd-run \
-            orchestration/dbnd-aws  \
-            orchestration/dbnd-azure \
-			orchestration/dbnd-databricks \
-			orchestration/dbnd-docker \
-			orchestration/dbnd-hdfs \
-			orchestration/dbnd-gcp \
-			orchestration/dbnd-spark \
-			orchestration/dbnd-qubole \
-			\
-			orchestration/dbnd-test-scenarios
-
-# plugins/dbnd-tensorflow
-
 # LIST of packages to be distributed
 prj_dist := \
 		modules/dbnd \
@@ -268,35 +250,3 @@ tracking-airflow--install-dev: __is_venv_activated__tracking_airflow  ## Install
 tracking-airflow--pip-compile: __is_venv_activated__tracking_airflow  ## Regenerate deps and constrains
 	pip-compile -v --resolver backtracking requirements/requirements-dev-tracking-airflow.in \
 	    -o ${REQUIREMENTS_FILE_TRACKING_AIRFLOW}
-
-
-###############
-##@ Development: Orchestration with Apache Airflow (dbnd-run)
-.PHONY: __run_airflow__is_venv_activated \
-         run-airflow--pip-compile \
-         run-airflow--create-venv \
-         run-airflow--install-dev \
-         run-airflow--dist-python
-
-REQUIREMENTS_FILE_RUN_AIRFLOW=requirements/requirements-dev-run-airflow-${PYTHON_VERSION}-airflow-${AIRFLOW_VERSION}.txt
-
-__run_airflow__is_venv_activated:  ## (Hidden target) check if correct virtual env is activated
-	. ./etc/scripts/devenv-utils.sh; _validate_python_venv_name "${VENV_RUN_AIRFLOW_TARGET_NAME}"
-
-run-airflow--pip-compile: __run_airflow__is_venv_activated ## Regenerate deps and constrains
-	pip-compile -v --resolver backtracking requirements/requirements-dev-run-airflow.in \
-	     -o ${REQUIREMENTS_FILE_RUN_AIRFLOW}
-
-run-airflow--create-venv:  ## Create virtual env
-	@echo "Current Airflow Version: ${AIRFLOW_VERSION}"
-	. ./etc/scripts/devenv-utils.sh; _create_virtualenv "${VENV_RUN_AIRFLOW_TARGET_NAME}"
-
-run-airflow--install-dev: __run_airflow__is_venv_activated ## Installs Airflow + all dbnd-core modules in editable mode to the active Python's site-packages.
-	pip-sync ${REQUIREMENTS_FILE_RUN_AIRFLOW}
-
-run-airflow--dist-python:  ## Build only essential dbnd-run modules.
-	mkdir -p dist-python;
-	set -e;\
-	for m in $(prj_dbnd_run) ; do \
-		MODULE=$$m make __dist-python-module;\
-	done;
