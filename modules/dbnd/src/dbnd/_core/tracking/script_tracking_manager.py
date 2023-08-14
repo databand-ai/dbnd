@@ -301,7 +301,9 @@ class _DbndScriptTrackingManager(object):
         self._task_run = run.root_task_run
 
         if is_verbose():
-            logger.info("Databand script tracking is started for %s", run.job_name)
+            logger.info(
+                "Databand script tracking .start() is completed for %s", run.job_name
+            )
 
         return self._task_run
 

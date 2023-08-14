@@ -102,9 +102,9 @@ def parse_arg_types_for_callable(func):
     except OSError:
         # It's not possible to get source code when running script as a string passed to IPython.
         # This is how Databricks passes pyspark scripts wo we have to workaround it.
-        from dbnd._core.log import dbnd_log_info_error
+        from dbnd._core.log import dbnd_log_exception
 
-        dbnd_log_info_error("Failed to parse doc string for function %s" % func)
+        dbnd_log_exception("Failed to parse doc string for function %s" % func)
         return None, None
 
     def_statements = 0

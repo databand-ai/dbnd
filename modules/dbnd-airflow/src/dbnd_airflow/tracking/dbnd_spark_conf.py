@@ -15,7 +15,7 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_SCRIPT_NAME,
 )
 from dbnd._core.constants import TaskRunState, UpdateSource
-from dbnd._core.log import dbnd_log_info_error
+from dbnd._core.log import dbnd_log_exception
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
@@ -417,7 +417,7 @@ def track_custom_spark_submit_operator(operator, tracking_info):
         )
 
         if not hasattr(operator, "spark_args"):
-            dbnd_log_info_error(
+            dbnd_log_exception(
                 "User Spark Operator doesn't have attribute 'spark_args', "
                 "skipping the context injection"
             )
@@ -427,6 +427,6 @@ def track_custom_spark_submit_operator(operator, tracking_info):
             operator.spark_args.extend(custom_cli)
 
     except Exception as ex:
-        dbnd_log_info_error("Failed to wrap '%s'. Got an error '%s'", operator, ex)
+        dbnd_log_exception("Failed to wrap '%s'. Got an error '%s'", operator, ex)
 
     yield

@@ -1,11 +1,12 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
+import typing
 
 from collections import OrderedDict
 from typing import Any, ContextManager, Dict, Optional
 
-from dbnd._core.current import is_verbose
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.utils.basics.load_python_module import load_python_callable
 from dbnd_airflow.tracking.dbnd_spark_conf import (
     track_databricks_submit_run_operator,
@@ -16,6 +17,9 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     track_spark_submit_operator,
 )
 
+
+if typing.TYPE_CHECKING:
+    from airflow.models.baseoperator import BaseOperator
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +77,7 @@ _EXECUTE_TRACKING = OrderedDict(
 
 
 def register_airflow_operator_handler(operator, airflow_operator_handler):
-    logger.debug(
+    dbnd_log_debug(
         "Registering operator handler %s with %s", operator, airflow_operator_handler
     )
     global _EXECUTE_TRACKING
@@ -93,15 +97,18 @@ def get_airflow_operator_handlers_config(user_config_airflow_operator_handlers=N
 
 def wrap_operator_with_tracking_info(
     tracking_info: Dict[str, str],
-    operator: Any,
+    operator: "BaseOperator",
     airflow_operator_handlers: Dict[str, Any],
 ) -> Optional[ContextManager]:
     """
     Wrap the operator with relevant tracking method, if found such method.
     """
 
-    if is_verbose():
-        logger.info("Checking for the relevant wrapper for operator '%s'", operator)
+    dbnd_log_debug(
+        "Checking for the relevant wrapper for operator '%s' (%s)",
+        operator,
+        f"{operator.__class__.__module__}.{operator.__class__.__qualname__}",
+    )
     for cls in operator.__class__.mro():
         # for user operators we support only FQN matching
         tracking_wrapper = _get_loaded_tracking_wrapper(
@@ -110,11 +117,13 @@ def wrap_operator_with_tracking_info(
             airflow_operator_handlers, f"{cls.__module__}.{cls.__qualname__}"
         )
         if tracking_wrapper:
-            if is_verbose():
-                logger.warning(
-                    "Patching airflow operator %s with %s", operator, tracking_wrapper
-                )
+            dbnd_log_debug(
+                "Applying airflow operator wrapper %s at %s",
+                operator.task_id,
+                tracking_wrapper,
+            )
             return tracking_wrapper(operator, tracking_info)
+    dbnd_log_debug("There is no specific wrapper for '%s'", operator)
     return None
 
 

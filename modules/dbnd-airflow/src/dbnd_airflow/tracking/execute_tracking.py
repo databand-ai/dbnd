@@ -9,7 +9,7 @@ from typing import Optional
 from dbnd import config, get_dbnd_project_config, log_metric, log_metrics
 from dbnd._core.constants import TaskRunState
 from dbnd._core.errors.errors_utils import log_exception
-from dbnd._core.log.dbnd_log import dbnd_log_exception, dbnd_log_tracking
+from dbnd._core.log.dbnd_log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
@@ -104,14 +104,22 @@ def new_execute(context):
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
 
-    dbnd_log_tracking("Running tracked .execute for %s", copied_operator.task_id)
-
     if not is_dag_eligable_for_tracking(context["task_instance"].dag_id):
+        dbnd_log_debug("DAG id is not tracked %s", context["task_instance"].dag_id)
         execute = get_execute_function(copied_operator)
         result = execute(copied_operator, context)
         return result
 
+    # import pydevd_pycharm
+    # pydevd_pycharm.settrace('localhost', port=8787, stdoutToServer=True, stderrToServer=True)
+
     try:
+        dbnd_log_debug(
+            "Running tracked .execute for %s (%s)",
+            copied_operator.task_id,
+            f"{copied_operator.__class__.__module__}.{copied_operator.__class__.__qualname__}",
+        )
+
         # Set that we are in Airflow tracking mode
         get_dbnd_project_config().set_is_airflow_runtime()
 

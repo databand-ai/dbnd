@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.errors import friendly_error
+from dbnd._core.log.dbnd_log import dbnd_log_debug
 
 
 _DBND_RUN_PACKAGE_INSTALLED = None  # dbnd-run is installed
@@ -62,7 +63,8 @@ def is_airflow_package_installed():
             import airflow  # noqa: F401
 
             _AIRFLOW_PACKAGE_INSTALLED = True
-        except Exception:
+        except Exception as ex:
+            dbnd_log_debug("Airflow package is not found: %s" % ex)
             _AIRFLOW_PACKAGE_INSTALLED = False
 
     return _AIRFLOW_PACKAGE_INSTALLED

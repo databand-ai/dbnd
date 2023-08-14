@@ -15,15 +15,19 @@ logger = logging.getLogger(__name__)
 ENV_DBND__VERBOSE = "DBND__VERBOSE"  # VERBOSE
 _VERBOSE = environ_enabled(ENV_DBND__VERBOSE)
 
+DBND_MSG_MARKER = "DBND: "
+
 
 def is_verbose():
     return _VERBOSE
 
 
 def set_verbose(verbose: bool = True):
+    """Enable Verbose output from DBND SDK."""
     global _VERBOSE
     _VERBOSE = verbose
     if _VERBOSE:
+        eprint(DBND_MSG_MARKER + "VERBOSE mode is ON.")
         dbnd_logger = logging.getLogger("dbnd")
         if is_verbose() and dbnd_logger.level == logging.WARNING:
             dbnd_logger.setLevel(logging.INFO)
@@ -32,40 +36,24 @@ def set_verbose(verbose: bool = True):
 def dbnd_log_debug(msg, *args, **kwargs):
     try:
         if is_verbose():
-            logger.info(msg, *args, **kwargs)
+            logger.info(DBND_MSG_MARKER + msg, *args, **kwargs)
         else:
-            logger.debug(msg, *args, **kwargs)
+            logger.debug(DBND_MSG_MARKER + msg, *args, **kwargs)
     except:
-        eprint("Failed to print dbnd info message")
-
-
-def dbnd_log_info_error(msg, *args, **kwargs):
-    """we show exception only in verbose mode"""
-    try:
-        if is_verbose():
-            logger.exception(msg, *args, **kwargs)
-        else:
-            logger.info(msg, *args, **kwargs)
-    except Exception:
-        eprint("Failed to print dbnd error message")
+        eprint(DBND_MSG_MARKER + "Failed to print dbnd info message")
 
 
 def dbnd_log_exception(msg, *args, **kwargs):
     """we show exception only in verbose mode"""
     try:
         if is_verbose():
-            logger.exception(msg, *args, **kwargs)
+            logger.exception(DBND_MSG_MARKER + msg, *args, **kwargs)
         else:
-            logger.info(msg, *args, **kwargs)
+            logger.info(DBND_MSG_MARKER + msg, *args, **kwargs)
     except Exception:
-        eprint("Failed to print dbnd error message")
-
-
-def dbnd_log_tracking(msg, *args, **kwargs):
-    if _VERBOSE:
-        eprint("DBND TRACKING: %s" % msg)
+        eprint(DBND_MSG_MARKER + "Failed to print dbnd error message")
 
 
 def dbnd_log_init_msg(msg):
-    if _VERBOSE:
+    if is_verbose():
         eprint("DBND __init__: %s" % msg)

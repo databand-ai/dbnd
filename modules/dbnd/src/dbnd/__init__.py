@@ -25,6 +25,7 @@ from dbnd._core.current import (
     get_databand_run,
 )
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.log.dbnd_log import set_verbose
 from dbnd._core.parameter.constants import ParameterScope
 from dbnd._core.parameter.parameter_builder import data, output, parameter
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
@@ -86,6 +87,7 @@ __all__ = [
     "current_task_run",
     "get_databand_run",
     "get_databand_context",
+    "set_verbose",
     # inplace implementation
     "dbnd_tracking",
     "dbnd_tracking_start",
