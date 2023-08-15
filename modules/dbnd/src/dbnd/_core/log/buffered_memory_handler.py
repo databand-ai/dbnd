@@ -6,9 +6,11 @@ from dbnd._core.log.buffered_log_manager import BufferedLogManager
 
 
 class BufferedMemoryHandler(logging.Handler):
-    def __init__(self):
+    def __init__(self, max_tail_bytes, max_head_bytes):
         logging.Handler.__init__(self)
-        self.buffer_manager = BufferedLogManager()
+        self.buffer_manager = BufferedLogManager(
+            max_tail_bytes=max_tail_bytes, max_head_bytes=max_head_bytes
+        )
         self.set_name("dbnd")
 
     def emit(self, record):

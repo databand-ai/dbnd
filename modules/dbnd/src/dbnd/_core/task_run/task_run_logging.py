@@ -38,7 +38,10 @@ class TaskRunLogManager(TaskRunCtrl):
             yield None
             return
 
-        handler = BufferedMemoryHandler()
+        handler = BufferedMemoryHandler(
+            max_head_bytes=log_settings.preview_head_bytes,
+            max_tail_bytes=log_settings.preview_tail_bytes,
+        )
         handler.setFormatter(logging.Formatter(fmt=log_settings.formatter))
         handler.setLevel(logging.INFO)
 

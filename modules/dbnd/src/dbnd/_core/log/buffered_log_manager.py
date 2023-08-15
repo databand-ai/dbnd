@@ -22,18 +22,13 @@ class BufferedLogManager:
 
     terminator = "\n"
 
-    def __init__(self, max_head_bytes=None, max_tail_bytes=None):
-        from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
+    def __init__(self, max_head_bytes, max_tail_bytes):
 
         self.initial_buffer = []
         self.initial_buffer_size = 0
 
         self.max_head_bytes = max_head_bytes
         self.max_tail_bytes = max_tail_bytes
-        if self.max_head_bytes is None or self.max_tail_bytes is None:
-            logger_config = TrackingLoggingConfig()
-            self.max_head_bytes = max_head_bytes or logger_config.preview_head_bytes
-            self.max_tail_bytes = max_tail_bytes or logger_config.preview_tail_bytes
 
         self.head_buffer = []
         self.current_head_bytes = 0
