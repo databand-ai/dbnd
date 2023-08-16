@@ -2,6 +2,8 @@
 
 import logging
 
+from typing import List
+
 from dbnd import Task, parameter
 from dbnd._core.errors import DatabandRuntimeError
 from dbnd._core.utils.better_subprocess import run_cmd
@@ -17,7 +19,6 @@ class DockerBuild(Task):
     docker_file = parameter(default=project_path("Dockerfile"))[str]
     image_name = parameter()[str]
     tag = parameter(default="latest")[str]
-    label = parameter(default="")[str]
     push = parameter(default=True)[bool]
     target = parameter(default=None)[str]
 
@@ -26,7 +27,11 @@ class DockerBuild(Task):
     kaniko_command = parameter(default=None)[str]
     context = parameter(default=None)[str]
     destinations = parameter(default=None)[list]
-    build_args = parameter(default=None)[list]
+
+    label = parameter(default="")[str]
+    platform = parameter(default="")[str]
+    build_args = parameter(default=None)[List[str]]
+    extra_args = parameter(default=None, description="Extra Args (any arg)")[list]
 
     full_image_name = None
     computed_tag = None
@@ -52,15 +57,20 @@ class DockerBuild(Task):
                 cmd = cmd + " --label " + self.label
             if self.target:
                 cmd = cmd + " --target " + self.target
+            if self.platform:
+                # for p in self.platform:
+                #     cmd = cmd + f" --platform {p}" for p in self.platform:
+                cmd = cmd + f" --platform {self.platform}"
+            if self.extra_args:
+                cmd = cmd + " " + self.extra_args
 
             if self.build_args:
-                build_args_list = [
-                    " --build-arg {}".format(arg) for arg in self.build_args
-                ]
+                build_args_list = [f" --build-arg {arg}" for arg in self.build_args]
                 cmd = cmd + "".join(build_args_list)
 
             logger.info("Running docker build command: `%s`\n\n", cmd)
             cwd = self.working_dir or project_path()
+
             run_cmd(cmd, shell=True, cwd=cwd)
 
         except Exception as e:
