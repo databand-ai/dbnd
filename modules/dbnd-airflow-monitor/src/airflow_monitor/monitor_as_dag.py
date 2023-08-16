@@ -95,7 +95,7 @@ class MonitorOperator(BashOperator):
             missing_env_variables = self._get_missing_env_variables()
             if missing_env_variables:
                 raise Exception(
-                    f"No Connection or {missing_env_variables} environment variables found, please set connection in Airflow or see https://docs.databand.ai/docs/access-token"
+                    f"No Connection or {missing_env_variables} environment variables found, please set connection in Airflow or see https://www.ibm.com/docs/en/dobd?topic=settings-personal-access-tokens"
                 )
 
         # AirflowMonitorConfig doesn't really have dag_ids config, so we avoid setting this environment variable

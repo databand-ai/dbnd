@@ -33,7 +33,7 @@ log_metric("r2", r2)
 
 ## Getting Started
 
-See our [documentation](https://docs.databand.ai/docs) with examples and quickstart guides to get up and running with DBND.
+See our [documentation](https://www.ibm.com/docs/en/dobd) with examples and quickstart guides to get up and running with DBND.
 
 ## The Latest and Greatest
 
