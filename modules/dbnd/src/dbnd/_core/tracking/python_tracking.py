@@ -1,7 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import logging
+import re
 import sys
+import typing
 
 from types import FunctionType, ModuleType
 
@@ -95,3 +97,60 @@ def _is_module_function(function, module):
     except Exception:
         logger.exception("Failed to track %s" % function)
         return False
+
+
+def _match_func_name(
+    value: object,
+    module: typing.Optional[str],
+    prefixes: typing.List[typing.Union[str, re.Pattern]],
+):
+    """
+    match func to the function scope (module) and the name prefix (regexp or prefix)
+    """
+    # it should be callable
+    if not _is_function(value) or should_not_track(value) or _is_task(value):
+        return False
+    # let's check scope (__main__ for example)
+    if module is not None and not value.__module__.startswith(module):
+        return False
+
+    # if no prefixes filter  - it's a match
+    if not prefixes:
+        return True
+
+    func_name = value.__name__
+    for prefix in prefixes:
+        if isinstance(prefix, str):
+            if func_name.startswith(prefix):
+                return True
+        elif isinstance(prefix, re.Pattern):
+            if prefix.match(func_name):
+                return True
+    return False
+
+
+def track_scope_functions(
+    scope: typing.Dict[str, object] = None,
+    prefixes: typing.List[typing.Union[typing.Pattern, str]] = None,
+    module="__main__",
+):
+    """
+    Track all functions that match prefixes list within specific scope
+    This function especially useful for Jupyter Notebooks.
+    You can start to track all functions from the current namespace, even after the function import
+    """
+    try:
+        if scope is None:
+            scope = globals()
+
+        matched_functions = {}
+        for key, value in list(scope.items()):
+            if _match_func_name(value=value, module=module, prefixes=prefixes):
+                matched_functions[key] = value
+
+        for name, func in matched_functions.items():
+            scope[name] = task(func)
+        return matched_functions
+    except Exception as ex:
+
+        logger.error("Failed to mark function as @dbnd.task: %s" % ex)

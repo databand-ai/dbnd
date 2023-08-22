@@ -55,6 +55,7 @@ from dbnd._core.tracking.python_tracking import (
     track_functions,
     track_module_functions,
     track_modules,
+    track_scope_functions,
 )
 from dbnd._core.tracking.script_tracking_manager import (
     dbnd_tracking,
@@ -137,6 +138,7 @@ __all__ = [
     "track_modules",
     "track_module_functions",
     "track_functions",
+    "track_scope_functions",
     # access helpers
     "get_task_params_defs",
     "get_task_params_values",
