@@ -26,49 +26,63 @@ logger = logging.getLogger(__name__)
 # registering operators names to the relevant tracking method
 _EXECUTE_TRACKING = OrderedDict(
     [
+        # SPARK SUBMIT
+        # Airflow 1.x
+        (
+            "airflow.contrib.operators.spark_submit_operator.SparkSubmitOperator",
+            track_spark_submit_operator,
+        ),
+        # Airflow 2.x
+        (
+            "airflow.providers.apache.spark.operators.spark_submit.SparkSubmitOperator",
+            track_spark_submit_operator,
+        ),
+        # EMR
         # Airflow 1.x
         (
             "airflow.contrib.operators.emr_add_steps_operator.EmrAddStepsOperator",
             track_emr_add_steps_operator,
         ),
+        # Airflow 2.0
         (
-            "airflow.contrib.operators.databricks_operator.DatabricksSubmitRunOperator",
-            track_databricks_submit_run_operator,
-        ),
-        (
-            "airflow.contrib.operators.dataproc_operator.DataProcPySparkOperator",
-            track_dataproc_pyspark_operator,
-        ),
-        (
-            "airflow.contrib.operators.spark_submit_operator.SparkSubmitOperator",
-            track_spark_submit_operator,
-        ),
-        ("airflow.contrib.operators.ecs_operator.ECSOperator", track_ecs_operator),
-        # Airflow 2.x
-        (
-            "airflow.providers.amazon.aws.operators.emr.EmrAddStepsOperator",
+            "airflow.providers.amazon.aws.operators.emr_add_steps.EmrAddStepsOperator",
             track_emr_add_steps_operator,
         ),
         (
             "airflow.providers.amazon.aws.operators.emr_pyspark.EmrPySparkOperator",
             track_emr_add_steps_operator,
         ),
+        # Airflow 2.2+
+        (
+            "airflow.providers.amazon.aws.operators.emr.EmrAddStepsOperator",
+            track_emr_add_steps_operator,
+        ),
+        # Databricks - track_databricks_submit_run_operator
+        # Airflow 1.x
+        (
+            "airflow.contrib.operators.databricks_operator.DatabricksSubmitRunOperator",
+            track_databricks_submit_run_operator,
+        ),
+        # Airflow 2.x
         (
             "airflow.providers.databricks.operators.databricks.DatabricksSubmitRunOperator",
             track_databricks_submit_run_operator,
         ),
+        # Dataproc - track_dataproc_submit_job_operator
+        # Airflow 1.x
         (
             "airflow.providers.google.cloud.operators.dataproc.DataprocSubmitJobOperator",
             track_dataproc_submit_job_operator,
         ),
+        # Airflow 2.x
         (
             "airflow.providers.google.cloud.operators.dataproc.DataprocSubmitPySparkJobOperator",
             track_dataproc_pyspark_operator,
         ),
-        (
-            "airflow.providers.apache.spark.operators.spark_submit.SparkSubmitOperator",
-            track_spark_submit_operator,
-        ),
+        # ECS
+        # Airflow 1.x -
+        ("airflow.contrib.operators.ecs_operator.ECSOperator", track_ecs_operator),
+        # # Airflow 2.x
         ("airflow.providers.amazon.aws.operators.ecs.ECSOperator", track_ecs_operator),
         # Airflow 2.x - with lowercase Ecs (not ECS)
         ("airflow.providers.amazon.aws.operators.ecs.EcsOperator", track_ecs_operator),
@@ -77,12 +91,13 @@ _EXECUTE_TRACKING = OrderedDict(
 
 
 def register_airflow_operator_handler(operator, airflow_operator_handler):
-    dbnd_log_debug(
-        "Registering operator handler %s with %s", operator, airflow_operator_handler
-    )
     global _EXECUTE_TRACKING
     if isinstance(operator, type):
         operator = f"{operator.__module__}.{operator.__qualname__}"
+
+    dbnd_log_debug(
+        "Registering operator handler %s with %s", operator, airflow_operator_handler
+    )
     _EXECUTE_TRACKING[operator] = airflow_operator_handler
 
 
