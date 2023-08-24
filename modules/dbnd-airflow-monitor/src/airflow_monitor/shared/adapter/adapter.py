@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar
 
 import attr
 
@@ -138,7 +138,7 @@ class Assets:
     Represents a collection of assets and their states.
     """
 
-    data: Optional[object] = None
+    data: Any = None
     assets_to_state: Optional[List[AssetToState]] = None
 
 
@@ -146,6 +146,9 @@ class Assets:
 class ThirdPartyInfo:
     metadata: Optional[Dict[str, str]]
     error_list: Optional[List[str]]
+
+
+T = TypeVar("T")
 
 
 class Adapter(ABC):
@@ -158,7 +161,7 @@ class Adapter(ABC):
     """
 
     @abstractmethod
-    def init_cursor(self) -> object:
+    def init_cursor(self) -> T:
         """
         This method should be implemented by subclasses to initialize and return a cursor object.
 
@@ -169,8 +172,8 @@ class Adapter(ABC):
 
     @abstractmethod
     def init_assets_for_cursor(
-        self, cursor: object, batch_size: int
-    ) -> Generator[Tuple[Assets, object], None, None]:
+        self, cursor: T, batch_size: int
+    ) -> Generator[Tuple[Assets, T], None, None]:
         """
         Initialize assets to init state mapping for a given cursor and batch size.
 
