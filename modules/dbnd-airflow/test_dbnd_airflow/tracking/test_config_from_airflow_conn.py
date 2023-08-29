@@ -11,6 +11,7 @@ from dbnd import config
 from dbnd._core.configuration.environ_config import DATABAND_AIRFLOW_CONN_ID
 from dbnd._core.settings import TrackingConfig
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
+    get_dbnd_config_dict_from_airflow_connections,
     set_dbnd_config_from_airflow_connections,
 )
 
@@ -65,6 +66,14 @@ def set_dbnd_airflow_connection(
     logging.info("%s added to: %s", dbnd_config_value, airflow_db_url)
 
 
+def set_and_assert_config_configured():
+    dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
+    actual = set_dbnd_config_from_airflow_connections(
+        dbnd_config_from_connection=dbnd_config_from_connection
+    )
+    assert actual
+
+
 class TestConfigFromConnection(object):
     """Check that setting dbnd_connection in airflow configures dbnd global config correctly."""
 
@@ -79,9 +88,7 @@ class TestConfigFromConnection(object):
             },
         )
 
-        is_config_configured = set_dbnd_config_from_airflow_connections()
-
-        assert is_config_configured
+        set_and_assert_config_configured()
         assert config.get("core", "databand_url") == DATABAND_URL
 
     @pytest.mark.parametrize(
@@ -102,7 +109,7 @@ class TestConfigFromConnection(object):
             password=token,
         )
 
-        assert set_dbnd_config_from_airflow_connections()
+        set_and_assert_config_configured()
         assert config.get("core", "databand_access_token") == expected_token
 
     @pytest.mark.parametrize(
@@ -135,7 +142,7 @@ class TestConfigFromConnection(object):
         )
         logger.info("Set config based on  {0}  ".format(json_for_connection["name"]))
 
-        assert not set_dbnd_config_from_airflow_connections()
+        set_and_assert_config_configured()
         assert json_for_connection["log_msg"] in caplog.text, caplog.text
 
         logger.info("Test Succeeded")
@@ -158,7 +165,7 @@ class TestConfigFromConnection(object):
 
         set_dbnd_airflow_connection(af_session, dbnd_config_value=dbnd_config)
 
-        assert set_dbnd_config_from_airflow_connections()
+        set_and_assert_config_configured()
 
         actual = TrackingConfig().airflow_operator_handlers
         assert actual

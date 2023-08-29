@@ -13,7 +13,8 @@ def eprint(*args, **kwargs):
 logger = logging.getLogger(__name__)
 
 ENV_DBND__VERBOSE = "DBND__VERBOSE"  # VERBOSE
-_VERBOSE = environ_enabled(ENV_DBND__VERBOSE)
+_VERBOSE = None
+
 
 DBND_MSG_MARKER = "DBND: "
 
@@ -33,12 +34,26 @@ def set_verbose(verbose: bool = True):
             dbnd_logger.setLevel(logging.INFO)
 
 
+# we do it during the import, as there are some code (patches/wrappers) that might use this variable
+set_verbose(environ_enabled(ENV_DBND__VERBOSE))
+
+
 def dbnd_log_debug(msg, *args, **kwargs):
+    # not every logging is configured to show .debug messages.
+    # we can't change user logging, so we switch to .info by ourself.
+
     try:
         if is_verbose():
             logger.info(DBND_MSG_MARKER + msg, *args, **kwargs)
         else:
             logger.debug(DBND_MSG_MARKER + msg, *args, **kwargs)
+    except:
+        eprint(DBND_MSG_MARKER + "Failed to print dbnd info message")
+
+
+def dbnd_log_info(msg, *args, **kwargs):
+    try:
+        logger.info(DBND_MSG_MARKER + msg, *args, **kwargs)
     except:
         eprint(DBND_MSG_MARKER + "Failed to print dbnd info message")
 

@@ -7,15 +7,23 @@ import typing
 
 from typing import Optional, Type
 
-from dbnd._core.configuration.environ_config import get_dbnd_project_config
-from dbnd._core.context.use_dbnd_run import assert_dbnd_orchestration_enabled
+from dbnd._core.configuration.environ_config import (
+    get_dbnd_project_config,
+    is_dbnd_disabled,
+)
+from dbnd._core.context.use_dbnd_run import (
+    assert_dbnd_orchestration_enabled,
+    is_orchestration_mode,
+)
 from dbnd._core.current import try_get_current_task
 from dbnd._core.errors import show_exc_info
 from dbnd._core.errors.errors_utils import user_side_code
 from dbnd._core.failures import dbnd_handle_errors
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.task_build.task_metaclass import TaskMetaclass
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.tracking.managers.callable_tracking import CallableTrackingManager
+from dbnd._core.tracking.script_tracking_manager import is_dbnd_tracking_active
 from dbnd._core.utils.basics.nothing import NOTHING
 from dbnd._core.utils.callable_spec import CallableSpec, build_callable_spec
 from dbnd._core.utils.lazy_property_proxy import CallableLazyObjectProxy
@@ -145,15 +153,26 @@ class TaskDecorator(object):
         )
 
     def handle_callable_call(self, *call_args, **call_kwargs):
-        dbnd_project_config = get_dbnd_project_config()
-        if dbnd_project_config.disabled:
+        if is_dbnd_disabled():
             return self.class_or_func(*call_args, **call_kwargs)
 
         # we are at tracking mode
-        if dbnd_project_config.is_tracking_mode():
+        dbnd_project_config = get_dbnd_project_config()
+
+        if dbnd_project_config.is_inplace_tracking_mode() or is_dbnd_tracking_active():
             with self.tracking_context(call_args, call_kwargs) as track_result_callback:
                 fp_result = self.class_or_func(*call_args, **call_kwargs)
                 return track_result_callback(fp_result)
+
+        if not is_orchestration_mode():
+            # no tracking/no orchestration,
+            # falling back to "natural call" of the class_or_func
+            message = (
+                "Can't report tracking info. %s is decorated with @task, but no tracking context was found"
+                % (self.class_or_func.__name__,)
+            )
+            get_one_time_logger().log_once(message, "task_decorator", logging.INFO)
+            return self.class_or_func(*call_args, **call_kwargs)
 
         #### DBND ORCHESTRATION MODE
         #
@@ -165,11 +184,10 @@ class TaskDecorator(object):
         if not current:
             # no tracking/no orchestration,
             # falling back to "natural call" of the class_or_func
-            message = (
-                "Can't report tracking info. %s is decorated with @task, but no tracking context was found"
+            dbnd_log_debug(
+                "Can't run standalone task %s (decorated with @task) . Run it as part of dbnd_run"
                 % (self.class_or_func.__name__,)
             )
-            get_one_time_logger().log_once(message, "task_decorator", logging.WARNING)
             return self.class_or_func(*call_args, **call_kwargs)
 
         assert_dbnd_orchestration_enabled()

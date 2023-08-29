@@ -9,6 +9,7 @@ from dbnd._core.configuration.environ_config import (
     dbnd_log_init_msg,
     spark_tracking_enabled,
 )
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.utils.seven import import_errors
 
 
@@ -20,21 +21,23 @@ logger = logging.getLogger(__name__)
 
 def _is_dbnd_spark_installed():
     if not spark_tracking_enabled():
-        dbnd_log_init_msg("No Spark: DBND__ENABLE__SPARK_CONTEXT_ENV")
+        dbnd_log_debug(
+            "This is not a spark job: DBND__ENABLE__SPARK_CONTEXT_ENV is not set"
+        )
         return False
 
     if _SPARK_ENV_FLAG not in os.environ:
-        dbnd_log_init_msg(f"No Spark: {_SPARK_ENV_FLAG} not found in env")
+        dbnd_log_debug(f"This is not a spark job: : {_SPARK_ENV_FLAG} not found in env")
         return False
 
     if "pyspark" not in sys.modules:
-        dbnd_log_init_msg("No Spark: Spark not found in modules")
+        dbnd_log_debug("This is not a spark job: : 'pyspark' is not found in modules")
         return False
 
     try:
         from pyspark import SparkContext  # noqa: F401
     except import_errors:
-        dbnd_log_init_msg("No Spark: can not import pyspark module")
+        dbnd_log_debug("This is not a spark job: can not import pyspark module")
         return False
 
     # all good, we have it

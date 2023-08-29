@@ -19,10 +19,11 @@ from dbnd._core.configuration.config_store import _ConfigStore
 from dbnd._core.configuration.config_value import ConfigValue, ConfigValuePriority
 from dbnd._core.configuration.environ_config import (
     get_dbnd_environ_config_file,
-    in_quiet_mode,
     is_unit_test_mode,
 )
+from dbnd._core.context.use_dbnd_run import is_orchestration_mode
 from dbnd._core.errors import DatabandConfigError
+from dbnd._core.log import is_verbose
 from dbnd._core.utils.project.project_fs import databand_system_path
 from dbnd._vendor.snippets.airflow_configuration import expand_env_var
 from targets import LocalFileSystem, target
@@ -134,7 +135,7 @@ def read_from_config_files(config_files):
     files_to_load = [target(f) for f in config_files]
     configs = []
 
-    if not in_quiet_mode():
+    if is_verbose() or is_orchestration_mode():
         logger.info(
             "Reading configuration from: \n\t%s\n", "\n\t".join(map(str, files_to_load))
         )

@@ -9,9 +9,7 @@ from airflow.operators.subdag_operator import SubDagOperator
 from airflow.utils.log.file_task_handler import FileTaskHandler
 from more_itertools import first_true
 
-import dbnd
-
-from dbnd import config, dbnd_bootstrap, dbnd_tracking_stop, get_dbnd_project_config
+from dbnd import config, dbnd_bootstrap, dbnd_tracking_stop
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
 from dbnd._core.log import dbnd_log_exception
@@ -19,6 +17,10 @@ from dbnd._core.log.buffered_log_manager import BufferedLogManager
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.tracking.script_tracking_manager import is_dbnd_tracking_active
 from dbnd._core.utils.basics import environ_utils
+from dbnd_airflow.tracking.dbnd_airflow_conf import (
+    get_dbnd_config_dict_from_airflow_connections,
+    get_sync_status_and_tracking_dag_ids_from_dbnd_conf,
+)
 from dbnd_airflow.tracking.execute_tracking import is_dag_eligable_for_tracking
 from dbnd_airflow.tracking.fakes import FakeTaskRun
 from dbnd_airflow.utils import get_task_run_attempt_uid_from_af_ti
@@ -49,6 +51,20 @@ class DbndAirflowHandler(logging.Handler):
 
         self.in_memory_log_manager: Optional[BufferedLogManager] = None
 
+    def _set_from_airflow_handler(self):
+        airflow_logger = self.airflow_logger
+        inheriting_handler = first_true(
+            airflow_logger.handlers,
+            pred=lambda handler: handler.__class__.__name__
+            == AIRFLOW_FILE_TASK_HANDLER,
+            default=airflow_logger.handlers[0] if airflow_logger.handlers else None,
+        )
+        if inheriting_handler:
+            handler_formatter = inheriting_handler.formatter
+            self.setFormatter(handler_formatter)
+            for handler_filter in inheriting_handler.filters:
+                self.addFilter(handler_filter)
+
     def set_context(self, ti):
         try:
             self._set_context(ti)
@@ -65,7 +81,17 @@ class DbndAirflowHandler(logging.Handler):
         if ti.dag_id.startswith(AD_HOC_DAG_PREFIX):
             return
 
-        if not is_dag_eligable_for_tracking(ti.dag_id):
+        dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
+        (
+            sync_enabled,
+            tracking_list,
+        ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
+            dbnd_config_from_connection
+        )
+        if not sync_enabled:
+            return
+
+        if not is_dag_eligable_for_tracking(ti.dag_id, tracking_list=tracking_list):
             return
 
         # we are not tracking SubDagOperator
@@ -73,8 +99,6 @@ class DbndAirflowHandler(logging.Handler):
             return
 
         # make sure we are not polluting the airflow logs
-        get_dbnd_project_config().quiet_mode = True
-        # make sure we are initialized
         dbnd_bootstrap()
 
         if config.getboolean("mlflow_tracking", "databand_tracking"):
@@ -120,18 +144,15 @@ class DbndAirflowHandler(logging.Handler):
         # once when the `worker` process ran, and once when the `main` one ran,
         # which made some of the features to run with different configurations.
         # it still runs twice, but know with the same configurations.
-        set_dbnd_config_from_airflow_connections()
+        set_dbnd_config_from_airflow_connections(
+            dbnd_config_from_connection=dbnd_config_from_connection
+        )
 
         self.task_run_attempt_uid = get_task_run_attempt_uid_from_af_ti(ti)
 
         # context with disabled logs
         self.dbnd_context_manage: ContextManager[DatabandContext] = new_dbnd_context()
         self.dbnd_context = self.dbnd_context_manage.__enter__()
-
-        # tracking msg
-        self.airflow_logger.info(
-            "Databand Tracking Started {version}".format(version=dbnd.__version__)
-        )
 
     def close(self):
         if self.dbnd_context and self.in_memory_log_manager:
@@ -190,21 +211,13 @@ class DbndAirflowHandler(logging.Handler):
             self.handleError(record)
 
 
-def set_dbnd_handler():
+def add_dbnd_log_handler():
     """
     Build and inject the dbnd handler to airflow's logger.
     """
-    airflow_logger = logging.getLogger(AIRFLOW_TASK_LOGGER)
-    dbnd_handler = DbndAirflowHandler(logger=airflow_logger)
-
-    inheriting_handler = first_true(
-        airflow_logger.handlers,
-        pred=lambda handler: handler.__class__.__name__ == AIRFLOW_FILE_TASK_HANDLER,
-        default=airflow_logger.handlers[0] if airflow_logger.handlers else None,
-    )
-    if inheriting_handler:
-        handler_formatter = inheriting_handler.formatter
-        dbnd_handler.setFormatter(handler_formatter)
-        for handler_filter in inheriting_handler.filters:
-            dbnd_handler.addFilter(handler_filter)
-    airflow_logger.addHandler(dbnd_handler)
+    try:
+        airflow_logger = logging.getLogger(AIRFLOW_TASK_LOGGER)
+        dbnd_handler = DbndAirflowHandler(logger=airflow_logger)
+        airflow_logger.addHandler(dbnd_handler)
+    except Exception:
+        dbnd_log_exception("Failed to add dbnd log handler to airflow logger")

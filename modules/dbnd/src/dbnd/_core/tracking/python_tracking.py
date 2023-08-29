@@ -135,7 +135,8 @@ def track_scope_functions(
     module="__main__",
 ):
     """
-    Track all functions that match prefixes list within specific scope
+    Track all functions that match prefixes list within specific scope.
+
     This function especially useful for Jupyter Notebooks.
     You can start to track all functions from the current namespace, even after the function import
     """

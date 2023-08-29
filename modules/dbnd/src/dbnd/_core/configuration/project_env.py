@@ -1,6 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import os
 import sys
 
 
@@ -30,11 +29,3 @@ def _is_running_airflow_webserver():
         return True
 
     return False
-
-
-def _init_windows_python_path(databand_package):
-    # patch pwd and resource system modules
-    if os.name == "nt":
-        sys.path.insert(
-            0, os.path.join(databand_package, "utils", "platform", "windows_compatible")
-        )

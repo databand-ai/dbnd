@@ -11,9 +11,7 @@ from dbnd._core.configuration.environ_config import (
     DBND_TASK_RUN_ATTEMPT_UID,
     ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
     ENV_DBND__RUN__PLUGINS,
-    ENV_DBND__TRACKING,
     ENV_DBND_FIX_PYSPARK_IMPORTS,
-    get_dbnd_project_config,
 )
 from dbnd._core.utils.basics.cmd_line_builder import CmdLineBuilder
 from dbnd_run.plugin.dbnd_plugins import pm
@@ -100,8 +98,7 @@ class SparkCtrl(_TaskRunExecutorCtrl):
         env_vars = {
             DBND_TASK_RUN_ATTEMPT_UID: str(
                 current().current_task_run.task_run_attempt_uid
-            ),
-            ENV_DBND__TRACKING: str(get_dbnd_project_config().is_tracking_mode()),
+            )
         }
 
         if conf_env_vars is None:

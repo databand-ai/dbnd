@@ -26,9 +26,9 @@ print(os.environ["DBND__LOG__SQLALCHEMY_TRACE"])
 
 def main():
     try:
-        from airflow import conf
+        pass
     except ImportError:
-        from airflow.configuration import conf
+        pass
 
     from airflow.jobs.scheduler_job import SchedulerJob
     from airflow.models import DagBag
@@ -43,7 +43,6 @@ def main():
     )
 
     dbnd_bootstrap(enable_dbnd_run=True)
-    conf.set("core", "unit_test_mode", "True")
 
     logging.root.addHandler(create_file_handler(log_file=log_scheduler))
 

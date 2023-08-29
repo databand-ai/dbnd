@@ -10,6 +10,7 @@ import typing
 from typing import List, Optional
 
 from dbnd._core.errors import friendly_error
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.tracking.backends import (
     CompositeTrackingStore,
     ConsoleStore,
@@ -56,6 +57,8 @@ def get_tracking_store(
     """
 
     tracking_store_instances = {}
+
+    dbnd_log_debug("Creating tracking stores: %s " % tracking_store_names)
     for name in tracking_store_names:
         if name == "api":
             name = (name, api_channel_name)

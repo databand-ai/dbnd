@@ -5,8 +5,8 @@ import logging
 from typing import Dict, List
 
 from dbnd._core.configuration.config_readers import read_from_config_files
-from dbnd._core.configuration.environ_config import in_tracking_mode
 from dbnd._core.constants import CloudType
+from dbnd._core.current import is_verbose
 from dbnd._core.log import dbnd_log_debug
 from dbnd._core.parameter import PARAMETER_FACTORY as parameter
 from dbnd._core.task import Config
@@ -72,9 +72,7 @@ class CoreConfig(Config):
         default=None,
     )[Dict[str, str]]
 
-    tracker = parameter(
-        default=["console", "api"], description="Set the Tracking Stores to be used."
-    )[List[str]]
+    tracker = parameter(description="Set the Tracking Stores to be used.")[List[str]]
 
     tracker_api = parameter(
         default="web", description="Set the Tracker Channels to be used by 'api' store."
@@ -88,14 +86,10 @@ class CoreConfig(Config):
         default=False,
     )[bool]
 
-    silence_tracking_mode = parameter(
-        default=False,
-        description="Enables silencing the console when in tracking mode.",
-    )[bool]
-
     tracker_raise_on_error = parameter(
         default=True, description="Enable raising an error when failed to track data."
     )[bool]
+
     remove_failed_store = parameter(
         default=False, description="Enable removal of a tracking store if it fails."
     )[bool]
@@ -144,16 +138,14 @@ class CoreConfig(Config):
             self.tracker = [t for t in self.tracker if t != "api"]
 
         if self.databand_access_token and (self.dbnd_user or self.dbnd_password):
-            logger.debug(
+            dbnd_log_debug(
                 "core.databand_access_token is used instead of defined dbnd_user and dbnd_password."
             )
 
-        if not (in_tracking_mode() and "api" in self.tracker):
-            self.silence_tracking_mode = False
-
         # in tracking mode we track to console only if we are not tracking to the api
-        if self.silence_tracking_mode:
-            self.tracker = [t for t in self.tracker if t != "console"]
+        if is_verbose() and "console" not in self.tracker:
+            dbnd_log_debug("Adding `console` tracker as verbose is enabled.")
+            self.tracker.append("console")
 
     def build_tracking_store(self, databand_ctx, remove_failed_store=None):
         from dbnd._core.tracking.registry import get_tracking_store

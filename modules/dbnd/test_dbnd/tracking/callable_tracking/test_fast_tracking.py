@@ -8,14 +8,14 @@ import pandas as pd
 import pytest
 import six
 
-from dbnd import config, dbnd_tracking_stop, log_metric, task
+from dbnd import config, dbnd_tracking_stop, get_dbnd_project_config, log_metric, task
 from dbnd._core.constants import TaskRunState
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskDefinitionInfo,
     TaskRunInfo,
 )
 from dbnd._core.utils.timezone import utcnow
-from dbnd.testing.helpers_mocks import set_airflow_context, set_tracking_context
+from dbnd.testing.helpers_mocks import set_tracking_context
 from test_dbnd.tracking.tracking_helpers import get_call_args
 
 
@@ -97,15 +97,21 @@ def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
 
 
 @pytest.fixture
-def tracking_config():
-    with config({"tracking": {"capture_tracking_log": True}}):
-        yield
+def set_tracking_context():
+    try:
+        get_dbnd_project_config()._dbnd_inplace_tracking = True
+
+        with config({"tracking": {"capture_tracking_log": True}}):
+            yield
+    finally:
+        dbnd_tracking_stop()
 
 
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-@pytest.mark.usefixtures(tracking_config.__name__)
 def test_tracking_pass_through_default_airflow(
-    pandas_data_frame_on_disk, mock_channel_tracker
+    pandas_data_frame_on_disk,
+    mock_channel_tracker,
+    set_airflow_context,
+    set_tracking_context,
 ):
     df, df_file = pandas_data_frame_on_disk
 
@@ -154,10 +160,8 @@ def test_tracking_pass_through_default_airflow(
     )
 
 
-@pytest.mark.usefixtures(tracking_config.__name__)
-@pytest.mark.usefixtures(set_tracking_context.__name__)
 def test_tracking_pass_through_default_tracking(
-    pandas_data_frame_on_disk, mock_channel_tracker
+    pandas_data_frame_on_disk, mock_channel_tracker, set_tracking_context
 ):
     df, df_file = pandas_data_frame_on_disk
 
@@ -192,10 +196,11 @@ def test_tracking_pass_through_default_tracking(
     )
 
 
-@pytest.mark.usefixtures(tracking_config.__name__)
-@pytest.mark.usefixtures(set_airflow_context.__name__)
 def test_tracking_pass_through_nested_default(
-    pandas_data_frame_on_disk, mock_channel_tracker
+    pandas_data_frame_on_disk,
+    mock_channel_tracker,
+    set_tracking_context,
+    set_airflow_context,
 ):
     df, df_file = pandas_data_frame_on_disk
 
@@ -233,9 +238,9 @@ def test_tracking_pass_through_nested_default(
     )
 
 
-@pytest.mark.usefixtures(tracking_config.__name__)
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_tracking_user_exception(mock_channel_tracker):
+def test_tracking_user_exception(
+    mock_channel_tracker, set_tracking_context, set_airflow_context
+):
     # we'll pass string instead of defined expected DataFrame and it should work
     with pytest.raises(ZeroDivisionError):
         task_pass_through_exception()
@@ -275,10 +280,11 @@ def test_tracking_user_exception(mock_channel_tracker):
     ] == update_task_run_attempts_chain
 
 
-@pytest.mark.usefixtures(tracking_config.__name__)
-@pytest.mark.usefixtures(set_airflow_context.__name__)
-def test_tracking_keyboard_interrupt(mock_channel_tracker):
+def test_tracking_keyboard_interrupt(
+    mock_channel_tracker, set_tracking_context, set_airflow_context
+):
     # we'll pass string instead of defined expected DataFrame and it should work
+    get_dbnd_project_config()
     try:
         task_pass_through_keyboard_interrupt()
     except BaseException:

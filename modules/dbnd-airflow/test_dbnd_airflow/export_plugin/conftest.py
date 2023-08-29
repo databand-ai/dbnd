@@ -50,6 +50,7 @@ def airflow_init_db(airflow_sqlalchemy_conn):
 class ResetArgsObject(object):
     yes = attr.ib()  # type: bool
     subcommand = "resetdb"
+    skip_init = False
 
 
 @fixture(autouse=True, scope="function")

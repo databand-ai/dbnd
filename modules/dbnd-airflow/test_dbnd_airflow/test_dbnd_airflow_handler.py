@@ -40,11 +40,6 @@ class TestDbndAirflowHandler(object):
             lambda x, y: False,
         )
 
-        monkeypatch.setattr(
-            "dbnd_airflow.tracking.dbnd_airflow_handler.get_dbnd_project_config",
-            self.mock_project_config,
-        )
-
         # initial state
         assert dbnd_airflow_handler.dbnd_context is None
         assert dbnd_airflow_handler.in_memory_log_manager is None
@@ -92,5 +87,5 @@ class TestDbndAirflowHandler(object):
 
     def mock_project_config(self):
         proj_conf = Mock()
-        proj_conf.is_tracking_mode.return_value = True
+        proj_conf.is_inplace_tracking_mode.return_value = True
         return proj_conf

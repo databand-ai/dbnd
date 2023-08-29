@@ -7,6 +7,7 @@ import os
 
 from distutils.dir_util import copy_tree
 
+from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._vendor import click
 from dbnd_run.utils.dbnd_run_module import get_dbnd_run_conf_file
@@ -22,10 +23,12 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def project_init(ctx, overwrite, dbnd_home, dbnd_system):
     """Initialize the project structure"""
-
     dbnd_bootstrap(enable_dbnd_run=True)
 
     from dbnd._core.errors import DatabandSystemError
+
+    if not dbnd_home:
+        dbnd_home = get_dbnd_project_config().dbnd_home()
 
     os.environ["SKIP_DAGS_PARSING"] = "True"  # Exclude airflow dag examples
 

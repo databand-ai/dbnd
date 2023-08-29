@@ -13,6 +13,7 @@ from dbnd._core.utils.basics.signal_utils import register_graceful_sigterm
 from dbnd._core.utils.platform.osx_compatible.requests_in_forked_process import (
     enable_osx_forked_request_calls,
 )
+from dbnd_run.airflow.airflow_env import _initialize_airflow_home
 
 
 def _surpress_loggers():
@@ -84,6 +85,8 @@ def dbnd_bootstrap_orchestration():
     try:
         _dbnd_bootstrap_orchestration_status = "loading"
         from dbnd import dbnd_config
+
+        _initialize_airflow_home()
 
         _dbnd_bootstrap_plugins()
 

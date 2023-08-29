@@ -36,11 +36,13 @@ patch_dict = {
     "AIRFLOW_CTX_DAG_ID": FULL_DAG_NAME,
     "AIRFLOW_CTX_TASK_ID": fake_task_inside_dag.__name__,
     "AIRFLOW_CTX_EXECUTION_DATE": "2020-04-06T14:25:00",
+    "DBND__TRACKING": "True",
 }
 
 
 @fixture
 def with_airflow_tracking_env():
+    # we might abuse usage of some flags (like unittest mode)
     dbnd._core.configuration.environ_config.reset_dbnd_project_config()
 
     try:

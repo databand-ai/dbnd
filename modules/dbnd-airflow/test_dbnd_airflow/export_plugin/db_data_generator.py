@@ -32,6 +32,7 @@ class FakeTaskInstance(object):
     task_id = attr.ib(default=None)  # type: str
     execution_date = attr.ib(default=None)  # type: datetime
     task = attr.ib(default=None)  # type: FakeTask
+    map_index = attr.ib(default=None)  # airflow 2.3+
 
 
 @provide_session

@@ -6,6 +6,7 @@ import sys
 from logging.config import dictConfig
 from typing import Optional
 
+from dbnd._core.log import dbnd_log_debug, dbnd_log_init_msg
 from dbnd._core.log.logging_utils import setup_log_file
 
 
@@ -83,8 +84,9 @@ def get_sentry_logging_config(sentry_url, sentry_env):
 def configure_logging_dictConfig(dict_config):
     try:
         dictConfig(dict_config)
-    except Exception:
-        logging.exception("Unable to configure logging using %s!", dict_config)
+    except Exception as ex:
+        dbnd_log_init_msg("Failed to initialize logging: %s" % ex)
+        logging.exception("Failed to initialize logging: %s!", dict_config)
         raise
 
 
@@ -93,3 +95,4 @@ def configure_basic_logging(log_file=None):
     Simple databand logging, called from main and other commands
     """
     configure_logging_dictConfig(basic_logging_config(filename=log_file))
+    dbnd_log_debug("Basic logging is initialized: file=%s" % log_file)

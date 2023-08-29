@@ -6,6 +6,7 @@ import typing
 
 from typing import Optional
 
+from dbnd._core.configuration.environ_config import is_inplace_tracking_mode
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import try_get_current_task_run
 
@@ -29,11 +30,11 @@ def try_get_or_create_task_run():
     if tra_uid:
         return _get_task_run_mock(tra_uid)
 
-    from dbnd._core.tracking.script_tracking_manager import (
-        try_get_inplace_tracking_task_run,
-    )
+    if is_inplace_tracking_mode():
+        from dbnd._core.tracking.script_tracking_manager import dbnd_tracking_start
 
-    return try_get_inplace_tracking_task_run()
+        return dbnd_tracking_start()
+    return None
 
 
 def _get_task_run_mock(tra_uid):

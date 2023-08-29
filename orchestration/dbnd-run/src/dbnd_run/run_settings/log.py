@@ -9,7 +9,6 @@ import sys
 from logging.config import DictConfigurator
 from typing import Callable, List, Optional
 
-from dbnd._core.configuration.environ_config import in_quiet_mode
 from dbnd._core.log.config import configure_logging_dictConfig
 from dbnd._core.log.logging_utils import (
     find_handler,
@@ -118,10 +117,7 @@ class RunLoggingConfig(config.Config):
 
     def get_dbnd_logging_config(self, filename=None):
         if self.custom_dict_config:
-            if not in_quiet_mode():
-                logger.info("Using user provided logging config")
-
-            self.log_debug("Using log.custom_dict_config")
+            logger.info("Using user provided logging config")
             return self.settings.log.custom_dict_config()
 
         return self.get_dbnd_logging_config_base(filename=filename)

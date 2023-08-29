@@ -4,25 +4,33 @@ import logging
 
 from contextlib import contextmanager
 from itertools import islice
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from dbnd import config, get_dbnd_project_config, log_metric, log_metrics
+from dbnd import config, dbnd_bootstrap, log_metric, log_metrics
+from dbnd._core.configuration.environ_config import is_dbnd_disabled
 from dbnd._core.constants import TaskRunState
-from dbnd._core.errors.errors_utils import log_exception
 from dbnd._core.log.dbnd_log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
 from dbnd._core.tracking.managers.callable_tracking import _log_result
 from dbnd._core.tracking.script_tracking_manager import (
-    dbnd_airflow_tracking_start,
     dbnd_tracking_stop,
+    tracking_start_base,
 )
 from dbnd._core.utils.basics.environ_utils import env
 from dbnd._core.utils.basics.nested_context import safe_nested
 from dbnd_airflow.raw_constants import MONITOR_DAG_NAME
 from dbnd_airflow.tracking.config import AirflowTrackingConfig
-from dbnd_airflow.tracking.dbnd_airflow_conf import get_tracking_information, get_xcoms
+from dbnd_airflow.tracking.dbnd_airflow_conf import (
+    AIRFLOW_MONITOR_CONFIG_NAME,
+    IS_SYNC_ENABLED_TRACKING_CONFIG_NAME,
+    get_dbnd_config_dict_from_airflow_connections,
+    get_sync_status_and_tracking_dag_ids_from_dbnd_conf,
+    get_tracking_information,
+    get_xcoms,
+    set_dbnd_config_from_airflow_connections,
+)
 from dbnd_airflow.tracking.wrap_operators import (
     get_airflow_operator_handlers_config,
     wrap_operator_with_tracking_info,
@@ -31,42 +39,6 @@ from dbnd_airflow.utils import get_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
-
-AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
-DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
-IS_SYNC_ENABLED_TRACKING_CONFIG_NAME = "is_sync_enabled"
-
-
-def get_tracking_dag_ids_from_airflow_json():
-    try:
-        from dbnd_airflow.tracking.dbnd_airflow_conf import (
-            get_dbnd_json_config_from_airflow_connections,
-        )
-
-        json = get_dbnd_json_config_from_airflow_connections()
-        if json:
-            monitor_config = json.get(AIRFLOW_MONITOR_CONFIG_NAME, None)
-            if monitor_config:
-                is_sync_enabled = monitor_config.get(
-                    IS_SYNC_ENABLED_TRACKING_CONFIG_NAME, True
-                )
-                if not is_sync_enabled:
-                    return []
-                dag_ids_config = monitor_config.get(
-                    DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
-                )
-
-                if dag_ids_config and isinstance(dag_ids_config, str):
-                    return dag_ids_config.split(",")
-
-                if dag_ids_config and isinstance(dag_ids_config, list):
-                    return dag_ids_config
-        return None
-    except Exception as e:
-        log_exception(
-            "exception caught while running on dbnd new execute {}".format(e), e
-        )
-        return None
 
 
 def is_monitor_dag(dag_id):
@@ -81,9 +53,8 @@ def is_subdag_eligible_for_tracking(dag_id, tracking_list):
     return False
 
 
-def is_dag_eligable_for_tracking(dag_id):
+def is_dag_eligable_for_tracking(dag_id, tracking_list):
     # If return value is None, we track all dags. If it's empty list - we don't track anything.
-    tracking_list = get_tracking_dag_ids_from_airflow_json()
     return (
         tracking_list is None
         or dag_id in tracking_list
@@ -92,7 +63,57 @@ def is_dag_eligable_for_tracking(dag_id):
     )
 
 
-def new_execute(context):
+def _try_to_start_airflow_operator_tracking(context):
+    dbnd_log_debug("Running tracked .execute")
+
+    if is_dbnd_disabled():
+        dbnd_log_debug("Databand is disabled via project config.")
+        # we are not tracking if dbnd is disabled
+        return None
+
+    copied_operator = context["task_instance"].task
+    # import pydevd_pycharm
+    # pydevd_pycharm.settrace('localhost', port=8787, stdoutToServer=True, stderrToServer=True)
+
+    dbnd_log_debug(
+        "Running tracked .execute for %s (%s)",
+        copied_operator.task_id,
+        f"{copied_operator.__class__.__module__}.{copied_operator.__class__.__qualname__}",
+    )
+
+    dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
+    sync_enabled, tracking_list = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
+        dbnd_config_from_connection
+    )
+    if not sync_enabled:
+        dbnd_log_debug(
+            f"DBND Tracking is disabled via Airflow connection`dbnd_config`"
+            f" (at {AIRFLOW_MONITOR_CONFIG_NAME}.{IS_SYNC_ENABLED_TRACKING_CONFIG_NAME} ("
+        )
+        return None
+
+    if not is_dag_eligable_for_tracking(
+        context["task_instance"].dag_id, tracking_list=tracking_list
+    ):
+        dbnd_log_debug("DAG id is not tracked %s", context["task_instance"].dag_id)
+        return None
+
+    # Only here we kinda know that we will start tracking
+
+    dbnd_bootstrap()
+
+    # Set Databand config from Extra section in Airflow dbnd_config connection.
+    set_dbnd_config_from_airflow_connections(
+        dbnd_config_from_connection=dbnd_config_from_connection
+    )
+
+    task_context = extract_airflow_task_context(context)
+    # start operator execute run with current airflow context
+    task_run: Optional[TaskRun] = tracking_start_base(airflow_context=task_context)
+    return task_run
+
+
+def execute_with_dbnd_tracking(context):
     """
     This function replaces the operator's original `execute` function
     """
@@ -104,36 +125,19 @@ def new_execute(context):
     # pre_execute, execute, etc..).
     copied_operator = context["task_instance"].task
 
-    if not is_dag_eligable_for_tracking(context["task_instance"].dag_id):
-        dbnd_log_debug("DAG id is not tracked %s", context["task_instance"].dag_id)
+    dbnd_tracking_task_run = False
+    try:
+        dbnd_tracking_task_run = _try_to_start_airflow_operator_tracking(context)
+    except Exception as e:
+        dbnd_log_exception(
+            "Exception caught while starting DBND tracking: {}".format(e)
+        )
+
+    if not dbnd_tracking_task_run:
+
         execute = get_execute_function(copied_operator)
         result = execute(copied_operator, context)
         return result
-
-    # import pydevd_pycharm
-    # pydevd_pycharm.settrace('localhost', port=8787, stdoutToServer=True, stderrToServer=True)
-
-    try:
-        dbnd_log_debug(
-            "Running tracked .execute for %s (%s)",
-            copied_operator.task_id,
-            f"{copied_operator.__class__.__module__}.{copied_operator.__class__.__qualname__}",
-        )
-
-        # Set that we are in Airflow tracking mode
-        get_dbnd_project_config().set_is_airflow_runtime()
-
-        task_context = extract_airflow_context(context)
-        # start operator execute run with current airflow context
-        task_run = dbnd_airflow_tracking_start(
-            airflow_context=task_context
-        )  # type: Optional[TaskRun]
-
-    except Exception as e:
-        task_run = None
-        dbnd_log_exception(
-            "exception caught while running on dbnd new execute {}".format(e)
-        )
 
     from airflow.exceptions import AirflowRescheduleException
 
@@ -141,7 +145,7 @@ def new_execute(context):
     try:
         operator_config = getattr(copied_operator, "dbnd_config", {})
         with config(operator_config, "airflow_operator_definition"):
-            with af_tracking_context(task_run, context, copied_operator):
+            with af_tracking_context(dbnd_tracking_task_run, context, copied_operator):
                 execute = get_execute_function(copied_operator)
                 result = execute(copied_operator, context)
 
@@ -151,15 +155,19 @@ def new_execute(context):
         raise
     # catch if the original execute failed
     except Exception as ex:
-        if task_run:
-            error = TaskRunError.build_from_ex(ex, task_run)
-            task_run.set_task_run_state(state=TaskRunState.FAILED, error=error)
+        try:
+            error = TaskRunError.build_from_ex(ex, dbnd_tracking_task_run)
+            dbnd_tracking_task_run.set_task_run_state(
+                state=TaskRunState.FAILED, error=error
+            )
+        except Exception:
+            dbnd_log_exception("Failed to save failed state for the task")
 
         dbnd_tracking_stop()
         raise
 
     # if we have a task run here we want to log results and xcoms
-    if task_run:
+    if dbnd_tracking_task_run:
         try:
             track_config = AirflowTrackingConfig.from_databand_context()
             if track_config.track_xcom_values:
@@ -169,7 +177,10 @@ def new_execute(context):
             if track_config.track_airflow_execute_result:
                 # reporting the result
                 log_operator_result(
-                    task_run, result, copied_operator, track_config.track_xcom_values
+                    dbnd_tracking_task_run,
+                    result,
+                    copied_operator,
+                    track_config.track_xcom_values,
                 )
 
         except Exception as e:
@@ -234,11 +245,11 @@ def af_tracking_context(task_run, airflow_context, operator):
         yield
 
 
-def new_execute_for_class(self, context):
+def execute_with_dbnd_tracking_for_class(self, context):
     """
     Different wrapper for operator's class
     """
-    return new_execute(context)
+    return execute_with_dbnd_tracking(context)
 
 
 def track_operator(operator):
@@ -264,7 +275,7 @@ def track_operator(operator):
         # this is the first time we encounter this class so we mark it
         operator._tracked_class = operator.__name__
         operator.__execute__ = operator.execute
-        operator.execute = new_execute_for_class
+        operator.execute = execute_with_dbnd_tracking_for_class
         return operator
 
     else:
@@ -286,7 +297,7 @@ def track_operator(operator):
             # this can be a problem when the operator class doesn't implement it's own execute
             operator.__execute__ = operator.__class__.execute
 
-        operator.execute = new_execute
+        operator.execute = execute_with_dbnd_tracking
 
     return operator
 
@@ -304,8 +315,9 @@ def get_execute_function(copied_operator):
     raise AttributeError("tracked failed to run original operator.execute")
 
 
-def extract_airflow_context(airflow_context):
-    # type: (dict[str, Any]) -> Optional[AirflowTaskContext]
+def extract_airflow_task_context(
+    airflow_context: Dict[str, Any]
+) -> Optional[AirflowTaskContext]:
     """Create AirflowTaskContext for airflow_context dict"""
 
     task_instance = airflow_context.get("task_instance")

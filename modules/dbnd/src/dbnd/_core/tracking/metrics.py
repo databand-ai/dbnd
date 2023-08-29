@@ -25,13 +25,10 @@ if typing.TYPE_CHECKING:
     import pyspark.sql as spark
 
     from dbnd_postgres.postgres_values import PostgresTable
-    from dbnd_snowflake.snowflake_values import SnowflakeTable
 
 logger = logging.getLogger(__name__)
 
-TRACKER_MISSING_MESSAGE = (
-    "Can't report %s because no tracker was found (did you use dbnd_tracking?)"
-)
+TRACKER_MISSING_MESSAGE = "Can't report %s because no tracker was found (did you use `with dbnd_tracking()` or `export DBND__TRACKING=True`?)"
 
 
 def _get_tracker():
@@ -50,7 +47,7 @@ def _get_tracker():
 
 def log_data(
     key,  # type: str
-    value=None,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable, SnowflakeTable]
+    value=None,  # type: Union[pd.DataFrame, spark.DataFrame, PostgresTable]
     path=None,  # type: Optional[str]
     operation_type=DbndTargetOperationType.read,  # type: DbndTargetOperationType
     with_preview=None,  # type: Optional[bool]

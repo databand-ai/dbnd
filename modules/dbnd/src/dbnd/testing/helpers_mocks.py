@@ -16,8 +16,7 @@ from dbnd._core.utils.timezone import utcnow
 @pytest.fixture
 def set_tracking_context():
     try:
-        reset_dbnd_project_config()
-        get_dbnd_project_config()._dbnd_tracking = True
+        get_dbnd_project_config()._dbnd_inplace_tracking = True
         yield
     finally:
         dbnd_tracking_stop()
@@ -30,8 +29,6 @@ def set_airflow_context():
         "dbnd._core.tracking.airflow_dag_inplace_tracking.try_get_airflow_context"
     ) as m:
         try:
-            reset_dbnd_project_config()
-
             m.return_value = AirflowTaskContext(
                 dag_id="test_dag",
                 task_id="test_task",
@@ -41,4 +38,3 @@ def set_airflow_context():
         finally:
             # ensure dbnd_run_stop() is called (normally should happen on exit() )
             dbnd_tracking_stop()
-            reset_dbnd_project_config()

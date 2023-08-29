@@ -25,7 +25,6 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND__TRACKING,
     ENV_DBND_ENV,
     ENV_DBND_USER,
-    get_dbnd_project_config,
 )
 from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandConfigError
@@ -566,8 +565,9 @@ class KubernetesEngineConfig(ContainerEngineConfig):
             "DBND__RUN_INFO__SOURCE_VERSION"
         ] = task_run.run.context.task_run_env.user_code_version
         env_vars["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
-        if not get_dbnd_project_config().is_tracking_mode():
-            env_vars[ENV_DBND__TRACKING] = "False"
+
+        # let's explicitly disable tracking
+        env_vars[ENV_DBND__TRACKING] = "False"
         # we want that all next runs will be able to use the image that we have in our configuration
 
         env_vars.update(
@@ -735,8 +735,7 @@ class KubernetesEngineConfig(ContainerEngineConfig):
     # TODO: [#2] add them in-place?
     def apply_env_vars_to_pod(self, pod):
         pod.envs["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
-        if not get_dbnd_project_config().is_tracking_mode():
-            pod.envs[ENV_DBND__TRACKING] = "False"
+        pod.envs[ENV_DBND__TRACKING] = "False"
 
 
 def readable_pod_request(pod_req):

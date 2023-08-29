@@ -8,6 +8,7 @@ from functools import wraps
 
 import dbnd
 
+from dbnd._core.log import dbnd_log_exception
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -22,7 +23,11 @@ def log_exception_to_server(exception=None, source="tracking-sdk"):
     try:
         from dbnd._core.current import get_databand_context
 
-        client = get_databand_context().databand_api_client
+        databand_context = get_databand_context()
+        if not databand_context:
+            return
+
+        client = databand_context.databand_api_client
         if client is None or not client.is_configured():
             return
 
@@ -44,7 +49,7 @@ def log_exception_to_server(exception=None, source="tracking-sdk"):
         }
         return client.api_request(endpoint="log_exception", method="POST", data=data)
     except Exception:  # noqa
-        logger.debug("Error sending monitoring exception message", exc_info=True)
+        dbnd_log_exception("Error sending monitoring exception message", exc_info=True)
 
 
 def capture_tracking_exception(f):

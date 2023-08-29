@@ -12,7 +12,8 @@ from dbnd._core.configuration.environ_config import (
     DBND_ROOT_RUN_UID,
     DBND_TRACE_ID,
 )
-from dbnd._core.log import dbnd_log_debug
+from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
+from dbnd._core.log.dbnd_log import dbnd_log_info
 from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd._core.utils.trace import get_tracing_id
 from dbnd_airflow.tracking.config import TrackingSparkConfig
@@ -127,7 +128,7 @@ def get_xcoms(task_instance):
     return [(xcom.key, xcom.value) for xcom in results]
 
 
-def get_dbnd_json_config_from_airflow_connections():
+def get_dbnd_config_dict_from_airflow_connections():
     """
     Set Databand config from Extra section in Airflow dbnd_config connection.
     Read about setting DBND Connection at: https://dbnd.readme.io/docs/setting-up-configurations-using-airflow-connections
@@ -139,6 +140,19 @@ def get_dbnd_json_config_from_airflow_connections():
     try:
         # Get connection from Airflow
         dbnd_conn_config = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
+        dbnd_log_info(
+            "Configuration received from airflow '%s' connection."
+            % DATABAND_AIRFLOW_CONN_ID
+        )
+    except AirflowException as afe:
+        # Probably dbnd_config is not set properly in Airflow connections.
+        dbnd_log_info("Did you setup dbnd_config connection? %s" % str(afe))
+        return None
+    except Exception:
+        dbnd_log_exception("Failed to extract dbnd config from airflow's connection.")
+        return None
+
+    try:
         json_config = dbnd_conn_config.extra_dejson
         if json_config:
             if dbnd_conn_config.password:
@@ -155,7 +169,7 @@ def get_dbnd_json_config_from_airflow_connections():
 
         if dbnd_conn_config.extra:
             # Airflow failed to parse extra config as json
-            logger.error(
+            dbnd_log_exception(
                 "Extra config for {0} connection, should be formated as a valid json.".format(
                     DATABAND_AIRFLOW_CONN_ID
                 )
@@ -163,7 +177,7 @@ def get_dbnd_json_config_from_airflow_connections():
 
         else:
             # Extra section in connection is empty
-            logger.warning(
+            dbnd_log_exception(
                 "No extra config provided to {0} connection.".format(
                     DATABAND_AIRFLOW_CONN_ID
                 )
@@ -173,35 +187,66 @@ def get_dbnd_json_config_from_airflow_connections():
 
     except AirflowException as afe:
         # Probably dbnd_config is not set properly in Airflow connections.
-        logger.info(afe)
+        dbnd_log_exception(
+            "Failed to parse '%s' connection:  %s"
+            % (DATABAND_AIRFLOW_CONN_ID, str(afe))
+        )
         return None
     except Exception:
-        logger.exception("Failed to extract dbnd config from airflow's connection.")
+        dbnd_log_exception("Failed to extract dbnd config from airflow's connection.")
         return None
 
 
-def set_dbnd_config_from_airflow_connections():
+def set_dbnd_config_from_airflow_connections(dbnd_config_from_connection):
     from dbnd._core.configuration.dbnd_config import config
 
     all_config_layers_names = set(
         [layer.name for layer in config.config_layer.get_all_layers()]
     )
 
-    if AIRFLOW_DBND_CONNECTION_SOURCE not in all_config_layers_names:
-        json_config = get_dbnd_json_config_from_airflow_connections()
-        if not json_config:
-            return False
-
-        from dbnd._core.configuration.config_value import ConfigValuePriority
-
-        config.set_values(
-            config_values=json_config,
-            priority=ConfigValuePriority.NORMAL,
-            source=AIRFLOW_DBND_CONNECTION_SOURCE,
+    if AIRFLOW_DBND_CONNECTION_SOURCE in all_config_layers_names:
+        dbnd_log_debug(
+            f"Config from Airflow `{DATABAND_AIRFLOW_CONN_ID}` connection have been applied already."
         )
-        logger.debug(
-            "Databand config was set using {0} connection.".format(
-                DATABAND_AIRFLOW_CONN_ID
-            )
-        )
+        return False
+
+    from dbnd._core.configuration.config_value import ConfigValuePriority
+
+    config.set_values(
+        config_values=dbnd_config_from_connection,
+        priority=ConfigValuePriority.NORMAL,
+        source=AIRFLOW_DBND_CONNECTION_SOURCE,
+    )
+    dbnd_log_debug(
+        f"Config from Airflow connection {DATABAND_AIRFLOW_CONN_ID}  has been set."
+    )
     return True
+
+
+IS_SYNC_ENABLED_TRACKING_CONFIG_NAME = "is_sync_enabled"
+DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
+AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
+
+
+def get_sync_status_and_tracking_dag_ids_from_dbnd_conf(dbnd_config_from_connection):
+    try:
+
+        if not dbnd_config_from_connection:
+            return True, None
+        monitor_config = dbnd_config_from_connection.get(
+            AIRFLOW_MONITOR_CONFIG_NAME, None
+        )
+        if not monitor_config:
+            return True, None
+
+        is_sync_enabled = monitor_config.get(IS_SYNC_ENABLED_TRACKING_CONFIG_NAME, True)
+
+        dag_ids_config = monitor_config.get(DAG_IDS_FOR_TRACKING_CONFIG_NAME, None)
+
+        if dag_ids_config and isinstance(dag_ids_config, str):
+            dag_ids_config = dag_ids_config.split(",")
+
+        return is_sync_enabled, dag_ids_config
+    except Exception as e:
+        dbnd_log_exception("Can't parse  {}".format(e), e)
+        return False, None

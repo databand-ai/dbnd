@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import logging
 import os
 
-from dbnd._core.configuration.environ_config import in_quiet_mode
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.utils.object_utils import patch_module_attr
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 from dbnd_run.errors.versioned_dagbag import failed_to_load_versioned_dagbag_plugin
@@ -58,8 +58,7 @@ def _use_databand_airflow_dagbag(app, views):
 
 
 def patch_airflow_create_app():
-    if not in_quiet_mode():
-        logger.debug("Adding support for versioned DBND DagBag")
+    dbnd_log_debug("Adding support for versioned DBND DagBag")
 
     def patch_create_app_in_module(web_module):
         original_create_app_func = web_module.create_app

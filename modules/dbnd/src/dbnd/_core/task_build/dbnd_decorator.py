@@ -5,7 +5,7 @@ import typing
 
 import six
 
-from dbnd._core.configuration.environ_config import is_databand_enabled
+from dbnd._core.configuration.environ_config import is_dbnd_disabled
 from dbnd._core.context.use_dbnd_run import is_dbnd_run_package_installed
 from dbnd._core.parameter.parameter_builder import parameter
 from dbnd._core.task_build.task_decorator import (
@@ -92,7 +92,7 @@ data_source_pipeline = pipeline
 def build_task_decorator(*decorator_args, **decorator_kwargs):
     # this code creates a new decorator that can be applied on any User Code
 
-    if not is_databand_enabled():
+    if is_dbnd_disabled():
         # simple `@task` decorator, no options were (probably) given.
         if len(decorator_args) == 1 and callable(decorator_args[0]):
             return decorator_args[0]

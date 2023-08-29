@@ -16,6 +16,7 @@ from dbnd._core.configuration.environ_config import tracking_mode_context
 from dbnd._core.configuration.pprint_config import pformat_config_store_as_table
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.log.config import configure_basic_logging
+from dbnd._core.log.dbnd_log import set_verbose
 from dbnd._core.task_build.task_registry import get_task_registry
 from dbnd._core.tracking.schemas.tracking_info_run import ScheduledRunInfo
 from dbnd._core.utils.click_tzdatetime import TZAwareDateTime
@@ -208,6 +209,9 @@ def cmd_run(
     To see all available tasks use `dbnd show-tasks` (tab completion is available).
     `dbnd show-configs` will print all available configs.
     """
+    if verbose:
+        set_verbose()
+
     # double checking on bootstrap, as we can run from all kind of locations
     # usually we should be bootstraped already as we run from cli.
     dbnd_bootstrap(enable_dbnd_run=True)

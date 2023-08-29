@@ -31,6 +31,11 @@ def set_on(env_key):
     os.environ[env_key] = "True"
 
 
+def set_off(env_key):
+    if env_key in os.environ:
+        del os.environ[env_key]
+
+
 def set_env_dir(key, value):
     key = key.upper()
     if key not in os.environ:

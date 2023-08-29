@@ -63,6 +63,7 @@ def setup_unittest_airflow():
 
     # init db first
     subprocess_airflow_initdb()
+    logger.info("Airflow DB has been initialized")
 
     # now reconnnect
     from dbnd_airflow.testing.airflow_config import reinit_airflow_sql_conn

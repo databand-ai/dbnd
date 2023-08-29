@@ -18,6 +18,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import UpdateSource
 from dbnd._core.current import get_settings
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_passport import TaskPassport
 from dbnd._core.task_build.task_source_code import NO_SOURCE_CODE, TaskSourceCode
@@ -44,20 +45,16 @@ DAG_SPECIAL_TASK_ID = "DAG"
 def try_get_airflow_context():
     # type: ()-> Optional[AirflowTaskContext]
     # first try to get from spark, then from call stack and then from airflow env
-    try:
-        for func in [
-            try_get_airflow_context_from_spark_conf,
-            try_get_airflow_context_env,
-        ]:
+    for func in [try_get_airflow_context_from_spark_conf, try_get_airflow_context_env]:
+        try:
             context = func()
             if context:
+                dbnd_log_debug(
+                    f"Found airflow context via { func.__name__ }  : {context} "
+                )
                 return context
-            else:
-                msg = func.__name__.replace("_", " ").replace("try", "couldn't")
-                logger.debug(msg)
-
-    except Exception:
-        return None
+        except Exception as ex:
+            dbnd_log_debug(f"Failed to find context  { func.__name__ }  : {ex} ")
 
 
 def try_get_airflow_context_env():

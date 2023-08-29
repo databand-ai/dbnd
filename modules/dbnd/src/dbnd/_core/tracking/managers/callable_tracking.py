@@ -9,6 +9,7 @@ from typing import Any, Dict, Tuple
 import attr
 
 from dbnd._core.configuration import get_dbnd_project_config
+from dbnd._core.configuration.environ_config import is_inplace_tracking_mode
 from dbnd._core.constants import (
     RESULT_PARAM,
     DbndTargetOperationStatus,
@@ -17,6 +18,7 @@ from dbnd._core.constants import (
 )
 from dbnd._core.current import get_databand_run, is_verbose, try_get_current_task_run
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.log.external_exception_logging import log_exception_to_server
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.parameter.parameter_value import ParameterFilters
@@ -89,6 +91,7 @@ class CallableTrackingManager(object):
 
     @contextlib.contextmanager
     def tracking_context(self, call_args, call_kwargs):
+        dbnd_log_debug("Creating tracking context for '%s'" % self.callable)
         user_code_called = False  # whether we got to executing of user code
         user_code_finished = False  # whether we passed executing of user code
         func_call = None
@@ -100,19 +103,20 @@ class CallableTrackingManager(object):
 
             # 2. Start or reuse existing "main tracking task" that is root for tracked tasks
             parent_task_run = try_get_current_task_run()
-            if not parent_task_run:
+            if not parent_task_run and is_inplace_tracking_mode():
                 """
                 try to get existing task, and if not exists - try to get/create inplace_task_run
                 """
                 from dbnd._core.tracking.script_tracking_manager import (
-                    try_get_inplace_tracking_task_run,
+                    dbnd_tracking_start,
                 )
 
-                parent_task_run = try_get_inplace_tracking_task_run()
-                if not parent_task_run:
-                    # we didn't manage to start inplace tracking task run, we will not be able to track
-                    yield _do_nothing_decorator
-                    return
+                parent_task_run = dbnd_tracking_start()
+
+            if not parent_task_run:
+                # we didn't manage to start inplace tracking task run, we will not be able to track
+                yield _do_nothing_decorator
+                return
 
             tracking_task_definition = self.get_tracking_task_definition()
             callable_spec = tracking_task_definition.task_decorator.get_callable_spec()

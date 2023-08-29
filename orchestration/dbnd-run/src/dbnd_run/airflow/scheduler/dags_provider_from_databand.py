@@ -10,10 +10,7 @@ from airflow.settings import TIMEZONE as AIRFLOW_TIMEZONE
 
 from dbnd import set_orchestration_mode
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import (
-    ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD,
-    in_quiet_mode,
-)
+from dbnd._core.configuration.environ_config import ENV_DBND_DISABLE_SCHEDULED_DAGS_LOAD
 from dbnd._core.utils.basics.environ_utils import environ_enabled
 from dbnd._core.utils.string_utils import clean_job_name
 from dbnd._core.utils.timezone import convert_to_utc
@@ -123,8 +120,7 @@ def get_dags_from_databand(
             default_retries=default_retries, custom_operator_class=custom_operator_class
         ).get_dags(partition=partition)
 
-        if not in_quiet_mode():
-            logger.info("providing %s dags from scheduled jobs" % len(dags))
+        logger.info("providing %s dags from scheduled jobs" % len(dags))
         return {dag.dag_id: dag for dag in dags}
     except (DatabandConnectionException, DatabandApiError) as e:
         logger.error(str(e))

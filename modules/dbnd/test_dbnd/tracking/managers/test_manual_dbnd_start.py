@@ -33,7 +33,7 @@ class MyClass:
 def run_dbnd_subprocess__current_file(args, **kwargs):
     args = args or []
     env = os.environ.copy()
-    env["DBND__CORE__TRACKER"] = "[  'console']"
+    env["DBND__CORE__TRACKER"] = "['console']"
     env["DBND__CORE__TRACKER_API"] = "web"
     env["DBND__VERBOSE"] = "True"
     return run_dbnd_subprocess(
@@ -51,7 +51,7 @@ class TestManualDbndStart(object):
     expected_task_names = (("f1", 1), ("f2", 3))
 
     def test_manual_dbnd_start(self, set_verbose_mode):
-        result = run_dbnd_subprocess__current_file([USE_DBND_START])
+        result = run_dbnd_subprocess__current_file(args=[USE_DBND_START])
 
         for task_name, count in self.expected_task_names + ((self.auto_task_name, 1),):
             assert count == len(
@@ -122,9 +122,10 @@ def f1():
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
+    logging.basicConfig(level=logging.INFO)
     if USE_DBND_START in sys.argv:
-        dbnd_tracking_start(conf={"tracking": {"logger_dbnd_level": "INFO"}})
+        logging.info("Explicitly starting the tracking")
+        dbnd_tracking_start()
         dbnd_tracking_start()
 
     f1()

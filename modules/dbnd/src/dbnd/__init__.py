@@ -75,8 +75,6 @@ from dbnd._core.configuration.environ_config import (  # isort:skip
     get_dbnd_project_config,
 )
 
-get_dbnd_project_config().validate_init()  # isort:skip
-
 dbnd_config = config
 dbnd_config.__doc__ = """Defines a dictionary of configuration settings that you can pass to your tasks."""
 __all__ = [

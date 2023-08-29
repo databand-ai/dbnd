@@ -10,14 +10,19 @@ from typing import Optional
 
 import dbnd
 
-from dbnd import dbnd_bootstrap
 from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
-from dbnd._core.configuration.environ_config import try_get_script_name
+from dbnd._core.configuration.environ_config import (
+    disable_dbnd,
+    is_dbnd_disabled,
+    try_get_script_name,
+)
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
+from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
+from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
@@ -27,6 +32,7 @@ from dbnd._core.task_build.task_source_code import TaskSourceCode
 from dbnd._core.task_run.task_run import TaskRun
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd._core.tracking.airflow_dag_inplace_tracking import build_run_time_airflow_task
+from dbnd._core.tracking.airflow_task_context import AirflowTaskContext
 from dbnd._core.tracking.managers.callable_tracking import _handle_tracking_error
 from dbnd._core.tracking.schemas.tracking_info_run import RootRunInfo
 from dbnd._core.utils import seven
@@ -116,53 +122,19 @@ def _build_inline_root_task(root_task_name):
     return root_task
 
 
-def _set_dbnd_config_from_airflow_connections():
-    """Set Databand config from Extra section in Airflow dbnd_config connection."""
-    try:
-        from dbnd_airflow.tracking.dbnd_airflow_conf import (
-            set_dbnd_config_from_airflow_connections,
-        )
-
-        set_dbnd_config_from_airflow_connections()
-
-    except ImportError:
-        logger.info(
-            "dbnd_airflow is not installed. Config will not load from Airflow Connections"
-        )
-
-
-def has_level_handler(loggr: logging.Logger):
-    """Check if there is a handler in the logging chain that will handle the
-    given logger's :meth:`effective level <~logging.Logger.getEffectiveLevel>`.
-
-    Arguments:
-        loggr : the logger to inspect
-    """
-    level = loggr.getEffectiveLevel()
-    current = loggr
-
-    while current:
-        if any(handler.level <= level for handler in current.handlers):
-            return True
-
-        if not current.propagate:
-            break
-
-        current = current.parent
-
-    return False
-
-
 def _configure_dbnd_logger(logging_level):
-    dbnd_logger = logging.getLogger("dbnd")
-    if is_verbose() and logging_level == "WARNING":
-        logging_level = "INFO"
-    dbnd_logger.setLevel(logging_level)
     # we don't add any console handlers or anything else
     # it can have a conflict with existing system
     # moreover , we need to take into account that
     # user can initialize his logging system, after our code runs
     # most important, we need to prevent double prints.
+    if is_verbose() and logging_level == "WARNING":
+        logging_level = "INFO"
+        dbnd_log_debug("Setting dbnd logger level to INFO")
+
+    for dbnd_logger_name in ["dbnd", "dbnd_airflow"]:
+        dbnd_logger = logging.getLogger(dbnd_logger_name)
+        dbnd_logger.setLevel(logging_level)
 
 
 class _DbndScriptTrackingManager(object):
@@ -227,11 +199,19 @@ class _DbndScriptTrackingManager(object):
         if self._run or self._active or try_get_databand_run():
             return
 
-        # we probably should use only airlfow context via parameter.
-        # also, there are mocks that cover only get_dbnd_project_config().airflow_context
-        airflow_context = airflow_context or get_dbnd_project_config().airflow_context()
         if airflow_context:
-            _set_dbnd_config_from_airflow_connections()
+            dbnd_log_debug(
+                "Running tracking with Airflow Context from the call (airflow operator scenario)"
+            )
+        else:
+            # hanlde case when we run with in Airflow operator sub process (docker/process/spark call)
+            from dbnd._core.tracking.airflow_dag_inplace_tracking import (
+                try_get_airflow_context,
+            )
+
+            airflow_context = try_get_airflow_context()
+            if airflow_context:
+                dbnd_log_debug("Got airflow context from execution environment")
 
         _set_tracking_config_overide(airflow_context=airflow_context)
         dc = self._enter_cm(
@@ -300,10 +280,12 @@ class _DbndScriptTrackingManager(object):
         )
         self._task_run = run.root_task_run
 
-        if is_verbose():
+        if self._task_run.task_tracker_url:
             logger.info(
-                "Databand script tracking .start() is completed for %s", run.job_name
+                "DBND: Your run is tracked by DBND %s", self._task_run.task_tracker_url
             )
+        else:
+            logger.info("DBND: Your run is tracked by DBND")
 
         return self._task_run
 
@@ -358,58 +340,8 @@ class _DbndScriptTrackingManager(object):
 
 
 # API functions
-
-
-def try_get_inplace_tracking_task_run():
-    # type: ()->Optional[TaskRun]
-    if get_dbnd_project_config().is_tracking_mode():
-        return dbnd_tracking_start()
-
-
 # there can be only one tracking manager
 _dbnd_script_manager = None  # type: Optional[_DbndScriptTrackingManager]
-
-
-def tracking_start_base(job_name, project_name=None, airflow_context=None):
-    """
-    Starts handler for tracking the current running script.
-    Would not start a new one if script manager if already exists
-    """
-    dbnd_project_config = get_dbnd_project_config()
-    if dbnd_project_config.disabled:
-        # we are not tracking if dbnd is disabled
-        return None
-
-    global _dbnd_script_manager
-    if not _dbnd_script_manager:
-        # setting the context to tracking to prevent conflicts from dbnd orchestration
-        dbnd_project_config._dbnd_tracking = True
-
-        dsm = _DbndScriptTrackingManager()
-        try:
-            # we use job name for both job_name and root_task_name of the run
-            dsm.start(job_name, project_name, airflow_context)
-            if dsm._active:
-                _dbnd_script_manager = dsm
-
-        except Exception:
-            _handle_tracking_error("dbnd-tracking-start")
-
-            # disabling the project so we don't start any new handler in this execution
-            dbnd_project_config.disabled = True
-            return None
-
-    if _dbnd_script_manager and _dbnd_script_manager._active:
-        # this is the root task run of the tracking, its representing the script context.
-        return _dbnd_script_manager._task_run
-
-
-def dbnd_airflow_tracking_start(airflow_context):
-    """This function is meant to be used only from inside Airflow for Airflow tracking only."""
-    job_name = try_get_script_name()
-
-    dbnd_bootstrap()
-    return tracking_start_base(job_name=job_name, airflow_context=airflow_context)
 
 
 def dbnd_tracking_start(
@@ -426,35 +358,83 @@ def dbnd_tracking_start(
         project_name: Name of the project
         conf: Configuration dict with values for Databand configurations
     """
-    if not conf:
-        conf = {}
+    return tracking_start_base(
+        job_name=job_name, run_name=run_name, conf=conf, project_name=project_name
+    )
 
-    if run_name:
-        conf.setdefault("run_info", {}).setdefault("name", run_name)
 
-    # send logs to webserver by default
-    conf.setdefault("tracking", {}).setdefault("capture_tracking_log", True)
+def tracking_start_base(
+    job_name=None,
+    run_name=None,
+    project_name=None,
+    airflow_context: AirflowTaskContext = None,
+    conf=None,
+):
+    """
+    Starts handler for tracking the current running script.
+    Would not start a new one if script manager if already exists
+    """
+    if is_dbnd_disabled():
+        # we are not tracking if dbnd is disabled
+        # Airflow wrapping will run this code earlier
+        return None
 
-    # We use print here and not log because the dbnd logger might be set to Warning (by default), and we want to
-    # inform the user that we started, without alerting him with a Warning or Error message.
-    # This should be a logger info message when tracking and orchestration split.
-    print("Databand Tracking Started {version}".format(version=dbnd.__version__))
+    dbnd_project_config = get_dbnd_project_config()
+    global _dbnd_script_manager
+    if not _dbnd_script_manager:
+        # setting the context to tracking to prevent conflicts from dbnd orchestration
+        dbnd_project_config._dbnd_inplace_tracking = True
+        try:
+            # We use print here and not log because the dbnd logger might be set to Warning (by default), and we want to
+            # inform the user that we started, without alerting him with a Warning or Error message.
+            print(
+                "DBND: Starting Tracking with DBND({version})".format(
+                    version=dbnd.__version__
+                )
+            )
 
-    dbnd_bootstrap()
+            # we might executed this call before
+            dbnd_bootstrap()
 
-    if conf:
-        config.set_values(
-            config_values=conf,
-            priority=ConfigValuePriority.OVERRIDE,
-            source="dbnd_tracking_start",
-        )
+            dsm = _DbndScriptTrackingManager()
 
-    _configure_dbnd_logger(config.get("tracking", "logger_dbnd_level"))
+            if not conf:
+                conf = {}
 
-    if job_name is None:
-        job_name = try_get_script_name()
+            if run_name:
+                conf.setdefault("run_info", {}).setdefault("name", run_name)
 
-    return tracking_start_base(job_name=job_name, project_name=project_name)
+            if conf:
+                config.set_values(
+                    config_values=conf,
+                    priority=ConfigValuePriority.OVERRIDE,
+                    source="dbnd_tracking_start",
+                )
+
+            # _configure_dbnd_logger(config.get("tracking", "logger_dbnd_level"))
+
+            if job_name is None:
+                job_name = try_get_script_name()
+
+            dbnd_log_debug(
+                f"Starting _DbndScriptTrackingManager with job_name={job_name} project_name={project_name}"
+            )
+            # we use job name for both job_name and root_task_name of the run
+            dsm.start(job_name, project_name, airflow_context)
+            if dsm._active:
+                # everytghin is ok!
+                _dbnd_script_manager = dsm
+
+        except Exception:
+            _handle_tracking_error("dbnd-tracking-start")
+
+            # disabling the project so we don't start any new handler in this execution
+            disable_dbnd()
+            return None
+
+    if _dbnd_script_manager and _dbnd_script_manager._active:
+        # this is the root task run of the tracking, its representing the script context.
+        return _dbnd_script_manager._task_run
 
 
 def dbnd_tracking_stop(finalize_run=True):
@@ -466,12 +446,17 @@ def dbnd_tracking_stop(finalize_run=True):
     """
     global _dbnd_script_manager
     if _dbnd_script_manager:
-        _dbnd_script_manager.stop(finalize_run)
+        try:
+            _dbnd_script_manager.stop(finalize_run)
+        except Exception:
+
+            dbnd_log_exception("Failed to stop tracking.")
+
         _dbnd_script_manager = None
 
 
 def is_dbnd_tracking_active() -> bool:
-    return bool(_dbnd_script_manager)
+    return bool(_dbnd_script_manager) and _dbnd_script_manager._active
 
 
 @seven.contextlib.contextmanager
@@ -488,11 +473,10 @@ def dbnd_tracking(
         conf: Configuration dict with values for Databand configurations
     """
     try:
+        dbnd_log_debug("Running within dbnd_tracking() context")
         tr = dbnd_tracking_start(
             job_name=job_name, run_name=run_name, project_name=project_name, conf=conf
         )
-        if is_verbose() and tr:
-            logging.info("Databand Tracking %s via dbnd_tracking()", tr.job_name)
         yield tr
     finally:
         dbnd_tracking_stop()

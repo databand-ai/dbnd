@@ -24,7 +24,7 @@ setuptools.setup(
     extras_require=dict(
         tests=[
             # airflow 2.3 has a problem with pluggy <1.0, that makes pytest 4 incompatible
-            "pytest==6.2.4",
+            "pytest==6.2.5",
             "coverage==7.0.1",
             "pytest-cov==3.0.0",
             "boto3",

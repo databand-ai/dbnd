@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 import logging
 
+from dbnd._core.log import dbnd_log_exception
 from dbnd._core.utils.seven import contextlib
 
 
@@ -52,24 +53,14 @@ def safe_nested(*managers):
             try:
                 stack.enter_context(mgr)
             except Exception as e:
-                logger.error(
-                    f"Exception caught while wrapping contextmanager with safe_nested (on enter): {e}",
-                    exc_info=True,
-                )
-
+                dbnd_log_exception(f"Exception caught while entering {mgr}: {e}")
         try:
             yield
-        except Exception as e:
-            logger.error(
-                f"Exception caught while executing wrapped contextmanagers in safe_nested: {e}"
-            )
-            # Do not mute exception that occurs inside contextmanager code
-            raise
+
+        # Do not mute exception that occurs inside nested(user) code,
+        # do not capture exception here , and raise
         finally:
             try:
                 stack.close()
             except Exception as e:
-                logger.error(
-                    f"Exception caught while exiting wrapped contextmanagers: {e}",
-                    exc_info=True,
-                )
+                dbnd_log_exception(f"Exception caught while exiting: {e}")

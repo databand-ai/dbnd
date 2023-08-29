@@ -14,9 +14,9 @@ from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
 from dbnd._core.tracking.script_tracking_manager import (
-    dbnd_airflow_tracking_start,
     dbnd_tracking,
     dbnd_tracking_stop,
+    tracking_start_base,
 )
 from dbnd._core.utils.basics.environ_utils import env
 
@@ -119,7 +119,9 @@ def test_script_tracking():
 
 def test_tracking():
     af_context = af_context_w_context()
-    dbnd_airflow_tracking_start(airflow_context=af_context)
+    tracking_start_base(
+        job_name="job_namefor_test_tracking", airflow_context=af_context
+    )
     log_metric("test", "test_value")
     dbnd_tracking_stop()
 
