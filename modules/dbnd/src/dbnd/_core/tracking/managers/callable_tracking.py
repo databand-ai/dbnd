@@ -152,7 +152,7 @@ class CallableTrackingManager(object):
             task_run = run.build_task_run_and_track(task)
 
             should_capture_log = (
-                parent_task_run.run.context.settings.tracking.capture_tracking_log
+                parent_task_run.run.context.settings.tracking_log.capture_tracking_log
             )
             with task_run.task_run_track_execute(capture_log=should_capture_log):
                 task_run.set_task_run_state(state=TaskRunState.RUNNING)

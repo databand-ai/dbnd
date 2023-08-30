@@ -66,12 +66,7 @@ def _check_tracking_calls(mock_store, expected_tracking_calls_counter):
 
 @pytest.fixture
 def tracking_config():
-    with config(
-        {
-            "core": {"tracker": ["console", "debug"]},
-            "tracking": {"capture_tracking_log": True},
-        }
-    ):
+    with config({"core": {"tracker": ["console", "debug"]}}):
         yield
 
 

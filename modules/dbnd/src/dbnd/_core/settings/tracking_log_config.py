@@ -17,6 +17,11 @@ class TrackingLoggingConfig(config.Config):
 
     _conf__task_family = "log"
 
+    # user still need to enable preview_head_bytes/preview_tail_bytes
+    capture_tracking_log = parameter(
+        default=True, description="Enable log capturing for tracking tasks."
+    )[bool]
+
     preview_head_bytes = parameter(
         default=0,  # Disabled
         description="Determine the maximum head size of the log file, bytes to be sent to server.\n"
@@ -38,9 +43,6 @@ class TrackingLoggingConfig(config.Config):
 
     capture_stdout_stderr = parameter(
         description="Set if logger should retransmit all output written to stdout or stderr"
-    ).value(True)
-    capture_task_run_log = parameter.help(
-        "Enable capturing task output into log."
     ).value(True)
 
     formatter = parameter(

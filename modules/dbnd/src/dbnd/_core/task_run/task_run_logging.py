@@ -28,9 +28,13 @@ class TaskRunLogManager(TaskRunCtrl):
 
     @contextmanager
     def capture_task_log(self):
-
-        log_settings: TrackingLoggingConfig = self.dbnd_context.settings.tracking_log
-        if self._log_task_run_into_file_active or not log_settings.capture_task_run_log:
+        if self._log_task_run_into_file_active:
+            yield None
+            return
+        log_settings: TrackingLoggingConfig = self.settings.tracking_log
+        if not log_settings.capture_tracking_log or not (
+            log_settings.preview_head_bytes or log_settings.preview_head_bytes
+        ):  # nothing to upload:
             yield None
             return
 

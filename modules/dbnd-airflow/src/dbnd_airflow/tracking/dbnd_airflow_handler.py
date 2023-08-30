@@ -31,7 +31,7 @@ AIRFLOW_FILE_TASK_HANDLER = FileTaskHandler.__name__
 AIRFLOW_TASK_LOGGER = "airflow.task"
 
 
-class DbndAirflowHandler(logging.Handler):
+class DbndAirflowLogHandler(logging.Handler):
     """
     This is a logger handler that is used as an Entry Point to airflow run.
     It's injected to the Logger(name="airflow.task"), and used by entering the context on the beginning of the task
@@ -217,7 +217,7 @@ def add_dbnd_log_handler():
     """
     try:
         airflow_logger = logging.getLogger(AIRFLOW_TASK_LOGGER)
-        dbnd_handler = DbndAirflowHandler(logger=airflow_logger)
+        dbnd_handler = DbndAirflowLogHandler(logger=airflow_logger)
         airflow_logger.addHandler(dbnd_handler)
     except Exception:
         dbnd_log_exception("Failed to add dbnd log handler to airflow logger")

@@ -211,7 +211,7 @@ class TaskRunExecutor(_TaskRunExecutorCtrl):
         if handle_sigterm:
             ctx_managers.append(handle_sigterm_at_dbnd_task_run())
 
-        if self.run_executor.settings.tracking_log.capture_task_run_log:
+        if self.run_executor.run_settings.run_logging.capture_task_run_log:
             ctx_managers.append(self.log_manager.capture_task_log())
 
         ctx_managers.extend(pm.hook.dbnd_task_run_context(task_run=self.task_run))

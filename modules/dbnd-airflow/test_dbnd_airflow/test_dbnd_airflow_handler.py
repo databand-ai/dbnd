@@ -9,13 +9,15 @@ import pytest
 from airflow.models import TaskInstance
 from mock import Mock
 
-from dbnd_airflow.tracking.dbnd_airflow_handler import DbndAirflowHandler
+from dbnd_airflow.tracking.dbnd_airflow_handler import DbndAirflowLogHandler
 
 
 class TestDbndAirflowHandler(object):
     @pytest.fixture(scope="function")
     def dbnd_airflow_handler(self):
-        dbnd_airflow_handler = DbndAirflowHandler(logger=Mock(logging.getLoggerClass()))
+        dbnd_airflow_handler = DbndAirflowLogHandler(
+            logger=Mock(logging.getLoggerClass())
+        )
         return dbnd_airflow_handler
 
     @pytest.fixture(scope="function")

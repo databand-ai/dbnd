@@ -10,12 +10,12 @@ import six
 
 from dbnd import config, dbnd_tracking_stop, get_dbnd_project_config, log_metric, task
 from dbnd._core.constants import TaskRunState
+from dbnd._core.settings import TrackingLoggingConfig
 from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskDefinitionInfo,
     TaskRunInfo,
 )
 from dbnd._core.utils.timezone import utcnow
-from dbnd.testing.helpers_mocks import set_tracking_context
 from test_dbnd.tracking.tracking_helpers import get_call_args
 
 
@@ -101,7 +101,12 @@ def set_tracking_context():
     try:
         get_dbnd_project_config()._dbnd_inplace_tracking = True
 
-        with config({"tracking": {"capture_tracking_log": True}}):
+        with config(
+            {
+                TrackingLoggingConfig.preview_tail_bytes: 15000,
+                TrackingLoggingConfig.preview_head_bytes: 15000,
+            }
+        ):
             yield
     finally:
         dbnd_tracking_stop()

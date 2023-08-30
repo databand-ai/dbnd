@@ -91,6 +91,10 @@ class RunLoggingConfig(config.Config):
     at_warn = parameter.help("Set name of loggers to put in WARNING mode.").c[List[str]]
     at_debug = parameter.help("Set name of loggers to put in DEBUG mode.").c[List[str]]
 
+    capture_task_run_log = parameter(
+        default=True, description="Enable capturing task output into log."
+    )
+
     send_body_to_server = parameter(
         default=True, description="Enable or disable sending log file to server."
     )[bool]

@@ -24,7 +24,6 @@ from dbnd._core.context.databand_context import new_dbnd_context
 from dbnd._core.current import is_verbose, try_get_databand_run
 from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.parameter.parameter_value import Parameters
-from dbnd._core.settings import TrackingConfig
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_definition import TaskDefinition
 from dbnd._core.task_build.task_passport import TaskPassport
@@ -274,7 +273,7 @@ class _DbndScriptTrackingManager(object):
         run.tracker.init_run()
         run.root_task_run.set_task_run_state(TaskRunState.RUNNING)
 
-        should_capture_log = TrackingConfig.from_databand_context().capture_tracking_log
+        should_capture_log = run.context.settings.tracking_log.capture_tracking_log
         self._enter_cm(
             run.root_task_run.task_run_track_execute(capture_log=should_capture_log)
         )
@@ -379,11 +378,9 @@ def tracking_start_base(
         # Airflow wrapping will run this code earlier
         return None
 
-    dbnd_project_config = get_dbnd_project_config()
+    get_dbnd_project_config()
     global _dbnd_script_manager
     if not _dbnd_script_manager:
-        # setting the context to tracking to prevent conflicts from dbnd orchestration
-        dbnd_project_config._dbnd_inplace_tracking = True
         try:
             # We use print here and not log because the dbnd logger might be set to Warning (by default), and we want to
             # inform the user that we started, without alerting him with a Warning or Error message.
