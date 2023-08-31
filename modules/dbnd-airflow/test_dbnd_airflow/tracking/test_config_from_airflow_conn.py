@@ -143,6 +143,7 @@ class TestConfigFromConnection(object):
         logger.info("Set config based on  {0}  ".format(json_for_connection["name"]))
 
         set_and_assert_config_configured()
+        logger.info("INFO: %s", caplog.text)
         assert json_for_connection["log_msg"] in caplog.text, caplog.text
 
         logger.info("Test Succeeded")

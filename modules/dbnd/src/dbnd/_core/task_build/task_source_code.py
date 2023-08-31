@@ -50,6 +50,10 @@ class TaskSourceCode(object):
     def task_source_file(self):
         return _hide_or_show_by_config(source=self._task_source_file)
 
+    @property
+    def task_source_file_for_internal_usage(self):
+        return self._task_source_file
+
     @task_source_file.setter
     def task_source_file(self, value):
         self._task_source_file = value

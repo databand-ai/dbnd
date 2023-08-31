@@ -8,6 +8,7 @@ import os
 
 import pytest
 
+from dbnd import set_verbose
 from dbnd._core.configuration.environ_config import (
     ENV_DBND__DISABLE_PLUGGY_ENTRYPOINT_LOADING,
     ENV_DBND__ORCHESTRATION_MODE,
@@ -55,6 +56,9 @@ pytest_plugins = [
 ### MAIN FIXTURE, USED BY ALL TESTS ###
 @pytest.fixture(autouse=True)
 def dbnd_env_per_test(dbnd_run_pytest_env):
+    # clean up from previous tests, some sensitive test (prints/logging) might be affected by verbose mode
+    set_verbose(False)
+
     add_test_configuration(__file__)
     yield dbnd_run_pytest_env
 

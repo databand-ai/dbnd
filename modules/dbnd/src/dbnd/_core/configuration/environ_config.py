@@ -283,9 +283,7 @@ def _initialize_dbnd_home():
     _DBND_ENVIRONMENT = True
 
     if is_dbnd_disabled():
-        dbnd_log_init_msg(
-            "databand is disabled, no DBND_HOME setup" % ENV_DBND__DISABLED
-        )
+        dbnd_log_init_msg("databand is disabled, no DBND_HOME setup")
         return
 
     dbnd_log_init_msg("Initializing DBND Home")

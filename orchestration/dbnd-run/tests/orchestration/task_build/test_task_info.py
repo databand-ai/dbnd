@@ -2,11 +2,14 @@
 
 import datetime
 import logging
+import os
 import shlex
 import sys
 
 from textwrap import dedent
 from typing import List
+
+from mock import patch
 
 from dbnd import dbnd_run_cmd, new_dbnd_context, parameter, task
 from dbnd_run.testing.helpers import TTask
@@ -129,6 +132,7 @@ class TestParamsBannerPreviewLogs:
             run = t_f.dbnd_run()
             task_run = run.root_task_run
             actual = task_run.task.ctrl.banner("test")
+        logger.info("Banner: %s", actual)
         assert PARAMS_WITH_PREVIEWS in actual
         assert "result.pickle" in actual
 
@@ -151,5 +155,8 @@ class TestParamsBannerPreviewLogs:
 
             run = t_f.dbnd_run()
             task_run = run.root_task_run
-            actual = task_run.task.ctrl.banner("test")
-            assert PARAMS_WITHOUT_PREVIEWS in actual
+            env = {"DBND__NO_TABLES": "True"}
+            with patch.dict(os.environ, env):
+                actual = task_run.task.ctrl.banner("test")
+                logger.info("Banner: %s", actual)
+                assert PARAMS_WITHOUT_PREVIEWS in actual
