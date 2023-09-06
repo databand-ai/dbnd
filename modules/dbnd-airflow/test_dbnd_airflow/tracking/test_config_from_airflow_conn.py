@@ -68,6 +68,9 @@ def set_dbnd_airflow_connection(
 
 def set_and_assert_config_configured():
     dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
+
+    # we can't print to log, as caplog is active in tests
+    print("CONFIG FROM CONNECTION: %s" % str(dbnd_config_from_connection))
     actual = set_dbnd_config_from_airflow_connections(
         dbnd_config_from_connection=dbnd_config_from_connection
     )
@@ -143,10 +146,10 @@ class TestConfigFromConnection(object):
         logger.info("Set config based on  {0}  ".format(json_for_connection["name"]))
 
         set_and_assert_config_configured()
-        logger.info("INFO: %s", caplog.text)
+        print("CAPTURED LOG: %s" % caplog.text)
         assert json_for_connection["log_msg"] in caplog.text, caplog.text
 
-        logger.info("Test Succeeded")
+        print("Test Succeeded")
 
     def test_settings_airflow_operarator_handler_custom(self, af_session):
         dbnd_config = {

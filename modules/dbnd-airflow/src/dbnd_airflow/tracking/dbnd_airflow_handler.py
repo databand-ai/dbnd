@@ -12,7 +12,7 @@ from more_itertools import first_true
 from dbnd import config, dbnd_bootstrap, dbnd_tracking_stop
 from dbnd._core.constants import AD_HOC_DAG_PREFIX
 from dbnd._core.context.databand_context import DatabandContext, new_dbnd_context
-from dbnd._core.log import dbnd_log_exception
+from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.log.buffered_log_manager import BufferedLogManager
 from dbnd._core.tracking.airflow_dag_inplace_tracking import calc_task_key_from_af_ti
 from dbnd._core.tracking.script_tracking_manager import is_dbnd_tracking_active
@@ -163,6 +163,10 @@ class DbndAirflowLogHandler(logging.Handler):
                 in_memory_log_body = self.in_memory_log_manager.get_log_body()
                 self.dbnd_context.tracking_store.save_task_run_log(
                     task_run=fake_task_run, log_body=in_memory_log_body
+                )
+                dbnd_log_debug(
+                    "Saved Airflow log to Databand service (size=%s"
+                    % len(in_memory_log_body or "")
                 )
             except Exception:
                 self.airflow_logger.exception("Exception occurred when saving task log")

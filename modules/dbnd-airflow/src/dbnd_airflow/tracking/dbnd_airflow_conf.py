@@ -140,7 +140,7 @@ def get_dbnd_config_dict_from_airflow_connections():
     try:
         # Get connection from Airflow
         dbnd_conn_config = BaseHook.get_connection(DATABAND_AIRFLOW_CONN_ID)
-        dbnd_log_info(
+        dbnd_log_debug(
             "Configuration received from airflow '%s' connection."
             % DATABAND_AIRFLOW_CONN_ID
         )
