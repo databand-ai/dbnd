@@ -13,6 +13,7 @@ from airflow.version import version as airflow_version
 
 import dbnd_airflow
 
+from dbnd._core.log import dbnd_log_debug
 from dbnd_airflow.export_plugin.compat import get_api_mode
 from dbnd_airflow.export_plugin.dag_operations import (
     get_current_dag_model,
@@ -218,6 +219,10 @@ def deep_update(source, overrides):
             returned = deep_update(source.get(key, {}), value)
             source[key] = returned
         else:
+            if source.get(key) != overrides[key]:
+                dbnd_log_debug(
+                    f"Updating Airflow config value at '{key}' with '{overrides[key]}'"
+                )
             source[key] = overrides[key]
     return source
 

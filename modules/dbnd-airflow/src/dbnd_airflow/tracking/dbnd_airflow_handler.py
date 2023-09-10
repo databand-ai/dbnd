@@ -118,12 +118,16 @@ class DbndAirflowLogHandler(logging.Handler):
             from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 
             logger_config = TrackingLoggingConfig()
+
             self.in_memory_log_manager = BufferedLogManager(
                 max_head_bytes=logger_config.preview_head_bytes,
                 max_tail_bytes=logger_config.preview_tail_bytes,
             )
-            self.airflow_logger.debug(
-                f"Initiated In Memory Log Manager with task {task_key}"
+            dbnd_log_debug(
+                f"Initiated In Memory Log Manager with task {task_key}: "
+                f"head={logger_config.preview_head_bytes} "
+                f"tail={logger_config.preview_tail_bytes}, "
+                f"context={ self.dbnd_context is not None }. "
             )
 
         if os.environ.get(task_key):
@@ -165,7 +169,7 @@ class DbndAirflowLogHandler(logging.Handler):
                     task_run=fake_task_run, log_body=in_memory_log_body
                 )
                 dbnd_log_debug(
-                    "Saved Airflow log to Databand service (size=%s"
+                    "Saved Airflow log to Databand service (size=%s)"
                     % len(in_memory_log_body or "")
                 )
             except Exception:

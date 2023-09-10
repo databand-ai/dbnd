@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+from dbnd._core.log import dbnd_log_debug
 from dbnd._vendor.termcolor import colored
 
 
@@ -168,6 +169,7 @@ class BufferedLogManager:
             if self.max_head_bytes > 0 or self.max_tail_bytes > 0:
                 return EMPTY_LOG_MSG
             # all the parts are truncated
+            dbnd_log_debug("Log head/tail=0, no log is sent to DBND")
             return EMPTY_TRUNCATED_LOG_MSG
 
         if not all(parts) and self.max_tail_bytes > 0 and self.max_head_bytes > 0:

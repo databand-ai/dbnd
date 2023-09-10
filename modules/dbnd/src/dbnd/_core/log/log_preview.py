@@ -6,6 +6,7 @@ import os
 
 import six
 
+from dbnd._core.log import dbnd_log_debug
 from dbnd._core.settings.tracking_log_config import TrackingLoggingConfig
 from dbnd._core.utils.string_utils import merge_dbnd_and_spark_logs
 from dbnd._vendor.termcolor import colored
@@ -38,6 +39,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
 
     # there is not need to run any of the logic if we don't need to read anything
     if max_head_size == 0 and max_tail_size == 0:
+        dbnd_log_debug("read_dbnd_log_preview: log head/tail=0, no log is sent to DBND")
         return EMPTY_LOG_MSG
 
     if spark_log_path:
@@ -54,6 +56,7 @@ def read_dbnd_log_preview(log_path, spark_log_path=None):
     # check if all the parts contains information
     if not any(parts):
         # all the parts are truncated
+        dbnd_log_debug("read_dbnd_log_preview: no log found to send to DBND")
         return EMPTY_LOG_MSG
 
     # join each part with new lines

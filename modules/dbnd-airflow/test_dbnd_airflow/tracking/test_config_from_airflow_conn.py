@@ -10,6 +10,7 @@ import pytest
 from dbnd import config
 from dbnd._core.configuration.environ_config import DATABAND_AIRFLOW_CONN_ID
 from dbnd._core.settings import TrackingConfig
+from dbnd_airflow.compat import AIRFLOW_VERSION_1
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     get_dbnd_config_dict_from_airflow_connections,
     set_dbnd_config_from_airflow_connections,
@@ -147,7 +148,10 @@ class TestConfigFromConnection(object):
 
         set_and_assert_config_configured()
         print("CAPTURED LOG: %s" % caplog.text)
-        assert json_for_connection["log_msg"] in caplog.text, caplog.text
+
+        # exceptions are different in airflow 1, so we can not compare log_msg
+        if not AIRFLOW_VERSION_1:
+            assert json_for_connection["log_msg"] in caplog.text, caplog.text
 
         print("Test Succeeded")
 
