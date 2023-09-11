@@ -142,7 +142,7 @@ class GenericSyncer(BaseComponent):
         try:
             assets_data = self.adapter.get_assets_data(assets)
         except Exception as ex:
-            logger.error("error on fetching assets data")
+            logger.error("Error on fetching assets data: %s", str(ex))
             report_assets_data_fetch_error(
                 integration_id=self.config.uid,
                 syncer_instance_id=self.syncer_instance_id,
