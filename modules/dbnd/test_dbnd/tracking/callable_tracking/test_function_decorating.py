@@ -28,6 +28,10 @@ def t_no_decorator4():
     pass
 
 
+def t_no_decorator5():
+    pass
+
+
 def tr_egexp():
     pass
 
@@ -77,7 +81,10 @@ class TestFunctionDecorating(object):
     def test_track_scope_functions_simple(self):
 
         track_scope_functions(
-            prefixes=["t_"], scope=globals(), module=t_no_decorator1.__module__
+            prefixes=["t_"],
+            scope=globals(),
+            module=t_no_decorator1.__module__,
+            exclude=["t_no_decorator5"],
         )
 
         assert callable(t_no_decorator1), "function is not function anymore"
@@ -86,6 +93,7 @@ class TestFunctionDecorating(object):
         assert _is_task(t_no_decorator2), "function in module wasn't decorated"
 
         assert not _is_task(tr_egexp), "function in module decorated"
+        assert not _is_task(t_no_decorator5), "function excluded in module decorated"
 
         track_scope_functions(
             prefixes=[re.compile(r"t[r]_")],

@@ -103,6 +103,7 @@ def _match_func_name(
     value: object,
     module: typing.Optional[str],
     prefixes: typing.List[typing.Union[str, re.Pattern]],
+    exclude: typing.List[typing.Union[str, re.Pattern]],
 ):
     """
     match func to the function scope (module) and the name prefix (regexp or prefix)
@@ -114,11 +115,20 @@ def _match_func_name(
     if module is not None and not value.__module__.startswith(module):
         return False
 
+    func_name = value.__name__
+
+    if exclude:
+        for exclude_filter in exclude:
+            if isinstance(exclude_filter, str):
+                if func_name.startswith(exclude_filter):
+                    return False
+            elif isinstance(exclude_filter, re.Pattern):
+                if exclude_filter.match(func_name):
+                    return False
+
     # if no prefixes filter  - it's a match
     if not prefixes:
         return True
-
-    func_name = value.__name__
     for prefix in prefixes:
         if isinstance(prefix, str):
             if func_name.startswith(prefix):
@@ -132,6 +142,7 @@ def _match_func_name(
 def track_scope_functions(
     scope: typing.Dict[str, object] = None,
     prefixes: typing.List[typing.Union[typing.Pattern, str]] = None,
+    exclude: typing.List[typing.Union[typing.Pattern, str]] = None,
     module="__main__",
 ):
     """
@@ -146,7 +157,9 @@ def track_scope_functions(
 
         matched_functions = {}
         for key, value in list(scope.items()):
-            if _match_func_name(value=value, module=module, prefixes=prefixes):
+            if _match_func_name(
+                value=value, module=module, prefixes=prefixes, exclude=exclude
+            ):
                 matched_functions[key] = value
 
         for name, func in matched_functions.items():
