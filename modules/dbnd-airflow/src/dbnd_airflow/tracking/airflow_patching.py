@@ -61,21 +61,27 @@ def add_tracking_to_policy():
 
 def patch_airflow_context_vars():
     """Used for tracking bash operators"""
+    try:
+        from dbnd._core.utils.object_utils import patch_models
+        from dbnd_airflow.tracking.operator_helpers import context_to_airflow_vars
 
-    from dbnd._core.utils.object_utils import patch_models
-    from dbnd_airflow.tracking.operator_helpers import context_to_airflow_vars
+        import airflow.models.taskinstance  # isort:skip
 
-    import airflow.models.taskinstance  # isort:skip
+        modules_to_patch = [airflow.utils.operator_helpers, airflow.models.taskinstance]
+        patches = []
+        for module in modules_to_patch:
+            if hasattr(module, "context_to_airflow_vars"):
+                patches.append(
+                    (module, "context_to_airflow_vars", context_to_airflow_vars)
+                )
+        patch_models(patches)
+    except Exception:
+        dbnd_log_exception(
+            "Failed to wrap `context_to_airflow_vars` to include DBND variables"
+        )
 
-    modules_to_patch = [airflow.utils.operator_helpers, airflow.models.taskinstance]
-    patches = []
-    for module in modules_to_patch:
-        if hasattr(module, "context_to_airflow_vars"):
-            patches.append((module, "context_to_airflow_vars", context_to_airflow_vars))
-    patch_models(patches)
 
-
-def patch_snowflake_hook():
+def _patch_snowflake_hook_unsafe():
     # In order to use this patch the user need to have both `dbnd-snowflake` and `snowflake` installed
     try:
         import snowflake  # noqa: F401
@@ -91,3 +97,10 @@ def patch_snowflake_hook():
         return
 
     patch_airflow_db_hook(SnowflakeHook, config_base_target_reporter)
+
+
+def patch_snowflake_hook():
+    try:
+        _patch_snowflake_hook_unsafe()
+    except Exception:
+        dbnd_log_exception("Failed to patch snowflake")

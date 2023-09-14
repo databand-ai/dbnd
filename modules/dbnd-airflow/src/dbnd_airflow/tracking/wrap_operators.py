@@ -4,6 +4,7 @@ import logging
 import typing
 
 from collections import OrderedDict
+from contextlib import contextmanager
 from typing import Any, ContextManager, Dict, Optional
 
 from dbnd._core.log import dbnd_log_debug
@@ -144,11 +145,20 @@ def wrap_operator_with_tracking_info(
 
 def _get_loaded_tracking_wrapper(airflow_operator_handlers, name):
     if name not in airflow_operator_handlers:
+        # not found
         return None
 
     tracking_wrapper = airflow_operator_handlers.get(name)
+    if not tracking_wrapper:
+        # found but empty -> user has disabled the operator
+        return None
     if isinstance(tracking_wrapper, str):
         tracking_wrapper = load_python_callable(tracking_wrapper)
         # Update the cache with the loaded function
         airflow_operator_handlers[name] = tracking_wrapper
     return tracking_wrapper
+
+
+@contextmanager
+def track_nope_wrapper(operator, tracking_info):
+    yield
