@@ -2,7 +2,8 @@
 
 import logging
 
-from typing import ClassVar
+from typing import ClassVar, Union
+from uuid import UUID
 
 from prometheus_client import Summary
 
@@ -59,7 +60,7 @@ class BaseComponent:
 
         logger.info(
             "Starting sync_once on tracking source uid: %s, syncer: %s",
-            self.config.tracking_source_uid,
+            self.server_id,
             self.SYNCER_TYPE,
         )
 
@@ -70,7 +71,7 @@ class BaseComponent:
 
             logger.info(
                 "Finished sync_once on tracking source uid: %s, syncer: %s",
-                self.config.tracking_source_uid,
+                self.server_id,
                 self.SYNCER_TYPE,
             )
             return result
@@ -97,3 +98,10 @@ class BaseComponent:
     @property
     def identifier(self) -> str:
         return self.SYNCER_TYPE
+
+    @property
+    def server_id(self) -> Union[str, UUID]:
+        if self.config.tracking_source_uid:
+            return self.config.tracking_source_uid
+
+        return self.tracking_service.server_id

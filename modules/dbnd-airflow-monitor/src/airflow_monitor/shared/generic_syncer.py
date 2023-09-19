@@ -61,10 +61,7 @@ class GenericSyncer(BaseComponent):
     def _sync_once(self):
         try:
             sync_once_start_time = utcnow()
-            logger.info(
-                "Started running for tracking source %s",
-                self.config.tracking_source_uid,
-            )
+            logger.info("Started running for tracking source %s", self.server_id)
             synced_active_data = False
             synced_new_data = False
             cursor = self.tracking_service.get_last_cursor(
@@ -80,10 +77,7 @@ class GenericSyncer(BaseComponent):
                     data=self.adapter.init_cursor(),
                 )
                 return
-            logger.info(
-                "Checking for new data for tracking source %s",
-                self.config.tracking_source_uid,
-            )
+            logger.info("Checking for new data for tracking source %s", self.server_id)
             active_assets_to_states = self.tracking_service.get_active_assets(
                 integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
@@ -159,14 +153,10 @@ class GenericSyncer(BaseComponent):
         assets_states_to_report = assets_data.assets_to_state
         if not assets_data_to_report:
             logger.info(
-                "No new assets data found for tracking source %s",
-                self.config.tracking_source_uid,
+                "No new assets data found for tracking source %s", self.server_id
             )
         else:
-            logger.info(
-                "Found new assets data for tracking source %s",
-                self.config.tracking_source_uid,
-            )
+            logger.info("Found new assets data for tracking source %s", self.server_id)
             synced_data = True
             try:
                 assets_data_batch_size = sys.getsizeof(assets_data_to_report)
@@ -189,14 +179,10 @@ class GenericSyncer(BaseComponent):
                 duration=save_tracking_data_duration_seconds,
             )
         if not assets_states_to_report:
-            logger.info(
-                "No new assets states for tracking source %s",
-                self.config.tracking_source_uid,
-            )
+            logger.info("No new assets states for tracking source %s", self.server_id)
         else:
             logger.info(
-                "Found new assets states for tracking source %s",
-                self.config.tracking_source_uid,
+                "Found new assets states for tracking source %s", self.server_id
             )
             self.tracking_service.save_assets_state(
                 integration_id=str(self.config.uid),
