@@ -50,4 +50,4 @@ def python_status(python_packages=False):
 
         report.log("python.packages", str(ex))
         report.log("python.total_packages", 0)
-    return report.get_status_str()
+    return report.get_status_str_and_print()

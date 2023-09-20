@@ -25,4 +25,15 @@ def dbnd_status():
     # calling metrics.
     log_metric("metric_check", "OK")
     log_metric("metric_random_value", random.random())
-    return report.get_status_str()
+    return report.get_status_str_and_print()
+
+
+@task
+def dbnd_environ():
+    report = DoctorStatusReportBuilder("DBND ENV Status")
+    for k, v in os.environ.items():
+        if k.startswith("DBND_"):
+            logger.info("\n\n FOUND %s", k)
+            report.log(k, v)
+
+    return report.get_status_str_and_print()

@@ -3,7 +3,7 @@
 import datetime
 import logging
 
-from dbnd import parameter
+from dbnd import dbnd_tracking
 from dbnd._core.task_build.dbnd_decorator import task
 from dbnd.doctor import system_airflow, system_dbnd, system_logging, system_python
 from dbnd.doctor.doctor_report_builder import DoctorStatusReportBuilder
@@ -14,23 +14,27 @@ logger = logging.getLogger(__name__)
 
 @task
 def dbnd_doctor(
-    python_sanity=parameter.value(True)[bool],
-    airflow_sanity=parameter.value(True)[bool],
-    logs=parameter.value(None)[bool],
-    python_packages=parameter.value(None)[bool],
+    python_sanity=True,
+    airflow_sanity=True,
+    logs: bool = False,
+    python_packages: bool = False,
     check_time=datetime.datetime.now(),
+    env: bool = False,
     all=False,
 ):
     if all:
         # change only "none" params
-        logs = True if logs is None else logs
-        python_packages = True if python_packages is None else python_packages
+        logs = python_packages = env = True
 
     main_report = DoctorStatusReportBuilder("Dbnd Doctor")
     main_report.log("check_time", check_time)
 
     system_report = system_dbnd.dbnd_status()
-    logger.debug("system_report: %s", system_report)
+    logger.info("system_report: %s", system_report)
+
+    if env:
+        system_dbnd_env_report = system_dbnd.dbnd_environ()
+        main_report.add_sub_report(system_dbnd_env_report)
 
     if python_sanity:
         system_python_report = system_python.python_status(
@@ -40,9 +44,20 @@ def dbnd_doctor(
     if airflow_sanity:
         airflow_report = system_airflow.airflow_status()
         main_report.add_sub_report(airflow_report)
+
+        if env:
+            airflow_environ_report = system_airflow.airflow_environ()
+            main_report.add_sub_report(airflow_environ_report)
+
     if logs:
         system_logging_report = system_logging.logging_status()
         main_report.add_sub_report(system_logging_report)
 
     logger.info("Your system is good to go! Enjoy Databand!")
     return main_report.get_status_str()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    with dbnd_tracking():
+        dbnd_doctor(all=True)

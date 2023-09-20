@@ -47,4 +47,14 @@ def airflow_status():
         report.log("airflow.version", 0)
         logger.error("airflow is not installed")
 
-    return report.get_status_str()
+    return report.get_status_str_and_print()
+
+
+@task
+def airflow_environ():
+    report = DoctorStatusReportBuilder("AIRFLOW ENV Status")
+    for k, v in os.environ.items():
+        if k.startswith("AIRFLOW_"):
+            report.log(k, v)
+
+    return report.get_status_str_and_print()
