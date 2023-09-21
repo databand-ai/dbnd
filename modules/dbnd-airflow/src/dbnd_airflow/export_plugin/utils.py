@@ -3,11 +3,9 @@
 import datetime
 import json
 
-from distutils.version import LooseVersion
-
-import airflow
-
 from flask import Response
+
+from dbnd_airflow import compat
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -30,7 +28,5 @@ def json_response(obj):
     )
 
 
-AIRFLOW_VERSION_2 = LooseVersion(airflow.version.version) >= LooseVersion("2.0.0")
-AIRFLOW_VERSION_BEFORE_2_2 = LooseVersion(airflow.version.version) < LooseVersion(
-    "2.2.0"
-)
+AIRFLOW_VERSION_2 = compat.AIRFLOW_VERSION_2
+AIRFLOW_VERSION_BEFORE_2_2 = compat.AIRFLOW_VERSION_BEFORE_2_2

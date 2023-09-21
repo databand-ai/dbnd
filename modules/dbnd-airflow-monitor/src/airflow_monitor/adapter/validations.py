@@ -2,10 +2,9 @@
 
 import logging
 
-from distutils.version import LooseVersion
-
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.shared.utils import TrackingServiceConfig
+from dbnd_airflow.compat import AIRFLOW_VERSION_1
 
 
 logger = logging.getLogger(__name__)
@@ -75,12 +74,12 @@ class CheckTrackingPackages(ValidationStep):
 class CheckAirflow2TrackingSupport(ValidationStep):
     def run_validation(self):
         try:
-            import airflow
+            pass
         except:
             logger.warning("No Airflow was found")
             return
 
-        if LooseVersion(airflow.version.version) < LooseVersion("2.0.0"):
+        if AIRFLOW_VERSION_1:
             return
 
         load_plugins = True
