@@ -48,7 +48,7 @@ def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
     return uuid.uuid5(run_uid, "{}.{}:{}".format(dag_id, task_id, try_number))
 
 
-def get_task_run_attempt_uid_for_subrun(task_run):
+def get_task_run_attempt_uid_for_resubmit_run(task_run):
     return uuid.uuid5(
         task_run.run.run_uid,
         "{}.{}:{}-subrun".format(
@@ -58,9 +58,9 @@ def get_task_run_attempt_uid_for_subrun(task_run):
 
 
 def get_task_run_attempt_uid_by_task_run(task_run):
-    is_sub_rub = get_dbnd_project_config().resubmit_run
-    if is_sub_rub:
-        return get_task_run_attempt_uid_for_subrun(task_run)
+    is_resubmit_run = get_dbnd_project_config().resubmit_run
+    if is_resubmit_run:
+        return get_task_run_attempt_uid_for_resubmit_run(task_run)
 
     return get_task_run_attempt_uid(
         task_run.run.run_uid,

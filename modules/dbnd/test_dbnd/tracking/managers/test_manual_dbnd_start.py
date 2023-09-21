@@ -7,7 +7,14 @@ import os
 import re
 import sys
 
+import pytest
+
+from mock import patch
+
 from dbnd import dbnd_tracking_start, dbnd_tracking_stop, log_metric, task
+from dbnd._core.tracking.script_tracking_manager import (
+    _calculate_root_task_name_from_env_or_script_path,
+)
 from dbnd.testing.helpers import run_dbnd_subprocess
 
 
@@ -30,9 +37,9 @@ class MyClass:
         log_metric("evgeny", 10)
 
 
-def run_dbnd_subprocess__current_file(args, **kwargs):
+def run_dbnd_subprocess__current_file(args, env=None, **kwargs):
     args = args or []
-    env = os.environ.copy()
+    env = env or os.environ.copy()
     env["DBND__CORE__TRACKER"] = "['console']"
     env["DBND__CORE__TRACKER_API"] = "web"
     env["DBND__VERBOSE"] = "True"
@@ -98,6 +105,34 @@ class TestManualDbndStart(object):
         assert "evgeny=10" in result
         # Verify that we did not send the 'self' param to the web server and received KeyError
         assert "KeyError:" not in result
+
+    def test_custom_job_name(self, set_verbose_mode):
+        env = os.environ.copy()
+        env["DBND__TRACKING__JOB"] = "test_job_name"
+        result = run_dbnd_subprocess__current_file(args=[USE_DBND_START], env=env)
+        assert "job_name=test_job_name" in result
+
+    def test_custom_project_name(self, set_verbose_mode):
+        env = os.environ.copy()
+        env["DBND__TRACKING__PROJECT"] = "test_project"
+        result = run_dbnd_subprocess__current_file(args=[USE_DBND_START], env=env)
+
+        assert "project_name=test_project" in result
+
+    @pytest.mark.parametrize(
+        "argv,expected",
+        [
+            (["abc"], "abc"),
+            (None, "unknown"),
+            (["abc_123456789.py"], "abc"),
+            (["abc_123.py"], "abc_123.py"),
+            (["abc_20230606T1344566222.py"], "abc"),
+        ],
+    )
+    def test_clean_script_name_from_date(self, argv, expected):
+        with patch.object(sys, "argv", argv):
+            actual = _calculate_root_task_name_from_env_or_script_path(None)
+            assert actual == expected
 
 
 @task

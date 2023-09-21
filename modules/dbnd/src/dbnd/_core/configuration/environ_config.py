@@ -85,6 +85,7 @@ ENV_DBND__AUTO_TRACKING = "DBND__AUTO_TRACKING"
 DEFAULT_MAX_CALLS_PER_RUN = 100
 
 ENV_DBND_TRACKING_ATTEMPT_UID = "DBND__TRACKING_ATTEMPT_UID"
+
 ENV_DBND_SCRIPT_NAME = "DBND__SCRIPT_NAME"
 
 
@@ -194,11 +195,6 @@ def tracking_mode_context(tracking=None):
         yield
     finally:
         get_dbnd_project_config()._dbnd_inplace_tracking = is_current_tracking
-
-
-def try_get_script_name():
-    # type: () -> Optional[str]
-    return os.environ.get(ENV_DBND_SCRIPT_NAME)
 
 
 class DbndProjectConfig(object):

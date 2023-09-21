@@ -103,7 +103,7 @@ def build_run_time_airflow_task(
             source_code = TaskSourceCode.from_callable(tracked_function)
     else:
         # if this is an inline run-time task, we name it after the script which ran it
-        # If we ever get here, the root_task_name will be just "airflow" since this is what we pass
+        # This will enable us to have unique task names (airflow id + internal task id
         task_family = get_task_family_for_inline_script(
             af_context.task_id, root_task_name
         )

@@ -42,6 +42,13 @@ class TrackingConfig(Config):
         "The tracking server will select a project with `is_default == True`.",
     )[str]
 
+    job = parameter(
+        default=None,
+        description="Set the job name to which the run should be assigned. "
+        "If this is not set, the job name is calcualted from the runtime "
+        "(airflow dag_id, script name, etc) ",
+    )[str]
+
     databand_external_url = parameter(
         default=None,
         description="Set tracker URL to be used for tracking from external systems.",

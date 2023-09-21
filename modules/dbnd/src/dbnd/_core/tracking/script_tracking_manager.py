@@ -3,6 +3,7 @@
 import atexit
 import logging
 import os
+import re
 import sys
 import typing
 
@@ -14,14 +15,14 @@ from dbnd._core.configuration import get_dbnd_project_config
 from dbnd._core.configuration.config_value import ConfigValuePriority
 from dbnd._core.configuration.dbnd_config import config
 from dbnd._core.configuration.environ_config import (
+    ENV_DBND_SCRIPT_NAME,
     disable_dbnd,
     is_dbnd_disabled,
-    try_get_script_name,
 )
 from dbnd._core.constants import RunState, TaskRunState, UpdateSource
 from dbnd._core.context.bootstrap import dbnd_bootstrap
 from dbnd._core.context.databand_context import new_dbnd_context
-from dbnd._core.current import is_verbose, try_get_databand_run
+from dbnd._core.current import try_get_databand_run
 from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
 from dbnd._core.parameter.parameter_value import Parameters
 from dbnd._core.task.tracking_task import TrackingTask
@@ -48,7 +49,7 @@ if typing.TYPE_CHECKING:
 
     T = typing.TypeVar("T")
 
-
+_GENERATED_SCRIPT_NAME = re.compile(r"(.+)_[\dTZ]{8,}\.py")
 # Helper functions
 
 
@@ -121,19 +122,28 @@ def _build_inline_root_task(root_task_name):
     return root_task
 
 
-def _configure_dbnd_logger(logging_level):
-    # we don't add any console handlers or anything else
-    # it can have a conflict with existing system
-    # moreover , we need to take into account that
-    # user can initialize his logging system, after our code runs
-    # most important, we need to prevent double prints.
-    if is_verbose() and logging_level == "WARNING":
-        logging_level = "INFO"
-        dbnd_log_debug("Setting dbnd logger level to INFO")
+def _calculate_root_task_name_from_env_or_script_path(tracking_config_job_name=None):
+    root_task_name = tracking_config_job_name or os.environ.get(ENV_DBND_SCRIPT_NAME)
+    # extract the name of the script we are running (in Airflow scenario it will be just "airflow")
+    if root_task_name:
+        return root_task_name
 
-    for dbnd_logger_name in ["dbnd", "dbnd_airflow"]:
-        dbnd_logger = logging.getLogger(dbnd_logger_name)
-        dbnd_logger.setLevel(logging_level)
+    if sys.argv:
+        root_task_name = sys.argv[0].split(os.path.sep)[-1]
+        dbnd_log_debug(f"Calculating root task name from script path: {root_task_name}")
+        if root_task_name:
+            generated_script_name = _GENERATED_SCRIPT_NAME.match(root_task_name)
+            if generated_script_name and generated_script_name.group(1):
+                root_task_name = generated_script_name.group(1)
+                dbnd_log_debug(
+                    f"Cleaning task name from generated name : {root_task_name}"
+                )
+                return root_task_name
+
+    if not root_task_name:
+        dbnd_log_debug("Can't calculate root task name (job name).")
+        root_task_name = "unknown"
+    return root_task_name
 
 
 class _DbndScriptTrackingManager(object):
@@ -194,8 +204,15 @@ class _DbndScriptTrackingManager(object):
                 ),
             )
 
-    def start(self, root_task_name=None, project_name=None, airflow_context=None):
+    def start_tracking(
+        self, root_task_name=None, project_name=None, airflow_context=None
+    ):
+        dbnd_log_debug(
+            f"Starting python script tracking root_task_name={root_task_name} project_name={project_name}"
+        )
+
         if self._run or self._active or try_get_databand_run():
+            dbnd_log_debug("Tracking is running already, continue..")
             return
 
         if airflow_context:
@@ -217,13 +234,17 @@ class _DbndScriptTrackingManager(object):
             new_dbnd_context(name="inplace_tracking")
         )  # type: DatabandContext
 
+        tracking_config = dc.settings.tracking
+        project_name = project_name or tracking_config.project
+
         if not root_task_name:
-            # extract the name of the script we are running (in Airflow scenario it will be just "airflow")
-            root_task_name = sys.argv[0].split(os.path.sep)[-1]
+            root_task_name = _calculate_root_task_name_from_env_or_script_path(
+                tracking_config_job_name=tracking_config.job
+            )
 
         if airflow_context:
             root_task, job_name, source, run_uid = build_run_time_airflow_task(
-                airflow_context, root_task_name
+                af_context=airflow_context, root_task_name=root_task_name
             )
             try_number = airflow_context.try_number
         else:
@@ -269,7 +290,9 @@ class _DbndScriptTrackingManager(object):
             task=root_task, task_af_id=root_task.task_name, try_number=try_number
         )
         root_task_run.is_root = True
-
+        dbnd_log_debug(
+            f"Creating DBND run job_name={run.job_name} project_name={run.project_name}"
+        )
         run.tracker.init_run()
         run.root_task_run.set_task_run_state(TaskRunState.RUNNING)
 
@@ -408,16 +431,12 @@ def tracking_start_base(
                     source="dbnd_tracking_start",
                 )
 
-            # _configure_dbnd_logger(config.get("tracking", "logger_dbnd_level"))
-
-            if job_name is None:
-                job_name = try_get_script_name()
-
-            dbnd_log_debug(
-                f"Starting _DbndScriptTrackingManager with job_name={job_name} project_name={project_name}"
-            )
             # we use job name for both job_name and root_task_name of the run
-            dsm.start(job_name, project_name, airflow_context)
+            dsm.start_tracking(
+                root_task_name=job_name,
+                project_name=project_name,
+                airflow_context=airflow_context,
+            )
             if dsm._active:
                 # everytghin is ok!
                 _dbnd_script_manager = dsm
