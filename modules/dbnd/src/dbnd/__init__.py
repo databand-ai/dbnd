@@ -72,6 +72,7 @@ from targets import _set_patches
 
 
 from dbnd._core.configuration.environ_config import (  # isort:skip
+    disable_dbnd,
     get_dbnd_project_config,
 )
 
@@ -87,6 +88,7 @@ __all__ = [
     "get_databand_run",
     "get_databand_context",
     "set_verbose",
+    "disable_dbnd",
     # inplace implementation
     "dbnd_tracking",
     "dbnd_tracking_start",
