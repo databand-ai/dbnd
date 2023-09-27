@@ -14,16 +14,15 @@ logger = logging.getLogger(__name__)
 
 @task
 def dbnd_doctor(
-    python_sanity=True,
-    airflow_sanity=True,
+    python_sanity: bool = True,
+    airflow_sanity: bool = True,
     logs: bool = False,
     python_packages: bool = False,
-    check_time=datetime.datetime.now(),
+    check_time: datetime.datetime = datetime.datetime.now(),
     env: bool = False,
-    all=False,
+    all: bool = False,
 ):
     if all:
-        # change only "none" params
         logs = python_packages = env = True
 
     main_report = DoctorStatusReportBuilder("Dbnd Doctor")

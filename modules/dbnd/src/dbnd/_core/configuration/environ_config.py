@@ -101,9 +101,7 @@ def is_dbnd_disabled():
 
 
 def disable_dbnd():
-    """
-    Disable dbnd tracking / wrapping / any effect on the user code
-    """
+    """Disable dbnd tracking / wrapping / any effect on the user code."""
     global _dbnd_enabled
     if _dbnd_enabled:
         logger.info("DBND has been disabled per user request.")

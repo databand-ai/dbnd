@@ -29,6 +29,6 @@ class DoctorStatusReportBuilder(object):
         return self.text_banner.get_banner_str()
 
     def get_status_str_and_print(self):
-        result = self.text_banner.get_banner_str()
+        result = self.get_status_str()
         logger.info("%s", result)
         return result

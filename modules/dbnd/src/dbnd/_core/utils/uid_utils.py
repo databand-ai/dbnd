@@ -49,9 +49,10 @@ def get_task_run_attempt_uid(run_uid, dag_id, task_id, try_number):
 
 
 def get_task_run_attempt_uid_for_resubmit_run(task_run):
+    # this function is used for resubmit only
     return uuid.uuid5(
         task_run.run.run_uid,
-        "{}.{}:{}-subrun".format(
+        "{}.{}:{}-resubmit".format(
             task_run.run.dag_id, task_run.task_af_id, task_run.attempt_number
         ),
     )

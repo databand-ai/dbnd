@@ -22,4 +22,9 @@ elif AIRFLOW_VERSION_2:
 else:
     raise NotImplementedError
 
-__all__ = ["BaseHook", "AIRFLOW_VERSION_2", "AIRFLOW_VERSION_BEFORE_2_2"]
+__all__ = [
+    "BaseHook",
+    "AIRFLOW_VERSION_1",
+    "AIRFLOW_VERSION_2",
+    "AIRFLOW_VERSION_BEFORE_2_2",
+]
