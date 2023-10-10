@@ -9,7 +9,9 @@ from dbnd._vendor.cachetools import TTLCache
 
 
 logger = logging.getLogger(__name__)
+
 monitor_config_cache = TTLCache(maxsize=5, ttl=10)
+LONG_REQUEST_TIMEOUT = 300
 
 
 class BaseTrackingService:
@@ -20,10 +22,11 @@ class BaseTrackingService:
 
     def save_tracking_data(self, assets_data: dict):
         boxed_payload = {"metadata": {"format": self.monitor_type}, "data": assets_data}
-        self._api_client.api_request(
+        return self._api_client.api_request(
             endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
             method="POST",
             data=boxed_payload,
+            request_timeout=LONG_REQUEST_TIMEOUT,
         )
 
     def save_assets_state(

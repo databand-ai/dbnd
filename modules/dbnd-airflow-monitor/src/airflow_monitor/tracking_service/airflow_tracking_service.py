@@ -16,8 +16,6 @@ from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from dbnd._core.utils.timezone import utctoday
 
 
-LONG_REQUEST_TIMEOUT = 300
-
 logger = logging.getLogger(__name__)
 
 
@@ -103,13 +101,8 @@ class AirflowTrackingService(BaseTrackingService):
         data["last_seen_dag_run_id"] = last_seen_dag_run_id
         data["syncer_type"] = syncer_type
         data["airflow_export_meta"] = plugin_meta_data.as_dict()
-        response = self._make_request(
-            "save_tracking_data",
-            method="POST",
-            data=data,
-            request_timeout=LONG_REQUEST_TIMEOUT,
-        )
-        return response
+
+        return self.save_tracking_data(data)
 
     def update_dagruns(
         self,
@@ -120,13 +113,7 @@ class AirflowTrackingService(BaseTrackingService):
         data = dag_runs_state_data.as_dict()
         data["last_seen_log_id"] = last_seen_log_id
         data["syncer_type"] = syncer_type
-        response = self._make_request(
-            "save_tracking_data",
-            method="POST",
-            data=data,
-            request_timeout=LONG_REQUEST_TIMEOUT,
-        )
-        return response
+        return self.save_tracking_data(data)
 
     def get_syncer_info(self):
         return self._make_request("server_info", method="GET", data={})
