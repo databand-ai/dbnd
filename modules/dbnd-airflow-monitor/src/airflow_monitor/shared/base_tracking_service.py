@@ -18,30 +18,12 @@ class BaseTrackingService:
         self.server_id = server_id
         self._api_client = _get_api_client()
 
-    def _generate_url_for_tracking_service(self, name: str) -> str:
-        return f"tracking-monitor/{self.server_id}/{name}"
-
-    def _make_request(
-        self,
-        name: str,
-        method: str,
-        data: dict,
-        query: dict = None,
-        request_timeout: int = None,
-    ) -> dict:
-        return self._api_client.api_request(
-            endpoint=self._generate_url_for_tracking_service(name),
-            method=method,
-            data=data,
-            query=query,
-            request_timeout=request_timeout,
-        )
-
     def save_tracking_data(self, assets_data: dict):
+        boxed_payload = {"metadata": {"format": self.monitor_type}, "data": assets_data}
         self._api_client.api_request(
             endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
             method="POST",
-            data=assets_data,
+            data=boxed_payload,
         )
 
     def save_assets_state(

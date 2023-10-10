@@ -34,6 +34,25 @@ class AirflowTrackingService(BaseTrackingService):
             monitor_type=monitor_type, server_id=server_id
         )
 
+    def _generate_url_for_tracking_service(self, name: str) -> str:
+        return f"tracking-monitor/{self.server_id}/{name}"
+
+    def _make_request(
+        self,
+        name: str,
+        method: str,
+        data: dict,
+        query: dict = None,
+        request_timeout: int = None,
+    ) -> dict:
+        return self._api_client.api_request(
+            endpoint=self._generate_url_for_tracking_service(name),
+            method=method,
+            data=data,
+            query=query,
+            request_timeout=request_timeout,
+        )
+
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
         self._make_request(
             "update_last_seen_values", method="POST", data=last_seen_values.as_dict()
