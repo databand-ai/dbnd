@@ -18,6 +18,8 @@ class TrackingLoggingConfig(config.Config):
     _conf__task_family = "log"
 
     # user still need to enable preview_head_bytes/preview_tail_bytes
+    # the moment we change it to False (and change preview_*)
+    # we should update Airflow Monitor webservice
     capture_tracking_log = parameter(
         default=True, description="Enable log capturing for tracking tasks."
     )[bool]

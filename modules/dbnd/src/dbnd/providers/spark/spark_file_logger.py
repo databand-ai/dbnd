@@ -51,7 +51,7 @@ def try_get_spark_logger():
         jvm = _safe_get_jvm_view()
         if jvm is None:
             logger.warning(
-                "Spark log is enabled but SparkContext is not available. Consider switching DBND__LOG_SPARK to False."
+                "Spark log is enabled but SparkContext is not available. Consider switching DBND__LOG__SPARK to False."
             )
             return None, None
         log4j = jvm.org.apache.log4j
@@ -65,7 +65,7 @@ def try_get_spark_logger():
 
 @contextmanager
 def spark_jvm_log_to_file(log_file):
-    if not environ_enabled("DBND__LOG_SPARK"):
+    if not environ_enabled("DBND__LOG__SPARK"):
         yield
         return
 
