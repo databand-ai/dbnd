@@ -3,9 +3,11 @@
 import datetime
 import json
 
+import airflow
+
 from flask import Response
 
-from dbnd_airflow import compat
+from dbnd._vendor import version
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -28,5 +30,11 @@ def json_response(obj):
     )
 
 
-AIRFLOW_VERSION_2 = compat.AIRFLOW_VERSION_2
-AIRFLOW_VERSION_BEFORE_2_2 = compat.AIRFLOW_VERSION_BEFORE_2_2
+# we can not use `dbnd_airflow.compat` here,
+# as we have .compat usage at "import" level,
+# meaning we might have circular dependency while loading airflow plugins
+# (import dbnd_airflow.compat -> import airflow -> import plugin -> import dbnd_airflow.compat again)
+AIRFLOW_VERSION_2 = version.parse(airflow.version.version) >= version.parse("2.0.0")
+AIRFLOW_VERSION_BEFORE_2_2 = version.parse(airflow.version.version) < version.parse(
+    "2.2.0"
+)
