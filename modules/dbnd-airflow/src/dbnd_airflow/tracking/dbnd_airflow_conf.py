@@ -2,6 +2,8 @@
 
 import logging
 
+from typing import List, Optional
+
 import six
 
 from dbnd._core.configuration.environ_config import (
@@ -229,6 +231,9 @@ AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
 
 
 def get_sync_status_and_tracking_dag_ids_from_dbnd_conf(dbnd_config_from_connection):
+    """
+    return sync_enabled, dag_ids filter (None if empty)
+    """
     try:
 
         if not dbnd_config_from_connection:
@@ -241,12 +246,18 @@ def get_sync_status_and_tracking_dag_ids_from_dbnd_conf(dbnd_config_from_connect
 
         is_sync_enabled = monitor_config.get(IS_SYNC_ENABLED_TRACKING_CONFIG_NAME, True)
 
-        dag_ids_config = monitor_config.get(DAG_IDS_FOR_TRACKING_CONFIG_NAME, None)
+        dag_ids_config: Optional[str] = monitor_config.get(
+            DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
+        )
+        dag_ids_config_parsed: Optional[List[str]] = None
 
-        if dag_ids_config and isinstance(dag_ids_config, str):
-            dag_ids_config = dag_ids_config.split(",")
+        if dag_ids_config is not None:
+            if isinstance(dag_ids_config, str):
+                dag_ids_config = dag_ids_config.strip()
+            if dag_ids_config:
+                dag_ids_config_parsed = dag_ids_config.split(",")
 
-        return is_sync_enabled, dag_ids_config
+        return is_sync_enabled, dag_ids_config_parsed
     except Exception as e:
         dbnd_log_exception("Can't parse  {}".format(e), e)
         return False, None

@@ -12,7 +12,10 @@ from dbnd._core.configuration.environ_config import DATABAND_AIRFLOW_CONN_ID
 from dbnd._core.settings import TrackingConfig
 from dbnd_airflow.compat import AIRFLOW_VERSION_1
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
+    AIRFLOW_MONITOR_CONFIG_NAME,
+    DAG_IDS_FOR_TRACKING_CONFIG_NAME,
     get_dbnd_config_dict_from_airflow_connections,
+    get_sync_status_and_tracking_dag_ids_from_dbnd_conf,
     set_dbnd_config_from_airflow_connections,
 )
 
@@ -178,3 +181,32 @@ class TestConfigFromConnection(object):
         actual = TrackingConfig().airflow_operator_handlers
         assert actual
         assert "some_company.package.YourCompanyOperator" in actual
+
+    def test_get_sync_status_and_tracking_dag_ids_from_dbnd_conf_empty(self):
+        (
+            sync_enabled,
+            tracking_list,
+        ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(None)
+        assert sync_enabled
+        assert tracking_list is None
+
+    @pytest.mark.parametrize(
+        "tracking_list_parametrize",
+        [(None, None), ("", None), ("a", ["a"]), ("a,b  ", ["a", "b"])],
+    )
+    def test_get_sync_status_and_tracking_dag_ids_from_dbnd_conf_parsing(
+        self, tracking_list_parametrize
+    ):
+        input_value, expected_value = tracking_list_parametrize
+        (
+            sync_enabled,
+            tracking_list,
+        ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
+            {
+                AIRFLOW_MONITOR_CONFIG_NAME: {
+                    DAG_IDS_FOR_TRACKING_CONFIG_NAME: input_value
+                }
+            }
+        )
+        assert sync_enabled
+        assert tracking_list == expected_value
