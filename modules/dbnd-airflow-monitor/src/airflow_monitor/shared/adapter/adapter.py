@@ -40,7 +40,7 @@ class AssetToState(ABC):
     """
 
     asset_id: str
-    state: AssetState
+    state: AssetState = AssetState.INIT
     retry_count: int = 0
 
     def asdict(self) -> Dict[str, object]:
@@ -109,15 +109,16 @@ class AssetsToStatesMachine:
         max_retry_assets_requests_counter = 0
         new_assets_to_state = []
         for asset_to_state in assets_to_state:
-            if asset_to_state.state == AssetState.FAILED_REQUEST:
+            if asset_to_state.state == AssetState.ACTIVE:
+                asset_to_state.retry_count = 0
+            elif asset_to_state.state == AssetState.FAILED_REQUEST:
                 if asset_to_state.retry_count > self.max_retries:
                     asset_to_state.state = AssetState.MAX_RETRY
                     max_retry_assets_requests_counter += 1
                 else:
                     asset_to_state.retry_count += 1
                     failed_assets_requests_counter += 1
-            elif asset_to_state.state == AssetState.MAX_RETRY:
-                continue
+
             new_assets_to_state.append(asset_to_state)
         report_total_failed_assets_requests(
             integration_id=self.integration_id,
