@@ -238,10 +238,9 @@ def test_extract_jinja_values():
     assert expected == actual
 
 
-def test_extract_jinja_values_with_undefined_env_var_raise_environment_error():
+def test_extract_jinja_values_with_undefined_env_var():
     values = {"env_var_key": "{{ env_var('undefined_env_var_identifier') }}"}
-    with pytest.raises(expected_exception=EnvironmentError):
-        _extract_jinja_values(values)
+    assert _extract_jinja_values(values) == {"env_var_key": ""}
 
 
 def test_dbt_sdk_functions_are_importable_from_top_level():

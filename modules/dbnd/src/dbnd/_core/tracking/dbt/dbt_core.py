@@ -122,8 +122,7 @@ def _env_var(var: str, default: Optional[str] = None) -> str:
     if default is not None:
         return default
 
-    msg = f"Environment variable required but not provided:'{var}'"
-    raise EnvironmentError(msg)
+    return ""
 
 
 _jinja_env: Optional[Environment] = None
