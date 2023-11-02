@@ -173,7 +173,7 @@ class Adapter(ABC):
 
     @abstractmethod
     def init_assets_for_cursor(
-        self, cursor: T, batch_size: int
+        self, cursor: T
     ) -> Generator[Tuple[Assets, T], None, None]:
         """
         Initialize assets to init state mapping for a given cursor and batch size.
@@ -184,7 +184,6 @@ class Adapter(ABC):
 
         Args:
             cursor (object): The cursor object that will be used to query for integration assets
-            batch_size (int): The number of assets to include in each batch.
 
         Yields: Tuple[Assets, object]: A tuple containing assets with assets to init state mapping and a next cursor
         object representing each batch.

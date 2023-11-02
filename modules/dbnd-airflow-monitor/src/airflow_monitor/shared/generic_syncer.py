@@ -88,9 +88,7 @@ class GenericSyncer(BaseComponent):
                 )
             assets_counter = 0
             init_assets_last_cursor = None
-            for init_assets, last_cursor in self.adapter.init_assets_for_cursor(
-                cursor, batch_size=10
-            ):
+            for init_assets, last_cursor in self.adapter.init_assets_for_cursor(cursor):
                 init_assets_last_cursor = last_cursor
                 if init_assets.assets_to_state:
                     assets_size = len(init_assets.assets_to_state)

@@ -14,9 +14,7 @@ class AirflowAdapter(Adapter):
     def init_cursor(self) -> str:
         raise NotImplementedError()
 
-    def init_assets_for_cursor(
-        self, cursor: str, batch_size: int, next_page: str
-    ) -> Assets:
+    def init_assets_for_cursor(self, cursor: str) -> Assets:
         raise NotImplementedError()
 
     def get_assets_data(self, to_update: List[str]) -> Dict[str, object]:

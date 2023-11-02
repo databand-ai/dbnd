@@ -14,9 +14,7 @@ class MockAirflowAdapter(Adapter):
     def init_cursor(self) -> object:
         raise NotImplementedError()
 
-    def init_assets_for_cursor(
-        self, cursor: object, batch_size: int, next_page: object
-    ) -> Assets:
+    def init_assets_for_cursor(self, cursor: object) -> Assets:
         raise NotImplementedError()
 
     def get_assets_data(self, to_update: List[object]) -> Dict[str, object]:

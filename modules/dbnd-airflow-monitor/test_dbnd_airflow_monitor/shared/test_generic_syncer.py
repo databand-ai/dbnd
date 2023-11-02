@@ -36,7 +36,7 @@ class MockAdapter(Adapter):
         self.error = error
 
     def init_assets_for_cursor(
-        self, cursor: int, batch_size: int
+        self, cursor: int
     ) -> Generator[Tuple[Assets, int], None, None]:
         while True:
             yield (
