@@ -15,6 +15,7 @@ from dbnd._core.constants import (
     MetricSource,
 )
 from dbnd._core.errors.errors_utils import log_exception
+from dbnd._core.log import dbnd_log_exception
 from dbnd._core.log.external_exception_logging import capture_tracking_exception
 from dbnd._core.parameter.parameter_definition import ParameterDefinition
 from dbnd._core.settings.tracking_config import get_value_meta
@@ -349,7 +350,11 @@ class DatasetOperationReport(object):
 
     def set_error(self, error):
         # type: (str) -> None
-        self.set(success=False, error=error)
+        try:
+            self.set(success=False, error=error)
+        except Exception:
+            # we don't print error, as the error might becaused by str(error)
+            dbnd_log_exception("Failed to set error on dataset operation")
 
     def set_success(self):
         self.set(success=True)

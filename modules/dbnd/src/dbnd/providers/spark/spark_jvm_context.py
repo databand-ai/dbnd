@@ -2,6 +2,8 @@
 import contextlib
 import logging
 
+from dbnd._core.current import try_get_current_task_run
+from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
 from dbnd.providers.spark.dbnd_spark_init import _safe_get_jvm_view
 
 
@@ -9,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
-def jvm_context_manager(parent_task, current_task):
+def jvm_context_manager(target_task):
     """
     This context manager handles external JVM context.
     When task is started we need to explicitly tell JVM
@@ -28,11 +30,19 @@ def jvm_context_manager(parent_task, current_task):
         def nested_task():
             # ...
     """
+
+    parent_task = try_get_current_task_run()
+
+    try_to_revert_to_parent = set_jvm_context(target_task)
     try:
-        set_jvm_context(current_task)
         yield
     finally:
-        set_jvm_context(parent_task)
+        if (
+            try_to_revert_to_parent  # we have previously set
+            and parent_task  # parent task exists
+            and parent_task != target_task  # and it's not the same one
+        ):
+            set_jvm_context(parent_task)
 
 
 def set_jvm_context(task_run):
@@ -43,24 +53,30 @@ def set_jvm_context(task_run):
     try:
         jvm = _safe_get_jvm_view()
         if jvm is None:
-            return
+            return False
         jvm_dbnd = jvm.ai.databand.DbndWrapper
 
         from py4j import java_gateway
 
         if isinstance(jvm_dbnd, java_gateway.JavaPackage):
+            dbnd_log_debug(
+                "java DbndWrapper is not loading, skipping Java Context injection"
+            )
             # if DbndWrapper class is not loaded then agent or IO listener is not attached
-            return
+            return False
         try:
+            dbnd_log_debug("Set external JVM DbndWrapper context with current run")
             jvm_dbnd.instance().setExternalTaskContext(
                 str(task_run.run.run_uid),
                 str(task_run.task_run_uid),
                 str(task_run.task_run_attempt_uid),
                 str(task_run.task_af_id),
             )
+            return True
         except Exception as jvm_ex:
-            logger.info(
+            dbnd_log_exception(
                 "Failed to set DBND context to JVM during DbndWrapper call: %s", jvm_ex
             )
     except Exception as ex:
-        logger.info("Failed to set DBND context to JVM: %s", ex)
+        dbnd_log_exception("Failed to set DBND context to JVM: %s", ex)
+    return False

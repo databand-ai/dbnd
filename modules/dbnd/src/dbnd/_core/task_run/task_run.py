@@ -5,7 +5,6 @@ import typing
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.context.use_dbnd_run import is_dbnd_run_package_installed
-from dbnd._core.current import try_get_current_task_run
 from dbnd._core.task.tracking_task import TrackingTask
 from dbnd._core.task_build.task_context import TaskContextPhase
 from dbnd._core.task_run.task_run_logging import TaskRunLogManager
@@ -167,14 +166,13 @@ class TaskRun(object):
 
     @contextlib.contextmanager
     def task_run_track_execute(self, capture_log=True):
-        parent_task = try_get_current_task_run()
         current_task = self
         ctx_managers = [self.task.ctrl.task_context(phase=TaskContextPhase.RUN)]
 
         if capture_log:
             ctx_managers.append(self.tracking_log_manager.capture_task_log())
 
-        ctx_managers.append(jvm_context_manager(parent_task, current_task))
+        ctx_managers.append(jvm_context_manager(current_task))
 
         with nested(*ctx_managers):
             yield
