@@ -29,7 +29,7 @@ public abstract class DbndPropertyNames {
     /**
      * Turn on verbose logging for tracking requests.
      */
-    public static final String DBND__TRACKING__VERBOSE = "dbnd.tracking.verbose";
+    public static final String DBND__VERBOSE = "dbnd.verbose";
 
     /**
      * Turn of rich data preview (dataframes and histograms).
@@ -67,12 +67,12 @@ public abstract class DbndPropertyNames {
     /**
      * Override run name.
      */
-    public static final String DBND__RUN__JOB_NAME = "dbnd.run.job_name";
+    public static final String DBND__RUN__JOB_NAME = "dbnd.tracking.job";
 
     /**
      * Override run name.
      */
-    public static final String DBND__RUN__NAME = "dbnd.run.name";
+    public static final String DBND__RUN__NAME = "dbnd.run_info.name";
 
     /**
      * List of Azkaban projects to sync. If not specified, all projects will be synced.

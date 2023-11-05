@@ -120,8 +120,10 @@ public class DbndWrapper {
         // log4j system is not initialized properly at this point, so we're using stdout directly
         System.out.println("Running Databand!");
         System.out.printf("TRACKER URL: %s%n", config.databandUrl());
-        System.out.printf("CMD: %s%n", config.cmd());
-        System.out.println("Parsed Databand properties: " + config);
+        if (config.isVerbose()) {
+            System.out.printf("CMD: %s%n", config.cmd());
+            System.out.println("Parsed Databand properties: " + config);
+        }
         getOrCreateRun(method, args);
         pipelineInitialized = true;
     }
@@ -451,7 +453,7 @@ public class DbndWrapper {
         try {
             run.init(method, args);
             // log4j isn't initialized at this point
-            System.out.printf("Running pipeline %s%n", run.getTaskName(method));
+            System.out.printf("Running pipeline '%s'%n", run.getTaskName(method));
         } catch (Exception e) {
             run = new NoopDbndRun();
             System.out.println("Unable to init run:");

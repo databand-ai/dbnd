@@ -15,7 +15,8 @@ from dbnd._core.configuration.environ_config import (
     ENV_DBND_SCRIPT_NAME,
 )
 from dbnd._core.constants import TaskRunState, UpdateSource
-from dbnd._core.log import dbnd_log_exception
+from dbnd._core.log import dbnd_log_exception, is_verbose
+from dbnd._core.log.dbnd_log import ENV_DBND__VERBOSE
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
@@ -102,6 +103,14 @@ def get_dbnd_context_spark_conf(
         }
     )
 
+    if is_verbose():
+        dbnd_spark_conf.update(
+            {
+                "spark.env.DBND__VERBOSE": "True",
+                "spark.yarn.appMasterEnv.DBND__VERBOSE": "True",
+            }
+        )
+
     dbnd_spark_conf.update(TrackingSparkConfig.from_databand_context().spark_conf())
 
     # simple case, used doesn't have his own configuration
@@ -137,6 +146,8 @@ def get_dbnd_context_env_vars(tracking_info=None, env_vars=None, script_name=Non
         if script_name:
             env_vars_with_dbnd[ENV_DBND_SCRIPT_NAME] = script_name
 
+    if is_verbose():
+        env_vars_with_dbnd[ENV_DBND__VERBOSE] = "True"
     env_vars_with_dbnd[ENV_DBND__ENABLE__SPARK_CONTEXT_ENV] = "True"
     return env_vars_with_dbnd
 

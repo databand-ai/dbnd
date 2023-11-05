@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static ai.databand.DbndPropertyNames.DBND__SPARK__IO_TRACKING_ENABLED;
-import static ai.databand.DbndPropertyNames.DBND__TRACKING__VERBOSE;
+import static ai.databand.DbndPropertyNames.DBND__VERBOSE;
 
 public class DbndAgentConfig {
 
@@ -45,7 +45,7 @@ public class DbndAgentConfig {
     }
 
     public boolean isVerbose() {
-        return isTrue(DBND__TRACKING__VERBOSE);
+        return isTrue(DBND__VERBOSE);
     }
 
     public boolean sparkIoTrackingEnabled() {

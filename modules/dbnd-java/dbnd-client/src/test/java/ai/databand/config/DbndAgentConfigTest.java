@@ -39,7 +39,7 @@ class DbndAgentConfigTest {
 
     @Test
     public void testCorrectnValue() {
-        DbndAgentConfig config = new DbndAgentConfig(DbndPropertyNames.DBND__TRACKING__VERBOSE + "=true");
+        DbndAgentConfig config = new DbndAgentConfig(DbndPropertyNames.DBND__VERBOSE + "=true");
         assertThat("Wrong config property value", config.isVerbose(), Matchers.equalTo(true));
         assertThat("Wrong config property value", config.sparkIoTrackingEnabled(), Matchers.equalTo(false));
     }

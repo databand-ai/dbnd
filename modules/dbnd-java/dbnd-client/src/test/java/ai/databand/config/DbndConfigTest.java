@@ -157,11 +157,11 @@ class DbndConfigTest {
 
     @Test
     public void testPipelineRunName() {
-        sparkProperties.put("spark.env.DBND__RUN__NAME", "pipeline_run");
+        sparkProperties.put("spark.env.DBND__RUN_INFO__NAME", "pipeline_run");
         sparkProperties.put("spark.env.AIRFLOW_CTX_TRY_NUMBER", "1");
         DbndConfig conf = new DbndConfig(new DbndSparkConf(new SimpleProps()));
         assertThat("Wrong pipeline run name", conf.runName(), Matchers.equalTo("pipeline_run"));
-        sparkProperties.remove("spark.env.DBND__RUN__NAME");
+        sparkProperties.remove("spark.env.DBND__RUN_INFO__NAME");
         sparkProperties.remove("spark.env.AIRFLOW_CTX_TRY_NUMBER");
 
     }
