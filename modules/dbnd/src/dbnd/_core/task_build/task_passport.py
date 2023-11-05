@@ -70,6 +70,10 @@ class TaskPassport(object):
     def build_task_passport(
         cls, cls_name, module_name, task_namespace=NOTHING, task_family=None
     ):
+        if not module_name:
+            # there are EMR notebook and some other cases with empty module name
+            module_name = "__main__"
+
         full_task_family = "%s.%s" % (module_name, cls_name)
         full_task_family_short = "%s.%s" % (_short_name(module_name), cls_name)
 
