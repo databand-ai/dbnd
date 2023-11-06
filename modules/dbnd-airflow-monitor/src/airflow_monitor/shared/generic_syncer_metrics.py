@@ -13,18 +13,6 @@ generic_syncer_assets_data_error_counter = Counter(
     labelnames=["integration_id", "syncer_instance_id", "error_message"],
 )
 
-generic_syncer_error_counter = Counter(
-    "dbnd_generic_syncer_error_counter",
-    "Number errors in generic syncer",
-    labelnames=["integration_id", "syncer_instance_id", "error_message"],
-)
-
-generic_syncer_sync_once_total_duration_seconds = Gauge(
-    "dbnd_generic_syncer_sync_once_total_duration_seconds",
-    "The end time minus the start time of sync_once in seconds",
-    labelnames=["integration_id", "syncer_instance_id"],
-)
-
 generic_syncer_sync_once_batch_duration_seconds = Gauge(
     "dbnd_generic_syncer_sync_once_batch_duration_seconds",
     "The end time minus the start time of a batch in sync_once in seconds",
@@ -68,28 +56,12 @@ generic_syncer_get_assets_data_response_time_seconds = Gauge(
 )
 
 
-def report_generic_syncer_error(integration_id, syncer_instance_id, error_message):
-    generic_syncer_error_counter.labels(
-        integration_id=integration_id,
-        syncer_instance_id=syncer_instance_id,
-        error_message=error_message,
-    ).inc()
-
-
 def report_assets_data_fetch_error(integration_id, syncer_instance_id, error_message):
     generic_syncer_assets_data_error_counter.labels(
         integration_id=integration_id,
         syncer_instance_id=syncer_instance_id,
         error_message=error_message,
     ).inc()
-
-
-def report_sync_once_total_duration_seconds(
-    integration_id, syncer_instance_id, duration
-):
-    generic_syncer_sync_once_total_duration_seconds.labels(
-        integration_id=integration_id, syncer_instance_id=syncer_instance_id
-    ).set(duration)
 
 
 def report_sync_once_batch_duration_seconds(

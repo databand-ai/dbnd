@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from typing import Generator, List, Tuple
+from typing import List, Tuple
 from unittest.mock import patch
 
 import mock
@@ -29,31 +29,23 @@ class MockAdapter(Adapter):
     def __init__(self):
         super(MockAdapter, self).__init__()
         self.cursor: int = 0
-        self.next_page: int = 0
         self.error: Exception = None
 
     def set_error(self, error: Exception) -> None:
         self.error = error
 
-    def init_assets_for_cursor(
-        self, cursor: int
-    ) -> Generator[Tuple[Assets, int], None, None]:
-        while True:
-            yield (
-                Assets(
-                    data=None,
-                    assets_to_state=[
-                        AssetToState(
-                            asset_id=self.cursor + self.next_page, state=AssetState.INIT
-                        )
-                    ],
-                ),
-                self.cursor,
-            )
-            self.cursor += 1
-            if self.next_page == 1:
-                break
-            self.next_page = 1
+    def get_new_assets_for_cursor(self, cursor: int) -> Tuple[Assets, int]:
+        old_cursor = self.cursor
+        self.cursor += 1
+        return (
+            Assets(
+                data=None,
+                assets_to_state=[
+                    AssetToState(asset_id=old_cursor, state=AssetState.INIT)
+                ],
+            ),
+            old_cursor,
+        )
 
     def init_cursor(self) -> int:
         return self.cursor
@@ -206,8 +198,8 @@ class TestGenericSyncer:
         assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
         assert mock_tracking_service.sent_data == [
             {"data": [0]},
+            {"data": [1]},
             {"data": [2]},
-            {"data": [3]},
         ]
 
     def test_sync_get_data_exception_on_save_data(
@@ -215,18 +207,20 @@ class TestGenericSyncer:
         generic_runtime_syncer: GenericSyncer,
         mock_tracking_service: MockTrackingService,
     ):
+        # will cause exception in save_tracking_data
+        # exception in save_tracking_data shouldn't prevent updating cursor
         mock_tracking_service.set_error(Exception("test"))
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         generic_runtime_syncer.sync_once()
         # last cursor is not updated after failure
-        assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
+        assert mock_tracking_service.get_last_cursor_and_state() == (1, "update")
         generic_runtime_syncer.sync_once()
         # call get data with same cursor before failure
-        assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
+        assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
         assert mock_tracking_service.sent_data == [
             {"data": [0]},
-            {"data": [2]},
+            {"data": [1]},
             {"data": [2]},
         ]
 
@@ -247,7 +241,6 @@ class TestGenericSyncer:
         )
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
-        generic_runtime_syncer.sync_once()
         assert mock_tracking_service.assets_state == [
             [
                 AssetToState(asset_id=3, state=AssetState.FINISHED),
@@ -257,13 +250,12 @@ class TestGenericSyncer:
                 AssetToState(asset_id=7, state=AssetState.FINISHED),
                 AssetToState(asset_id=8, state=AssetState.FINISHED),
             ],
+            [AssetToState(asset_id=0, state=AssetState.INIT)],
             [AssetToState(asset_id=0, state=AssetState.FINISHED)],
-            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
         ]
         assert mock_tracking_service.sent_data == [
             {"data": [3, 4, 5, 6, 7, 8]},
             {"data": [0]},
-            {"data": [2]},
         ]
 
     def test_sync_get_and_update_data_with_pagination_and_unknown_state(
@@ -283,7 +275,6 @@ class TestGenericSyncer:
         )
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
-        generic_runtime_syncer.sync_once()
         assert mock_tracking_service.assets_state == [
             [
                 AssetToState(asset_id=4, state=AssetState.FINISHED),
@@ -292,13 +283,12 @@ class TestGenericSyncer:
                 AssetToState(asset_id=7, state=AssetState.FINISHED),
                 AssetToState(asset_id=8, state=AssetState.FINISHED),
             ],
+            [AssetToState(asset_id=0, state=AssetState.INIT)],
             [AssetToState(asset_id=0, state=AssetState.FINISHED)],
-            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
         ]
         assert mock_tracking_service.sent_data == [
             {"data": [4, 5, 6, 7, 8]},
             {"data": [0]},
-            {"data": [2]},
         ]
 
     def test_sync_get_and_update_data_with_pagination_and_failed_request(
@@ -318,7 +308,6 @@ class TestGenericSyncer:
         )
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
-        generic_runtime_syncer.sync_once()
         assert mock_tracking_service.assets_state == [
             [
                 AssetToState(
@@ -330,27 +319,9 @@ class TestGenericSyncer:
                 AssetToState(asset_id=7, state=AssetState.FINISHED),
                 AssetToState(asset_id=8, state=AssetState.FINISHED),
             ],
+            [AssetToState(asset_id=0, state=AssetState.INIT)],
             [AssetToState(asset_id=0, state=AssetState.FINISHED)],
-            [AssetToState(asset_id=2, state=AssetState.FINISHED)],
         ]
-
-    def test_sync_once_total_duration_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_sync_once_total_duration_seconds.labels"
-        ) as generic_syncer_sync_once_total_duration_seconds:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_sync_once_total_duration_seconds.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # generic_syncer_sync_once_total_duration_seconds.labels
-            labels = generic_syncer_sync_once_total_duration_seconds.return_value
-            # sync once duration value is more then 0 seconds
-            assert labels.method_calls[0].args[0] > 0
 
     def test_sync_once_batch_duration_metric(
         self,
@@ -398,15 +369,16 @@ class TestGenericSyncer:
         with mock.patch(
             "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_assets_size.labels"
         ) as generic_syncer_total_assets_size:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_total_assets_size.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # generic_syncer_total_assets_size.labels
-            labels = generic_syncer_total_assets_size.return_value
-            # total assets size value
-            assert labels.method_calls[0].args[0] == 2
+            for i in range(1, 3):
+                generic_runtime_syncer.sync_once()
+                generic_syncer_total_assets_size.assert_called_with(
+                    integration_id=INTEGRATION_UID, syncer_instance_id="123"
+                )
+                # generic_syncer_total_assets_size.labels
+                labels = generic_syncer_total_assets_size.return_value
+                # total assets size value
+                assert len(labels.method_calls) == i
+                assert labels.method_calls[-1].args[0] == 1
 
     def test_report_assets_data_batch_size_bytes_metric(
         self,
@@ -443,23 +415,6 @@ class TestGenericSyncer:
                 error_message="mock error",
             )
 
-    def test_report_generic_syncer_error_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        mock_tracking_service.set_error(Exception("test"))
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_error_counter.labels"
-        ) as generic_syncer_assets_data_error_counter:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_assets_data_error_counter.assert_called_with(
-                integration_id=INTEGRATION_UID,
-                syncer_instance_id="123",
-                error_message="test",
-            )
-
     def test_report_total_failed_assets_requests_metric(
         self,
         generic_runtime_syncer: GenericSyncer,
@@ -475,13 +430,12 @@ class TestGenericSyncer:
             "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_failed_assets_requests.labels"
         ) as generic_syncer_total_failed_assets_requests:
             generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
             generic_syncer_total_failed_assets_requests.assert_called_with(
                 integration_id=INTEGRATION_UID, syncer_instance_id="123"
             )
             labels = generic_syncer_total_failed_assets_requests.return_value
-            # total failed assets requests value
-            assert labels.method_calls[0].args[0] == 2
+            # total failed assets requests value - first for init, second for active
+            labels.set.assert_has_calls([mock.call(2), mock.call(0)])
 
     def test_report_total_max_retry_assets_requests_metric(
         self,
@@ -498,13 +452,12 @@ class TestGenericSyncer:
             "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_max_retry_assets_requests.labels"
         ) as generic_syncer_total_max_retry_assets_requests:
             generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
             generic_syncer_total_max_retry_assets_requests.assert_called_with(
                 integration_id=INTEGRATION_UID, syncer_instance_id="123"
             )
             labels = generic_syncer_total_max_retry_assets_requests.return_value
-            # total max retry assets requests value
-            assert labels.method_calls[0].args[0] == 2
+            # total max retry assets requests value - first for init, second for active
+            labels.set.assert_has_calls([mock.call(2), mock.call(0)])
 
     def test_get_assets_data_response_duration_metric(
         self,
@@ -514,7 +467,6 @@ class TestGenericSyncer:
         with mock.patch(
             "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_get_assets_data_response_time_seconds.labels"
         ) as generic_syncer_get_assets_data_response_time_seconds:
-            generic_runtime_syncer.sync_once()
             generic_runtime_syncer.sync_once()
             generic_syncer_get_assets_data_response_time_seconds.assert_called_with(
                 integration_id=INTEGRATION_UID, syncer_instance_id="123"

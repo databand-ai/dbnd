@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from typing import Dict, List, Optional
+from typing import Optional, Tuple
 
 from airflow_monitor.shared.adapter.adapter import Adapter, Assets, ThirdPartyInfo
 
@@ -14,10 +14,10 @@ class MockAirflowAdapter(Adapter):
     def init_cursor(self) -> object:
         raise NotImplementedError()
 
-    def init_assets_for_cursor(self, cursor: object) -> Assets:
+    def get_new_assets_for_cursor(self, cursor: object) -> Tuple[Assets, object]:
         raise NotImplementedError()
 
-    def get_assets_data(self, to_update: List[object]) -> Dict[str, object]:
+    def get_assets_data(self, assets: Assets) -> Assets:
         raise NotImplementedError()
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:

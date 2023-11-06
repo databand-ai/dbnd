@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 import attr
 
@@ -152,7 +152,7 @@ class ThirdPartyInfo:
 T = TypeVar("T")
 
 
-class Adapter(ABC):
+class Adapter(ABC, Generic[T]):
     """
     Abstract base class for integration adapters.
     Subclasses should implement the methods to interact with a specific integration.
@@ -172,22 +172,18 @@ class Adapter(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def init_assets_for_cursor(
-        self, cursor: T
-    ) -> Generator[Tuple[Assets, T], None, None]:
+    def get_new_assets_for_cursor(self, cursor: T) -> Tuple[Assets, T]:
         """
-        Initialize assets to init state mapping for a given cursor and batch size.
+        Returns new assets and new cursor given current cursor.
 
-        This method should be implemented by subclasses to initialize batch of assets object with assets to init state
-        mapping and corresponding next cursor object given initial cursor object and
-        batch size.
+        This method should be implemented by subclasses to return new assets available
+        in the integration and corresponding new cursor object given initial cursor.
 
         Args:
             cursor (object): The cursor object that will be used to query for integration assets
 
-        Yields: Tuple[Assets, object]: A tuple containing assets with assets to init state mapping and a next cursor
-        object representing each batch.
-            example: (Assets(data=None, assets_to_state={run_id: state.Init}), new_cursor)
+        Returns: Tuple[Assets, object]: A tuple containing assets and a next cursor
+            example: Assets(data=None, assets_to_state={run_id: state.Init}), new_cursor
         """
 
         raise NotImplementedError()
