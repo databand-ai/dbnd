@@ -97,7 +97,8 @@ def database_exists(url):
         else:
             url = _sa_url_set(url, database=None)
     except Exception as ex:
-        logger.info("Failed to parse URL due to SQLAlchemy version, skipping DB check..: %s" , ex)
+        logger.warning("Failed to parse URL due to SQLAlchemy version, skipping DB check..: %s", ex)
+        return True
 
     engine = sa.create_engine(url)
 
