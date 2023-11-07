@@ -30,7 +30,7 @@ def register_value_types_spark():
                 package="dbnd",
             ),
             FileFormat.parquet: MarshallerLoader(
-                "targets.providers.spark.spark_marshalling.SparkMarshallerParquet)",
+                "targets.providers.spark.spark_marshalling.SparkMarshallerParquet",
                 package="dbnd",
             ),
         }

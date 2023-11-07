@@ -38,6 +38,8 @@ import sqlalchemy as sa
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
+import logging
+logger= logging.getLogger(__name__)
 
 def _sa_url_set(url, **kwargs):
     try:
@@ -89,10 +91,13 @@ def database_exists(url):
 
     url = copy(make_url(url))
     database = url.database
-    if url.drivername.startswith("postgres"):
-        url = _sa_url_set(url, database="postgres")
-    else:
-        url = _sa_url_set(url, database=None)
+    try:
+        if url.drivername.startswith("postgres"):
+            url = _sa_url_set(url, database="postgres")
+        else:
+            url = _sa_url_set(url, database=None)
+    except Exception as ex:
+        logger.info("Failed to parse URL due to SQLAlchemy version, skipping DB check..: %s" , ex)
 
     engine = sa.create_engine(url)
 
