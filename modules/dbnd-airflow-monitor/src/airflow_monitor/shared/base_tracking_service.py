@@ -15,7 +15,7 @@ LONG_REQUEST_TIMEOUT = 300
 
 
 class BaseTrackingService:
-    def __init__(self, monitor_type: str, server_id: str, integration_id: str = None):
+    def __init__(self, monitor_type: str, server_id: str):
         self.monitor_type = monitor_type
         self.server_id = server_id
         self._api_client = _get_api_client()

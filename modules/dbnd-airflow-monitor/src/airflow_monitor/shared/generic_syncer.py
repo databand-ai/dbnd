@@ -1,33 +1,96 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import contextlib
 import logging
-import sys
 
-from typing import Any
+from typing import Any, Collection, List, Tuple
+
+import attr
 
 from airflow_monitor.shared.adapter.adapter import (
     Adapter,
     Assets,
+    AssetState,
     AssetsToStatesMachine,
+    AssetToState,
 )
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer_metrics import (
-    report_assets_data_batch_size_bytes,
-    report_assets_data_fetch_error,
-    report_get_assets_data_response_time,
-    report_save_tracking_data_response_time,
-    report_sync_once_batch_duration_seconds,
+    func_execution_time,
     report_total_assets_size,
 )
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
-from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
+
+
+def mark_assets_as_failed(assets: List[AssetToState]) -> List[AssetToState]:
+    return [attr.evolve(asset, state=AssetState.FAILED_REQUEST) for asset in assets]
+
+
+def add_missing_assets_as_failed(
+    actual_assets: List[AssetToState], expected_assets: List[AssetToState]
+) -> List[AssetToState]:
+    """
+    Adds all assets from `expected_assets` which does not exist in `actual_assets`,
+    and marks them as failed
+    """
+    actual_assets_by_asset_id = {asset.asset_id: asset for asset in actual_assets}
+
+    # report all missing as failed
+    missing_assets = [
+        expected_asset
+        for expected_asset in expected_assets
+        if expected_asset.asset_id not in actual_assets_by_asset_id
+    ]
+
+    if not missing_assets:
+        # All good
+        return actual_assets
+
+    logger.warning(
+        "Missing assets will be marked as failed, asset_ids=%s",
+        assets_to_str(missing_assets),
+    )
+    return actual_assets + mark_assets_as_failed(missing_assets)
+
+
+def split_failed_and_not_failed(
+    assets: List[AssetToState],
+) -> Tuple[List[AssetToState], List[AssetToState]]:
+    non_failed_assets, failed_assets = [], []
+    for asset in assets:
+        if asset.state == AssetState.FAILED_REQUEST:
+            failed_assets.append(asset)
+        else:
+            non_failed_assets.append(asset)
+    return failed_assets, non_failed_assets
+
+
+def assets_to_str(assets_to_state: List[AssetToState]) -> str:
+    if not assets_to_state:
+        return str(assets_to_state)
+
+    return ",".join(str(asset.asset_id) for asset in assets_to_state)
+
+
+def get_data_dimension_str(data: Any) -> str:
+    """
+    Returns asset data dimension. Example:
+    > get_data_dimension_str({"runs": [1,2,3], "jobs": {"hello": ..., "world": ...,}
+    runs:3, jobs:2
+    """
+
+    def safe_len(val: Any) -> int:
+        return len(val) if isinstance(val, Collection) else 1
+
+    if isinstance(data, dict):
+        return ", ".join(f"{key}:{safe_len(value)}" for key, value in data.items())
+    return str(safe_len(data)) if data else str(data)
 
 
 class GenericSyncer(BaseComponent):
@@ -62,10 +125,10 @@ class GenericSyncer(BaseComponent):
         cursor = self._get_or_init_cursor()
 
         active_assets = self._get_active_assets()
-        synced_active_data = self._process_assets_batch(active_assets)
+        synced_active_data = self.process_assets_in_chunks(active_assets)
 
         new_assets = self._get_new_assets_and_update_cursor(cursor)
-        synced_new_data = self._process_assets_batch(new_assets)
+        synced_new_data = self.process_assets_in_chunks(new_assets)
 
         self.integration_management_service.report_monitor_time_data(
             self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
@@ -117,77 +180,85 @@ class GenericSyncer(BaseComponent):
             )
         return cursor
 
-    def _process_assets_batch(self, assets: Assets) -> bool:
-        batch_process_start_time = utcnow()
-        synced_data = False
+    def process_assets_in_chunks(self, assets: Assets) -> bool:
+        if not assets.assets_to_state:
+            return False
+
+        failed, non_failed = split_failed_and_not_failed(assets.assets_to_state)
+        logger.info(
+            "Processing assets in chunks failed=%s not_failed=%s",
+            len(failed),
+            len(non_failed),
+        )
+        any_data_synced = False
+
+        bulk_size = 10  # TODO: take from config
+        for i in range(0, len(non_failed), bulk_size):
+            assets_chunk = non_failed[i : i + bulk_size]
+            any_data_synced |= self._process_assets_batch(
+                attr.evolve(assets, assets_to_state=assets_chunk)
+            )
+
+        # process failed assets one-by-one, to prevent 1 bad asset failing all the rest
+        for asset in failed:
+            any_data_synced |= self._process_assets_batch(
+                attr.evolve(assets, assets_to_state=[asset])
+            )
+
+        return any_data_synced
+
+    def _process_assets_batch(self, assets_to_process: Assets) -> bool:
+        any_data_synced = False
         try:
-            assets_data = self.adapter.get_assets_data(assets)
-        except Exception as ex:
-            logger.error("Error on fetching assets data: %s", str(ex))
-            report_assets_data_fetch_error(
-                integration_id=self.config.uid,
-                syncer_instance_id=self.syncer_instance_id,
-                error_message=str(ex),
+            with self.measure_time("get_assets_data"):
+                assets_data = self.adapter.get_assets_data(assets_to_process)
+
+            logger.info(
+                "Saving new assets data for tracking source %s, asset_ids=%s data=%s",
+                self.server_id,
+                assets_to_str(assets_data.assets_to_state),
+                get_data_dimension_str(assets_data.data),
             )
-            return synced_data
-        get_assets_data_duration = (utcnow() - batch_process_start_time).total_seconds()
-        report_get_assets_data_response_time(
+
+            if assets_data.data:
+                with self.measure_time("save_tracking_data"):
+                    self.tracking_service.save_tracking_data(assets_data.data)
+
+                any_data_synced = True
+
+            new_assets_states = assets_data.assets_to_state
+        except Exception:
+            logger.exception(
+                "Unexpected error while processing assets batch, asset_ids=%s",
+                assets_to_str(assets_to_process.assets_to_state),
+            )
+            # if we were able to get_assets_data but wasn't able to save_tracking_data
+            # we still should consider all assets as failed
+            new_assets_states = None
+
+        new_assets_states = add_missing_assets_as_failed(
+            new_assets_states or [], assets_to_process.assets_to_state
+        )
+
+        # Here we take care of retry count, transition to MAX_RETRIES, etc.
+        new_assets_states = self.assets_to_states_machine.process(new_assets_states)
+
+        self.tracking_service.save_assets_state(
+            integration_id=str(self.config.uid),
+            syncer_instance_id=self.syncer_instance_id,
+            assets_to_state=new_assets_states,
+        )
+
+        return any_data_synced
+
+    @contextlib.contextmanager
+    def measure_time(self, func_name: str):
+        with func_execution_time.labels(
             integration_id=self.config.uid,
             syncer_instance_id=self.syncer_instance_id,
-            duration=get_assets_data_duration,
-        )
-        assets_data_to_report = assets_data.data
-        assets_states_to_report = assets_data.assets_to_state
-        if not assets_data_to_report:
-            logger.info(
-                "No new assets data found for tracking source %s", self.server_id
-            )
-        else:
-            logger.info("Found new assets data for tracking source %s", self.server_id)
-            synced_data = True
-            try:
-                assets_data_batch_size = sys.getsizeof(assets_data_to_report)
-                report_assets_data_batch_size_bytes(
-                    integration_id=self.config.uid,
-                    syncer_instance_id=self.syncer_instance_id,
-                    assets_data_batch_size_bytes=assets_data_batch_size,
-                )
-            except TypeError:
-                logger.warning("assets data batch size could not be calculated")
-            save_tracking_data_start_time = utcnow()
-            self.tracking_service.save_tracking_data(assets_data_to_report)
-            save_tracking_data_end_time = utcnow()
-            save_tracking_data_duration_seconds = (
-                save_tracking_data_end_time - save_tracking_data_start_time
-            ).total_seconds()
-            report_save_tracking_data_response_time(
-                integration_id=self.config.uid,
-                syncer_instance_id=self.syncer_instance_id,
-                duration=save_tracking_data_duration_seconds,
-            )
-        if not assets_states_to_report:
-            logger.info("No new assets states for tracking source %s", self.server_id)
-        else:
-            logger.info(
-                "Found new assets states for tracking source %s", self.server_id
-            )
-            self.tracking_service.save_assets_state(
-                integration_id=str(self.config.uid),
-                syncer_instance_id=self.syncer_instance_id,
-                assets_to_state=self.assets_to_states_machine.process(
-                    assets_states_to_report
-                ),
-            )
-        batch_process_end_time = utcnow()
-        batch_process_duration_seconds = (
-            batch_process_end_time - batch_process_start_time
-        ).total_seconds()
-        report_sync_once_batch_duration_seconds(
-            integration_id=self.config.uid,
-            syncer_instance_id=self.syncer_instance_id,
-            duration=batch_process_duration_seconds,
-        )
-        return synced_data
+            func_name=func_name,
+        ).time():
+            yield
 
     @property
     def identifier(self) -> str:

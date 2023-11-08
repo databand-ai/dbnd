@@ -15,7 +15,11 @@ from airflow_monitor.shared.adapter.adapter import (
 )
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.generic_syncer import GenericSyncer
+from airflow_monitor.shared.generic_syncer import (
+    GenericSyncer,
+    assets_to_str,
+    get_data_dimension_str,
+)
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
@@ -310,56 +314,16 @@ class TestGenericSyncer:
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         assert mock_tracking_service.assets_state == [
             [
-                AssetToState(
-                    asset_id=3, state=AssetState.FAILED_REQUEST, retry_count=2
-                ),
                 AssetToState(asset_id=4, state=AssetState.FINISHED),
                 AssetToState(asset_id=5, state=AssetState.FINISHED),
                 AssetToState(asset_id=6, state=AssetState.FINISHED),
                 AssetToState(asset_id=7, state=AssetState.FINISHED),
                 AssetToState(asset_id=8, state=AssetState.FINISHED),
             ],
+            [AssetToState(asset_id=3, state=AssetState.FAILED_REQUEST, retry_count=2)],
             [AssetToState(asset_id=0, state=AssetState.INIT)],
             [AssetToState(asset_id=0, state=AssetState.FINISHED)],
         ]
-
-    def test_sync_once_batch_duration_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_sync_once_batch_duration_seconds.labels"
-        ) as generic_syncer_sync_once_batch_duration_seconds:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_sync_once_batch_duration_seconds.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # generic_syncer_sync_once_batch_duration_seconds.labels
-            labels = generic_syncer_sync_once_batch_duration_seconds.return_value
-            # batch duration value is more then 0 seconds
-            assert labels.method_calls[0].args[0] > 0
-
-    def test_save_tracking_data_response_duration_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_save_tracking_data_response_time_seconds.labels"
-        ) as generic_syncer_save_tracking_data_response_time_seconds:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_save_tracking_data_response_time_seconds.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # generic_syncer_save_tracking_data_response_time_seconds.labels
-            labels = (
-                generic_syncer_save_tracking_data_response_time_seconds.return_value
-            )
-            # save tracking response duration value is more then 0 seconds
-            assert labels.method_calls[0].args[0] > 0
 
     def test_total_assets_data_size_metric(
         self,
@@ -380,98 +344,32 @@ class TestGenericSyncer:
                 assert len(labels.method_calls) == i
                 assert labels.method_calls[-1].args[0] == 1
 
-    def test_report_assets_data_batch_size_bytes_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_assets_data_batch_size_bytes.labels"
-        ) as generic_syncer_assets_data_batch_size_bytes:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_assets_data_batch_size_bytes.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # report_assets_data_batch_size_bytes.labels
-            labels = generic_syncer_assets_data_batch_size_bytes.return_value
-            # data batch size bytes value
-            assert labels.method_calls[0].args[0] > 0
 
-    def test_report_get_assets_data_error_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        generic_runtime_syncer.adapter.set_error(Exception("mock error"))
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_assets_data_error_counter.labels"
-        ) as generic_syncer_assets_data_error_counter:
-            generic_runtime_syncer.sync_once()
-            generic_runtime_syncer.sync_once()
-            generic_syncer_assets_data_error_counter.assert_called_with(
-                integration_id=INTEGRATION_UID,
-                syncer_instance_id="123",
-                error_message="mock error",
-            )
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (None, "None"),
+        ([], "[]"),
+        (
+            [AssetToState(1), AssetToState("asd"), AssetToState("/a/b/c")],
+            "1,asd,/a/b/c",
+        ),
+    ],
+)
+def test_assets_to_str(data, expected):
+    assert assets_to_str(data) == expected
 
-    def test_report_total_failed_assets_requests_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        mock_tracking_service.set_active_runs(
-            [
-                {"asset_uri": 3, "state": "failed_request", "data": {"retry_count": 1}},
-                {"asset_uri": 4, "state": "failed_request", "data": {"retry_count": 1}},
-            ]
-        )
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_failed_assets_requests.labels"
-        ) as generic_syncer_total_failed_assets_requests:
-            generic_runtime_syncer.sync_once()
-            generic_syncer_total_failed_assets_requests.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            labels = generic_syncer_total_failed_assets_requests.return_value
-            # total failed assets requests value - first for init, second for active
-            labels.set.assert_has_calls([mock.call(2), mock.call(0)])
 
-    def test_report_total_max_retry_assets_requests_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        mock_tracking_service.set_active_runs(
-            [
-                {"asset_uri": 3, "state": "failed_request", "data": {"retry_count": 6}},
-                {"asset_uri": 4, "state": "failed_request", "data": {"retry_count": 6}},
-            ]
-        )
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_max_retry_assets_requests.labels"
-        ) as generic_syncer_total_max_retry_assets_requests:
-            generic_runtime_syncer.sync_once()
-            generic_syncer_total_max_retry_assets_requests.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            labels = generic_syncer_total_max_retry_assets_requests.return_value
-            # total max retry assets requests value - first for init, second for active
-            labels.set.assert_has_calls([mock.call(2), mock.call(0)])
-
-    def test_get_assets_data_response_duration_metric(
-        self,
-        generic_runtime_syncer: GenericSyncer,
-        mock_tracking_service: MockTrackingService,
-    ):
-        with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_get_assets_data_response_time_seconds.labels"
-        ) as generic_syncer_get_assets_data_response_time_seconds:
-            generic_runtime_syncer.sync_once()
-            generic_syncer_get_assets_data_response_time_seconds.assert_called_with(
-                integration_id=INTEGRATION_UID, syncer_instance_id="123"
-            )
-            # generic_syncer_save_tracking_data_response_time_seconds.labels
-            labels = generic_syncer_get_assets_data_response_time_seconds.return_value
-            # get_assets_data_duration value is more then 0 seconds
-            assert labels.method_calls[0].args[0] > 0
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (None, "None"),
+        ("hello", "5"),  # shouldn't happen but just in case
+        (123, "1"),  # shouldn't happen but just in case
+        ([], "[]"),
+        ([1, 2, 5], "3"),
+        ({"runs": [1, [], 3], "jobs": {"hello": 1232, "world": {}}}, "runs:3, jobs:2"),
+    ],
+)
+def test_get_data_dimension_str(data, expected):
+    assert get_data_dimension_str(data) == expected
