@@ -130,7 +130,8 @@ class DbtCloudApiClient:
         )
         return self.query_meta_data_api(query)
 
-    def list_runs(self, limit, offset, order_by, job_id=None):
+    def list_runs(self, limit, offset, order_by="-created_at", job_id=None):
+        # https://docs.getdbt.com/dbt-cloud/api-v2#/operations/List%20Runs
         path = f"{self.account_id}/runs"
         url = self._build_administrative_url(path)
         data = {"limit": limit, "offset": offset, "order_by": order_by}
