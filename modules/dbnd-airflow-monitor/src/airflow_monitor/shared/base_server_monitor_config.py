@@ -9,6 +9,7 @@ from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 
 
 DEFAULT_SYNC_INTERVAL_IN_SECONDS = 10
+DEFAULT_SYNC_BULK_SIZE = 10
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -19,6 +20,7 @@ class BaseServerConfig:
     tracking_source_uid: UUID
 
     sync_interval: int = DEFAULT_SYNC_INTERVAL_IN_SECONDS
+    sync_bulk_size: int = DEFAULT_SYNC_BULK_SIZE
     fetcher_type: Optional[str] = None
 
     log_level: str = None
@@ -46,6 +48,10 @@ class BaseServerConfig:
             integration_config=integration_config,
             sync_interval=integration_config.get(
                 "sync_interval", DEFAULT_SYNC_INTERVAL_IN_SECONDS
+            ),
+            # currently some existing integrations has "runs_bulk_size" field, fix it :)
+            sync_bulk_size=integration_config.get(
+                "runs_bulk_size", DEFAULT_SYNC_BULK_SIZE
             ),
         )
 

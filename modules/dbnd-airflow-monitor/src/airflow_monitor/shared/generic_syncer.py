@@ -192,7 +192,7 @@ class GenericSyncer(BaseComponent):
         )
         any_data_synced = False
 
-        bulk_size = 10  # TODO: take from config
+        bulk_size = self.config.sync_bulk_size
         for i in range(0, len(non_failed), bulk_size):
             assets_chunk = non_failed[i : i + bulk_size]
             any_data_synced |= self._process_assets_batch(
