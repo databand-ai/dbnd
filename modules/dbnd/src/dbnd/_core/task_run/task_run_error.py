@@ -12,7 +12,7 @@ from dbnd._core.errors.errors_utils import (
     show_exc_info,
 )
 from dbnd._core.tracking.schemas.tracking_info_objects import ErrorInfo
-from dbnd._core.utils.anonymization import secrets_anonymizer
+from dbnd._core.utils.data_anonymizers import mask_sensitive_data
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -80,7 +80,7 @@ class TaskRunError(object):
             databand_error=isinstance(ex, DatabandError),
             nested=nested_exceptions_str(ex, limit=1),
             traceback=self.traceback,
-            user_code_traceback=secrets_anonymizer.anonymize(
+            user_code_traceback=mask_sensitive_data(
                 task.settings.tracking_log.format_exception_as_str(
                     exc_info=self.exc_info, isolate=isolate
                 )

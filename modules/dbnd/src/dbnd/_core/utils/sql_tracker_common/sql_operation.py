@@ -10,7 +10,7 @@ import attr
 from more_itertools import first, padded
 
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationType
-from dbnd._core.utils.anonymization import secrets_anonymizer
+from dbnd._core.utils.data_anonymizers import mask_sensitive_data
 from dbnd._core.utils.sql_tracker_common.sql_extract import Column, Schema
 from dbnd._core.utils.sql_tracker_common.utils import strip_quotes
 from targets.connections import build_conn_path
@@ -54,7 +54,7 @@ class SqlOperation:
     dataframe = attr.ib(default=None)  # type: pd.DataFrame
 
     def __attrs_post_init__(self):
-        self.query = secrets_anonymizer.anonymize(self.query)
+        self.query = mask_sensitive_data(self.query)
 
     @property
     def columns(self) -> List[str]:

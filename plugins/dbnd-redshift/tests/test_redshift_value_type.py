@@ -12,7 +12,7 @@ from targets.data_schema import DataSchemaArgs
 from targets.value_meta import ValueMetaConf
 
 
-COPY_FROM_S3_FILE_QUERY = """COPY "MY_TABLE" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::12345:role/myRole' csv"""
+COPY_FROM_S3_FILE_QUERY = """COPY "MY_TABLE" from 's3://my/bucket/file.csv' iam_role 'arn:aws:iam::***:role/myRole' csv"""
 REDSHIFT_VALUE_PREVIEW = """\
    Names  Births  Married
      Bob     968     True
