@@ -369,7 +369,13 @@ class Future(futures.Future):
 
 
 if asyncio:
-    from dbnd._vendor.tenacity._asyncio import AsyncRetrying
+    try:
+        from dbnd._vendor.tenacity._asyncio import AsyncRetrying
+    except Exception:
+        pass
 
 if tornado:
-    from dbnd._vendor.tenacity.tornadoweb import TornadoRetrying
+    try:
+        from dbnd._vendor.tenacity.tornadoweb import TornadoRetrying
+    except Exception:
+        pass
