@@ -27,8 +27,6 @@ class BaseMonitorConfig:
     # Log format to use: text/json
     log_format: str = "text"
 
-    send_exception_to_webserver: bool = attr.ib(default=True)
-
     @property
     def use_json_logging(self):
         return self.log_format == "json"
