@@ -214,7 +214,7 @@ class TestMultiServer(object):
         self,
         multi_server,
         mock_data_fetcher,
-        mock_airflow_adapter,
+        mock_airflow_services_factory,
         mock_integration_management_service,
     ):
         mock_integration_management_service.mock_servers = [
@@ -225,7 +225,7 @@ class TestMultiServer(object):
             plugin_version="0.40.1 v2",
             airflow_instance_uid="34db92af-a525-522e-8f27-941cd4746d7b",
         ).as_dict()
-        mock_airflow_adapter.metadata = plugin_metadata_dict
+        mock_airflow_services_factory.mock_adapter.metadata = plugin_metadata_dict
 
         # Refresh so that we will get plugin data
         multi_server.run_once()

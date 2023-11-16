@@ -2,6 +2,7 @@
 
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
+from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
@@ -41,8 +42,8 @@ class MockAirflowServicesFactory(AirflowServicesFactory):
 
         return super(MockAirflowServicesFactory, self).get_components_dict()
 
-    def get_adapter(self, server_config):
-        return self.mock_adapter
+    def get_third_party_info(self, server_config: BaseServerConfig) -> ThirdPartyInfo:
+        return self.mock_adapter.get_third_party_info()
 
     def on_integration_disabled(
         self,

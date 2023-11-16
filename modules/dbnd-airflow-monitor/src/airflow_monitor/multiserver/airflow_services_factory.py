@@ -1,6 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 import logging
 
+from typing import Optional
+
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
 from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
@@ -9,7 +11,7 @@ from airflow_monitor.config_updater.runtime_config_updater import (
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
-from airflow_monitor.shared.adapter.adapter import Adapter
+from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
@@ -46,6 +48,26 @@ class AirflowServicesFactory(MonitorServicesFactory):
             "config_updater": AirflowRuntimeConfigUpdater,
         }
 
+    def get_components(
+        self,
+        integration_config: BaseServerConfig,
+        integration_management_service: IntegrationManagementService,
+    ):
+        tracking_service = self.get_tracking_service(integration_config)
+        data_fetcher = self.get_data_fetcher(integration_config)
+        components_dict = self.get_components_dict()
+        all_components = []
+        for _, syncer_class in components_dict.items():
+            syncer_instance = syncer_class(
+                config=integration_config,
+                tracking_service=tracking_service,
+                integration_management_service=integration_management_service,
+                data_fetcher=data_fetcher,
+            )
+            all_components.append(syncer_instance)
+
+        return all_components
+
     def get_data_fetcher(self, server_config):
         fetcher = FETCHERS.get(server_config.fetcher_type)
         if fetcher:
@@ -76,8 +98,10 @@ class AirflowServicesFactory(MonitorServicesFactory):
             server_config.identifier,
         )
 
-    def get_adapter(self, server_config: BaseServerConfig) -> Adapter:
-        return AirflowAdapter()
+    def get_third_party_info(
+        self, server_config: BaseServerConfig
+    ) -> Optional[ThirdPartyInfo]:
+        return AirflowAdapter().get_third_party_info()
 
     def on_integration_disabled(
         self,

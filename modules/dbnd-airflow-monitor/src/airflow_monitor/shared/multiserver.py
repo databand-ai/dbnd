@@ -87,20 +87,19 @@ class MultiServerMonitor:
         # in airflow_monitor package we import this package and get the version
         metadata = {"monitor_version": airflow_monitor.__version__}
 
-        adapter = self.monitor_services_factory.get_adapter(integration_config)
-        if adapter:
-            third_party_info = adapter.get_third_party_info()
+        third_party_info = self.monitor_services_factory.get_third_party_info(
+            integration_config
+        )
+        if third_party_info and third_party_info.error_list:
+            formatted_error_list = ", ".join(third_party_info.error_list)
+            self.integration_management_service.report_error(
+                integration_config.uid,
+                f"verify_environment_{integration_config.uid}",
+                formatted_error_list,
+            )
 
-            if third_party_info and third_party_info.error_list:
-                formatted_error_list = ", ".join(third_party_info.error_list)
-                self.integration_management_service.report_error(
-                    integration_config.uid,
-                    f"verify_environment_{integration_config.uid}",
-                    formatted_error_list,
-                )
-
-            if third_party_info and third_party_info.metadata:
-                metadata.update(third_party_info.metadata)
+        if third_party_info and third_party_info.metadata:
+            metadata.update(third_party_info.metadata)
 
         self.integration_management_service.report_metadata(
             integration_config.uid, metadata
