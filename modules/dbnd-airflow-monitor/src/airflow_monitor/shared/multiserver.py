@@ -7,8 +7,6 @@ from time import sleep
 from typing import List
 from uuid import UUID
 
-import airflow_monitor
-
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
@@ -79,31 +77,9 @@ class MultiServerMonitor:
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
-                self.integration_management_service.clean_error_message(integration_uid)
-                self._report_third_party_data(integration_config)
-
-    def _report_third_party_data(self, integration_config):
-        # This is the version of the monitor, since currently the shared logic exists
-        # in airflow_monitor package we import this package and get the version
-        metadata = {"monitor_version": airflow_monitor.__version__}
-
-        third_party_info = self.monitor_services_factory.get_third_party_info(
-            integration_config
-        )
-        if third_party_info and third_party_info.error_list:
-            formatted_error_list = ", ".join(third_party_info.error_list)
-            self.integration_management_service.report_error(
-                integration_config.uid,
-                f"verify_environment_{integration_config.uid}",
-                formatted_error_list,
-            )
-
-        if third_party_info and third_party_info.metadata:
-            metadata.update(third_party_info.metadata)
-
-        self.integration_management_service.report_metadata(
-            integration_config.uid, metadata
-        )
+                self.monitor_services_factory.on_integration_enabled(
+                    integration_config, self.integration_management_service
+                )
 
     def _component_interval_is_met(
         self, integration_uid: UUID, component: BaseComponent
