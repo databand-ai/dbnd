@@ -32,12 +32,12 @@ from dbnd._core.utils.basics.memoized import cached
 
 FETCHERS = {"db": DbFetcher, "web": WebFetcher}
 
-MONITOR_TYPE = "airflow"
-
 logger = logging.getLogger(__name__)
 
 
 class AirflowServicesFactory(MonitorServicesFactory):
+    MONITOR_TYPE = "airflow"
+
     def __init__(self, monitor_config):
         self._monitor_config = monitor_config
 
@@ -82,7 +82,7 @@ class AirflowServicesFactory(MonitorServicesFactory):
     def get_integration_management_service(self) -> IntegrationManagementService:
         return decorate_configuration_service(
             IntegrationManagementService(
-                monitor_type=MONITOR_TYPE,
+                monitor_type=self.MONITOR_TYPE,
                 server_monitor_config=AirflowServerConfig,
                 integrations_name_filter=self._monitor_config.syncer_name,
             )
@@ -93,7 +93,7 @@ class AirflowServicesFactory(MonitorServicesFactory):
     ) -> AirflowTrackingService:
         return decorate_tracking_service(
             AirflowTrackingService(
-                monitor_type=MONITOR_TYPE, server_id=server_config.identifier
+                monitor_type=self.MONITOR_TYPE, server_id=server_config.identifier
             ),
             server_config.identifier,
         )

@@ -1,12 +1,12 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from abc import ABC, abstractmethod
-from typing import Optional
+from abc import ABC
+from typing import ClassVar, Optional
 
 import airflow_monitor
 
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
+from airflow_monitor.shared.decorators import decorate_configuration_service
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
@@ -18,9 +18,14 @@ class MonitorServicesFactory(ABC):
     Inherit from this class, implement the methods and pass it to a MultiServerMonitor instance.
     """
 
-    @abstractmethod
-    def get_integration_management_service(self) -> BaseTrackingService:
-        pass
+    MONITOR_TYPE: ClassVar[str]
+
+    def get_integration_management_service(self) -> IntegrationManagementService:
+        return decorate_configuration_service(
+            IntegrationManagementService(
+                monitor_type=self.MONITOR_TYPE, server_monitor_config=BaseServerConfig
+            )
+        )
 
     def get_third_party_info(
         self, server_config: BaseServerConfig
