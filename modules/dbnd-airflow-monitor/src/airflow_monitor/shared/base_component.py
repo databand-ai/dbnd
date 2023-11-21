@@ -9,10 +9,8 @@ from prometheus_client import Summary
 
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.integration_management_service import (
-    IntegrationManagementService,
-)
 from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
+from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.trace import new_tracing_id
 
 
@@ -27,7 +25,7 @@ class BaseComponent:
     SYNCER_TYPE: ClassVar[str]
     config: BaseServerConfig
     tracking_service: BaseTrackingService
-    integration_management_service: IntegrationManagementService
+    reporting_service: ReportingService
     data_fetcher: object
     sleep_interval: int
 
@@ -35,12 +33,12 @@ class BaseComponent:
         self,
         config: BaseServerConfig,
         tracking_service: BaseTrackingService,
-        integration_management_service,
+        reporting_service: ReportingService,
         data_fetcher: object = None,
     ):
         self.config = config
         self.tracking_service = tracking_service
-        self.integration_management_service = integration_management_service
+        self.reporting_service = reporting_service
         self.data_fetcher: object = data_fetcher
 
     @property

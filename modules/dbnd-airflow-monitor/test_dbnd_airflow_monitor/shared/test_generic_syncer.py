@@ -166,25 +166,18 @@ def mock_integration_management_service() -> MockIntegrationManagementService:
 
 @pytest.fixture
 def generic_runtime_syncer(
-    mock_tracking_service,
-    mock_server_config,
-    mock_integration_management_service,
-    mock_adapter,
+    mock_tracking_service, mock_server_config, mock_reporting_service, mock_adapter
 ):
     syncer = GenericSyncer(
         config=mock_server_config,
         tracking_service=mock_tracking_service,
-        integration_management_service=mock_integration_management_service,
+        reporting_service=mock_reporting_service,
         adapter=mock_adapter,
         syncer_instance_id="123",
     )
     with patch.object(syncer, "refresh_config", new=lambda *args: None), patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
-    ), patch.object(
-        syncer,
-        "integration_management_service",
-        wraps=syncer.integration_management_service,
-    ):
+    ), patch.object(syncer, "reporting_service", wraps=syncer.reporting_service):
         yield syncer
 
 

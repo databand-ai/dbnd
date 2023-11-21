@@ -19,6 +19,7 @@ from dbnd.testing.test_config_setter import add_test_configuration
 from .mock_airflow_data_fetcher import MockDataFetcher
 from .mock_airflow_tracking_service import (
     MockIntegrationManagementService,
+    MockReportingService,
     MockTrackingService,
 )
 from .mock_service_factory import MockAirflowServicesFactory
@@ -78,3 +79,8 @@ def mock_integration_management_service(
     mock_airflow_services_factory,
 ) -> MockIntegrationManagementService:
     yield mock_airflow_services_factory.get_integration_management_service()
+
+
+@pytest.fixture
+def mock_reporting_service(mock_airflow_services_factory) -> MockReportingService:
+    yield mock_airflow_services_factory.reporting_service

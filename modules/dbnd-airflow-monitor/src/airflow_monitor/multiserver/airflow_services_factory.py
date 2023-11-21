@@ -48,11 +48,7 @@ class AirflowServicesFactory(MonitorServicesFactory):
             "config_updater": AirflowRuntimeConfigUpdater,
         }
 
-    def get_components(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ):
+    def get_components(self, integration_config: BaseServerConfig):
         tracking_service = self.get_tracking_service(integration_config)
         data_fetcher = self.get_data_fetcher(integration_config)
         components_dict = self.get_components_dict()
@@ -61,7 +57,7 @@ class AirflowServicesFactory(MonitorServicesFactory):
             syncer_instance = syncer_class(
                 config=integration_config,
                 tracking_service=tracking_service,
-                integration_management_service=integration_management_service,
+                reporting_service=self.reporting_service,
                 data_fetcher=data_fetcher,
             )
             all_components.append(syncer_instance)
@@ -102,15 +98,11 @@ class AirflowServicesFactory(MonitorServicesFactory):
     ) -> Optional[ThirdPartyInfo]:
         return AirflowAdapter().get_third_party_info()
 
-    def on_integration_disabled(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ):
+    def on_integration_disabled(self, integration_config: BaseServerConfig):
         tracking_service = self.get_tracking_service(integration_config)
 
         logger.info("Running runtime_config_updater last time before stopping")
         updater = AirflowRuntimeConfigUpdater(
-            integration_config, tracking_service, integration_management_service
+            integration_config, tracking_service, self.reporting_service
         )
         updater.sync_once()

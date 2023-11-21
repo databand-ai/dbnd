@@ -15,10 +15,7 @@ from dbnd._core.utils.uid_utils import get_uuid
 class TestCaptureComponentException:
     @pytest.fixture
     def runtime_syncer(
-        self,
-        mock_data_fetcher,
-        mock_tracking_service,
-        mock_integration_management_service,
+        self, mock_data_fetcher, mock_tracking_service, mock_reporting_service
     ):
         syncer = AirflowRuntimeSyncer(
             config=AirflowServerConfig(
@@ -29,16 +26,14 @@ class TestCaptureComponentException:
             ),
             tracking_service=mock_tracking_service,
             data_fetcher=mock_data_fetcher,
-            integration_management_service=mock_integration_management_service,
+            reporting_service=mock_reporting_service,
         )
         with patch.object(
             syncer, "tracking_service", wraps=syncer.tracking_service
         ), patch.object(
             syncer, "data_fetcher", wraps=syncer.data_fetcher
         ), patch.object(
-            syncer,
-            "integration_management_service",
-            wraps=syncer.integration_management_service,
+            syncer, "reporting_service", wraps=syncer.reporting_service
         ):
             yield syncer
 

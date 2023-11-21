@@ -17,6 +17,7 @@ from airflow_monitor.shared.error_aggregator import ErrorAggregatorResult
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
+from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.timezone import utcnow
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mock_airflow_data_fetcher import MockDagRun
@@ -175,10 +176,6 @@ class MockIntegrationManagementService(IntegrationManagementService):
         self.alive = True
         self.mock_servers = []  # type: List[AirflowServerConfig]
         self.monitor_state_updates = defaultdict(list)
-        self.metadata = None
-        self.error = None
-        self.last_sync_time = None
-        self.last_update_time = None
 
     @can_be_dead
     @ticking
@@ -186,6 +183,16 @@ class MockIntegrationManagementService(IntegrationManagementService):
         self, monitor_config=None
     ) -> List[AirflowServerConfig]:
         return self.mock_servers
+
+
+class MockReportingService(ReportingService):
+    def __init__(self, monitor_type):
+        super().__init__(monitor_type)
+        self.alive = True
+        self.metadata = None
+        self.error = None
+        self.last_sync_time = None
+        self.last_update_time = None
 
     def report_monitor_time_data(self, integration_uid, synced_new_data=False):
         current_time = utcnow()

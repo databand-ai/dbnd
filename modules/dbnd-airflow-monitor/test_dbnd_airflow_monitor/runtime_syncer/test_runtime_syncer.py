@@ -15,9 +15,7 @@ from ..mock_airflow_data_fetcher import MockDagRun, MockLog
 
 
 @pytest.fixture
-def runtime_syncer(
-    mock_data_fetcher, mock_tracking_service, mock_integration_management_service
-):
+def runtime_syncer(mock_data_fetcher, mock_tracking_service, mock_reporting_service):
     syncer = AirflowRuntimeSyncer(
         config=AirflowServerConfig(
             uid=get_uuid(),
@@ -27,22 +25,18 @@ def runtime_syncer(
         ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
-        integration_management_service=mock_integration_management_service,
+        reporting_service=mock_reporting_service,
     )
     with patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer,
-        "integration_management_service",
-        wraps=syncer.integration_management_service,
+        syncer, "reporting_service", wraps=syncer.reporting_service
     ):
         yield syncer
 
 
 @pytest.fixture
-def runtime_fixer(
-    mock_data_fetcher, mock_tracking_service, mock_integration_management_service
-):
+def runtime_fixer(mock_data_fetcher, mock_tracking_service, mock_reporting_service):
     syncer = AirflowRuntimeFixer(
         config=AirflowServerConfig(
             uid=get_uuid(),
@@ -52,14 +46,12 @@ def runtime_fixer(
         ),
         tracking_service=mock_tracking_service,
         data_fetcher=mock_data_fetcher,
-        integration_management_service=mock_integration_management_service,
+        reporting_service=mock_reporting_service,
     )
     with patch.object(
         syncer, "tracking_service", wraps=syncer.tracking_service
     ), patch.object(syncer, "data_fetcher", wraps=syncer.data_fetcher), patch.object(
-        syncer,
-        "integration_management_service",
-        wraps=syncer.integration_management_service,
+        syncer, "reporting_service", wraps=syncer.reporting_service
     ):
         yield syncer
 

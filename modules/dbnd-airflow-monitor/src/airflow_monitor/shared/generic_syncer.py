@@ -20,9 +20,7 @@ from airflow_monitor.shared.generic_syncer_metrics import (
     func_execution_time,
     report_total_assets_size,
 )
-from airflow_monitor.shared.integration_management_service import (
-    IntegrationManagementService,
-)
+from airflow_monitor.shared.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)
@@ -106,12 +104,12 @@ class GenericSyncer(BaseComponent):
         self,
         config: BaseServerConfig,
         tracking_service: BaseTrackingService,
-        integration_management_service: IntegrationManagementService,
+        reporting_service: ReportingService,
         adapter: Adapter,
         syncer_instance_id: str,
     ):
         super(GenericSyncer, self).__init__(
-            config, tracking_service, integration_management_service, None
+            config, tracking_service, reporting_service, None
         )
         self.adapter = adapter
         self.syncer_instance_id = syncer_instance_id
@@ -130,7 +128,7 @@ class GenericSyncer(BaseComponent):
         new_assets = self._get_new_assets_and_update_cursor(cursor)
         synced_new_data = self.process_assets_in_chunks(new_assets)
 
-        self.integration_management_service.report_monitor_time_data(
+        self.reporting_service.report_monitor_time_data(
             self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
         )
 

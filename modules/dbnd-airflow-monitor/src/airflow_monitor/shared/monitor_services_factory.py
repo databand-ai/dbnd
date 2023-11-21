@@ -10,6 +10,7 @@ from airflow_monitor.shared.decorators import decorate_configuration_service
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
+from airflow_monitor.shared.reporting_service import ReportingService
 
 
 class MonitorServicesFactory(ABC):
@@ -27,40 +28,26 @@ class MonitorServicesFactory(ABC):
             )
         )
 
+    @property
+    def reporting_service(self) -> ReportingService:
+        return ReportingService(monitor_type=self.MONITOR_TYPE)
+
     def get_third_party_info(
         self, server_config: BaseServerConfig
     ) -> Optional[ThirdPartyInfo]:
         return None
 
-    def get_components(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ):
+    def get_components(self, integration_config: BaseServerConfig):
         raise NotImplementedError
 
-    def on_integration_disabled(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ):
+    def on_integration_disabled(self, integration_config: BaseServerConfig):
         pass
 
-    def on_integration_enabled(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ) -> None:
-        integration_management_service.clean_error_message(integration_config.uid)
-        self._report_third_party_data(
-            integration_config, integration_management_service
-        )
+    def on_integration_enabled(self, integration_config: BaseServerConfig) -> None:
+        self.reporting_service.clean_error_message(integration_config.uid)
+        self._report_third_party_data(integration_config)
 
-    def _report_third_party_data(
-        self,
-        integration_config: BaseServerConfig,
-        integration_management_service: IntegrationManagementService,
-    ) -> None:
+    def _report_third_party_data(self, integration_config: BaseServerConfig) -> None:
         # This is the version of the monitor, since currently the shared logic exists
         # in airflow_monitor package we import this package and get the version
         metadata = {"monitor_version": airflow_monitor.__version__}
@@ -69,7 +56,7 @@ class MonitorServicesFactory(ABC):
         third_party_info = self.get_third_party_info(integration_config)
         if third_party_info and third_party_info.error_list:
             formatted_error_list = ", ".join(third_party_info.error_list)
-            integration_management_service.report_error(
+            self.reporting_service.report_error(
                 integration_config.uid,
                 f"verify_environment_{integration_config.uid}",
                 formatted_error_list,
@@ -78,4 +65,4 @@ class MonitorServicesFactory(ABC):
         if third_party_info and third_party_info.metadata:
             metadata.update(third_party_info.metadata)
 
-        integration_management_service.report_metadata(integration_config.uid, metadata)
+        self.reporting_service.report_metadata(integration_config.uid, metadata)

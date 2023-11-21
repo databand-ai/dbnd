@@ -104,7 +104,7 @@ class AirflowRuntimeSyncer(BaseComponent):
         # when iteration takes too much time
         self.last_sync_heartbeat = self.last_success_sync
 
-        self.integration_management_service.report_monitor_time_data(
+        self.reporting_service.report_monitor_time_data(
             self.config.uid, synced_new_data=synced_new_data
         )
 

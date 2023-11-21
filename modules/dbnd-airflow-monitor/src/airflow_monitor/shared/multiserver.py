@@ -64,9 +64,7 @@ class MultiServerMonitor:
         self, integration_configs_to_remove: List[BaseServerConfig]
     ):
         for integration_config in integration_configs_to_remove:
-            self.monitor_services_factory.on_integration_disabled(
-                integration_config, self.integration_management_service
-            )
+            self.monitor_services_factory.on_integration_disabled(integration_config)
             self.active_integrations.pop(integration_config.uid)
 
     def _start_new_enabled_integrations(
@@ -77,9 +75,7 @@ class MultiServerMonitor:
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
-                self.monitor_services_factory.on_integration_enabled(
-                    integration_config, self.integration_management_service
-                )
+                self.monitor_services_factory.on_integration_enabled(integration_config)
 
     def _component_interval_is_met(
         self, integration_uid: UUID, component: BaseComponent
@@ -98,8 +94,7 @@ class MultiServerMonitor:
 
     def _create_new_components(self, integration_config: BaseServerConfig):
         new_components_list = self.monitor_services_factory.get_components(
-            integration_config=integration_config,
-            integration_management_service=self.integration_management_service,
+            integration_config=integration_config
         )
 
         return new_components_list

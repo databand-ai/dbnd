@@ -161,37 +161,38 @@ class TestMultiServer(object):
         mock_integration_management_service,
         mock_data_fetcher,
         mock_tracking_service,
+        mock_reporting_service,
         caplog,
     ):
         mock_integration_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
         ]
-        mock_integration_management_service.error = "some_error"
+        mock_reporting_service.error = "some_error"
         multi_server.run_once()
         # should start mock_server, should do 1 iteration
         assert len(multi_server.active_integrations) == 1
 
         # On first run should clean existing error
-        assert not mock_integration_management_service.error
+        assert not mock_reporting_service.error
 
         mock_data_fetcher.alive = False
         multi_server.run_once()
         # still alive
         assert len(multi_server.active_integrations) == 1
-        assert mock_integration_management_service.error is not None
+        assert mock_reporting_service.error is not None
 
-        first_error_lines = mock_integration_management_service.error.split("\n")
+        first_error_lines = mock_reporting_service.error.split("\n")
 
         multi_server.run_once()
-        assert mock_integration_management_service.error is not None
-        new_error_lines = mock_integration_management_service.error.split("\n")
+        assert mock_reporting_service.error is not None
+        new_error_lines = mock_reporting_service.error.split("\n")
         # should be same message except for last (Timestamp) line
         assert first_error_lines[:-1] == new_error_lines[:-1]
 
         mock_data_fetcher.alive = True
         multi_server.run_once()
         assert len(multi_server.active_integrations) == 1
-        assert not mock_integration_management_service.error
+        assert not mock_reporting_service.error
 
     def test_06_liveness_prove(
         self, multi_server, mock_integration_management_service, caplog
@@ -216,6 +217,7 @@ class TestMultiServer(object):
         mock_data_fetcher,
         mock_airflow_services_factory,
         mock_integration_management_service,
+        mock_reporting_service,
     ):
         mock_integration_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_1_CONFIG)
@@ -231,7 +233,7 @@ class TestMultiServer(object):
         multi_server.run_once()
         expected_metadata = plugin_metadata_dict.copy()
         expected_metadata["monitor_version"] = airflow_monitor.__version__
-        assert mock_integration_management_service.metadata == expected_metadata
+        assert mock_reporting_service.metadata == expected_metadata
 
     def test_08_syncer_last_heartbeat(
         self,
