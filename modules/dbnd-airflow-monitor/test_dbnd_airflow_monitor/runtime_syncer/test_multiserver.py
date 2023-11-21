@@ -66,11 +66,10 @@ def multi_server(
     mock_data_fetcher,
     mock_tracking_service,
     airflow_monitor_config,
-    mock_airflow_services_factory,
+    mock_airflow_integration,
 ):
     yield MultiServerMonitor(
-        monitor_config=airflow_monitor_config,
-        monitor_services_factory=mock_airflow_services_factory,
+        monitor_config=airflow_monitor_config, integration=mock_airflow_integration
     )
 
 
@@ -130,11 +129,11 @@ class TestMultiServer(object):
         self,
         multi_server,
         mock_integration_management_service,
-        mock_airflow_services_factory,
+        mock_airflow_integration,
         caplog,
     ):
         components = {"state_sync": MockSyncer}
-        mock_airflow_services_factory.mock_components_dict = components
+        mock_airflow_integration.mock_components_dict = components
         mock_integration_management_service.mock_servers = [
             AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
         ]
@@ -152,7 +151,7 @@ class TestMultiServer(object):
         multi_server.run_once()
         # should remove the server, don't do the additional iteration
         assert len(multi_server.active_integrations) == 0
-        assert mock_airflow_services_factory.on_integration_disabled_call_count == 1
+        assert mock_airflow_integration.on_integration_disabled_call_count == 1
         assert not count_logged_exceptions(caplog)
 
     def test_05_test_error_cleanup(
@@ -215,7 +214,7 @@ class TestMultiServer(object):
         self,
         multi_server,
         mock_data_fetcher,
-        mock_airflow_services_factory,
+        mock_airflow_integration,
         mock_integration_management_service,
         mock_reporting_service,
     ):
@@ -227,7 +226,7 @@ class TestMultiServer(object):
             plugin_version="0.40.1 v2",
             airflow_instance_uid="34db92af-a525-522e-8f27-941cd4746d7b",
         ).as_dict()
-        mock_airflow_services_factory.mock_adapter.metadata = plugin_metadata_dict
+        mock_airflow_integration.mock_adapter.metadata = plugin_metadata_dict
 
         # Refresh so that we will get plugin data
         multi_server.run_once()
@@ -239,10 +238,10 @@ class TestMultiServer(object):
         self,
         multi_server,
         mock_integration_management_service,
-        mock_airflow_services_factory,
+        mock_airflow_integration,
     ):
         components = {"state_sync": MockSyncer}
-        mock_airflow_services_factory.mock_components_dict = components
+        mock_airflow_integration.mock_components_dict = components
         config = AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
         mock_integration_management_service.mock_servers = [config]
         multi_server.run_once()

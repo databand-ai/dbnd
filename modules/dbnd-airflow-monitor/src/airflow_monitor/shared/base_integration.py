@@ -13,10 +13,22 @@ from airflow_monitor.shared.integration_management_service import (
 from airflow_monitor.shared.reporting_service import ReportingService
 
 
-class MonitorServicesFactory(ABC):
+class BaseIntegration(ABC):
     """
-    This class is a factory that returns all the required components for running a monitor
-    Inherit from this class, implement the methods and pass it to a MultiServerMonitor instance.
+    BaseIntegration is an abstract base class for integrating with a third-party system.
+
+    It provides a standardized way to integrate with a third-party system,
+    including reporting errors and metadata to the Integration backend.
+
+    Subclasses should implement the following methods:
+
+    * `get_third_party_info`: Returns information about the third-party system,
+      such as a list of errors and version information.
+    * `get_components`: Returns a list of components associated with the integration.
+    * `on_integration_disabled`: Called when the integration is disabled.
+    * `on_integration_enabled`: Called when the integration is enabled.
+
+    Subclasses should also set the `MONITOR_TYPE` class variable to the type of integration.
     """
 
     MONITOR_TYPE: ClassVar[str]

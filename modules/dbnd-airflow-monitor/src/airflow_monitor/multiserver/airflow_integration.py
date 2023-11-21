@@ -12,6 +12,7 @@ from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
+from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.decorators import (
     decorate_configuration_service,
@@ -21,7 +22,6 @@ from airflow_monitor.shared.decorators import (
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
-from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
@@ -35,7 +35,7 @@ FETCHERS = {"db": DbFetcher, "web": WebFetcher}
 logger = logging.getLogger(__name__)
 
 
-class AirflowServicesFactory(MonitorServicesFactory):
+class AirflowIntegration(BaseIntegration):
     MONITOR_TYPE = "airflow"
 
     def __init__(self, monitor_config):

@@ -8,6 +8,7 @@ from typing import List
 from uuid import UUID
 
 from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.integration_management_service import (
@@ -15,7 +16,6 @@ from airflow_monitor.shared.integration_management_service import (
 )
 from airflow_monitor.shared.liveness_probe import create_liveness_file
 from airflow_monitor.shared.logger_config import configure_logging
-from airflow_monitor.shared.monitor_services_factory import MonitorServicesFactory
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -24,16 +24,12 @@ logger = logging.getLogger(__name__)
 
 class MultiServerMonitor:
     monitor_config: BaseMonitorConfig
-    monitor_services_factory: MonitorServicesFactory
+    integration: BaseIntegration
     integration_management_service: IntegrationManagementService
 
-    def __init__(
-        self,
-        monitor_config: BaseMonitorConfig,
-        monitor_services_factory: MonitorServicesFactory,
-    ):
+    def __init__(self, monitor_config: BaseMonitorConfig, integration: BaseIntegration):
         self.monitor_config = monitor_config
-        self.monitor_services_factory = monitor_services_factory
+        self.integration = integration
         self.active_integrations = {}
         self.current_integration_configs = []
 
@@ -45,7 +41,7 @@ class MultiServerMonitor:
         )
 
         self.integration_management_service: IntegrationManagementService = (
-            self.monitor_services_factory.get_integration_management_service()
+            self.integration.get_integration_management_service()
         )
 
     def _should_stop(self):
@@ -64,7 +60,7 @@ class MultiServerMonitor:
         self, integration_configs_to_remove: List[BaseServerConfig]
     ):
         for integration_config in integration_configs_to_remove:
-            self.monitor_services_factory.on_integration_disabled(integration_config)
+            self.integration.on_integration_disabled(integration_config)
             self.active_integrations.pop(integration_config.uid)
 
     def _start_new_enabled_integrations(
@@ -75,7 +71,7 @@ class MultiServerMonitor:
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
-                self.monitor_services_factory.on_integration_enabled(integration_config)
+                self.integration.on_integration_enabled(integration_config)
 
     def _component_interval_is_met(
         self, integration_uid: UUID, component: BaseComponent
@@ -93,7 +89,7 @@ class MultiServerMonitor:
         return time_from_last_heartbeat >= component.sleep_interval
 
     def _create_new_components(self, integration_config: BaseServerConfig):
-        new_components_list = self.monitor_services_factory.get_components(
+        new_components_list = self.integration.get_components(
             integration_config=integration_config
         )
 

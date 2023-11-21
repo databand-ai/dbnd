@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from airflow_monitor.common.config_data import AirflowServerConfig
-from airflow_monitor.multiserver.airflow_services_factory import AirflowServicesFactory
+from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 
@@ -14,7 +14,7 @@ from .mock_airflow_tracking_service import (
 )
 
 
-class MockAirflowServicesFactory(AirflowServicesFactory):
+class MockAirflowIntegration(AirflowIntegration):
     def __init__(self):
         self.mock_tracking_service = MockTrackingService()
         self.mock_data_fetcher = MockDataFetcher()
@@ -43,7 +43,7 @@ class MockAirflowServicesFactory(AirflowServicesFactory):
         if self.mock_components_dict:
             return self.mock_components_dict
 
-        return super(MockAirflowServicesFactory, self).get_components_dict()
+        return super(MockAirflowIntegration, self).get_components_dict()
 
     def get_third_party_info(self, server_config: BaseServerConfig) -> ThirdPartyInfo:
         return self.mock_adapter.get_third_party_info()
