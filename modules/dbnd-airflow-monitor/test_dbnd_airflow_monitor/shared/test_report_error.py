@@ -15,7 +15,7 @@ from airflow_monitor.shared.integration_management_service import (
 class TestReportError:
     @pytest.fixture
     def integration_management_service(self):
-        service = IntegrationManagementService("type", BaseServerConfig, {})
+        service = IntegrationManagementService("type", BaseServerConfig)
         service._api_client = Mock()
         return service
 

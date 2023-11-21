@@ -84,7 +84,6 @@ class AirflowServicesFactory(MonitorServicesFactory):
             IntegrationManagementService(
                 monitor_type=self.MONITOR_TYPE,
                 server_monitor_config=AirflowServerConfig,
-                integrations_name_filter=self._monitor_config.syncer_name,
             )
         )
 

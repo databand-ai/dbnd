@@ -3,7 +3,7 @@
 import logging
 
 from collections import defaultdict
-from typing import Dict, List, Optional, Type
+from typing import List, Optional, Type
 from uuid import UUID
 
 from prometheus_client import generate_latest
@@ -40,10 +40,7 @@ class IntegrationManagementService:
     """
 
     def __init__(
-        self,
-        monitor_type: str,
-        server_monitor_config: Type[BaseServerConfig],
-        integrations_name_filter: Optional[Dict[str, str]] = None,
+        self, monitor_type: str, server_monitor_config: Type[BaseServerConfig]
     ):
         self.monitor_type: str = monitor_type
         self._api_client: ApiClient = _get_api_client()
@@ -52,7 +49,6 @@ class IntegrationManagementService:
         self._error_aggregators: defaultdict[UUID, ErrorAggregator] = defaultdict(
             ErrorAggregator
         )
-        self._integrations_name_filter = integrations_name_filter
 
     @retry(
         stop=stop_after_delay(30),
@@ -68,8 +64,8 @@ class IntegrationManagementService:
         self, monitor_config: Optional[BaseMonitorConfig] = None
     ) -> List[BaseServerConfig]:
         data = {}
-        if self._integrations_name_filter:
-            data.update({"name": self._integrations_name_filter})
+        if monitor_config.syncer_name:
+            data.update({"name": monitor_config.syncer_name})
 
         response = self._api_client.api_request(
             endpoint=f"integrations/config?type={self.monitor_type}",

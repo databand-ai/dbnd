@@ -27,6 +27,9 @@ class BaseMonitorConfig:
     # Log format to use: text/json
     log_format: str = "text"
 
+    # Sync only integration with this name
+    syncer_name: Optional[str] = None
+
     @property
     def use_json_logging(self):
         return self.log_format == "json"

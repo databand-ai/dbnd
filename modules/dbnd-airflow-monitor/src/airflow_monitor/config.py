@@ -41,7 +41,5 @@ class AirflowMonitorConfig(BaseMonitorConfig):
 
     fetcher: Optional[str] = None
 
-    syncer_name: Optional[str] = None
-
     # Syncer is enabled and syncing
     is_sync_enabled: bool = attr.ib(converter=to_bool, default=True)
