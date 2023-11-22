@@ -160,11 +160,6 @@ def mock_adapter() -> MockAdapter:
 
 
 @pytest.fixture
-def mock_integration_management_service() -> MockIntegrationManagementService:
-    yield MockIntegrationManagementService("integration", BaseServerConfig)
-
-
-@pytest.fixture
 def generic_runtime_syncer(
     mock_tracking_service, mock_server_config, mock_reporting_service, mock_adapter
 ):

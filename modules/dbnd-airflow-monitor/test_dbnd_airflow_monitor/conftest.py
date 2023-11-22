@@ -6,7 +6,6 @@ import os
 
 import pytest
 
-from mock import MagicMock
 from pytest import fixture
 
 from dbnd._core.configuration.environ_config import (
@@ -17,7 +16,6 @@ from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
 
 from .mock_airflow_data_fetcher import MockDataFetcher
-from .mock_airflow_integration import MockAirflowIntegration
 from .mock_airflow_tracking_service import (
     MockIntegrationManagementService,
     MockReportingService,
@@ -59,28 +57,21 @@ def incomplete_data_db():
     return "incomplete-unittests.db"
 
 
-@pytest.fixture()
-def mock_airflow_integration() -> MockAirflowIntegration:
-    yield MockAirflowIntegration()
+@pytest.fixture
+def mock_tracking_service() -> MockTrackingService:
+    yield MockTrackingService()
 
 
 @pytest.fixture
-def mock_tracking_service(mock_airflow_integration) -> MockTrackingService:
-    yield mock_airflow_integration.get_tracking_service(MagicMock())
+def mock_data_fetcher() -> MockDataFetcher:
+    yield MockDataFetcher()
 
 
 @pytest.fixture
-def mock_data_fetcher(mock_airflow_integration) -> MockDataFetcher:
-    yield mock_airflow_integration.get_data_fetcher(MagicMock())
+def mock_integration_management_service() -> MockIntegrationManagementService:
+    yield MockIntegrationManagementService()
 
 
 @pytest.fixture
-def mock_integration_management_service(
-    mock_airflow_integration,
-) -> MockIntegrationManagementService:
-    yield mock_airflow_integration.get_integration_management_service()
-
-
-@pytest.fixture
-def mock_reporting_service(mock_airflow_integration) -> MockReportingService:
-    yield mock_airflow_integration.reporting_service
+def mock_reporting_service() -> MockReportingService:
+    yield MockReportingService("airflow")

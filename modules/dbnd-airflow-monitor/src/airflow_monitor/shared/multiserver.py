@@ -4,13 +4,12 @@ import logging
 
 from datetime import timedelta
 from time import sleep
-from typing import List
+from typing import Callable, Iterable, List, Tuple, TypeVar
 from uuid import UUID
 
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
@@ -27,11 +26,14 @@ class MultiServerMonitor:
     integration: BaseIntegration
     integration_management_service: IntegrationManagementService
 
-    def __init__(self, monitor_config: BaseMonitorConfig, integration: BaseIntegration):
+    def __init__(
+        self,
+        monitor_config: BaseMonitorConfig,
+        integration_management_service: IntegrationManagementService,
+    ) -> None:
         self.monitor_config = monitor_config
-        self.integration = integration
         self.active_integrations = {}
-        self.current_integration_configs = []
+        self.current_integrations = []
 
         self.iteration = 0
         self.stop_at = (
@@ -40,9 +42,7 @@ class MultiServerMonitor:
             else None
         )
 
-        self.integration_management_service: IntegrationManagementService = (
-            self.integration.get_integration_management_service()
-        )
+        self.integration_management_service = integration_management_service
 
     def _should_stop(self):
         if (
@@ -56,22 +56,21 @@ class MultiServerMonitor:
 
         return False
 
-    def _stop_disabled_integrations(
-        self, integration_configs_to_remove: List[BaseServerConfig]
-    ):
-        for integration_config in integration_configs_to_remove:
-            self.integration.on_integration_disabled(integration_config)
-            self.active_integrations.pop(integration_config.uid)
+    def _stop_disabled_integrations(self, integrations: List[BaseIntegration]):
+        for integration in integrations:
+            logger.info(
+                "Stopping disabled integration %s", integration.integration_config.uid
+            )
+            integration.on_integration_disabled()
+            self.active_integrations.pop(integration.integration_config.uid)
 
-    def _start_new_enabled_integrations(
-        self, integration_configs: List[BaseServerConfig]
-    ):
-        for integration_config in integration_configs:
-            integration_uid = integration_config.uid
+    def _start_new_enabled_integrations(self, integrations: List[BaseIntegration]):
+        for integration in integrations:
+            integration_uid = integration.integration_config.uid
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
-                self.integration.on_integration_enabled(integration_config)
+                integration.on_integration_enabled()
 
     def _component_interval_is_met(
         self, integration_uid: UUID, component: BaseComponent
@@ -88,26 +87,19 @@ class MultiServerMonitor:
         time_from_last_heartbeat = (utcnow() - last_heartbeat).total_seconds()
         return time_from_last_heartbeat >= component.sleep_interval
 
-    def _create_new_components(self, integration_config: BaseServerConfig):
-        new_components_list = self.integration.get_components(
-            integration_config=integration_config
-        )
-
-        return new_components_list
-
-    def _heartbeat(self, integration_configs: List[BaseServerConfig]):
-        for integration_config in integration_configs:
-            integration_uid = integration_config.uid
+    def _heartbeat(self, integrations: List[BaseIntegration]):
+        for integration in integrations:
+            integration_uid = integration.integration_config.uid
             logger.debug(
                 "Starting new sync iteration for integration_uid=%s, iteration %d",
                 integration_uid,
                 self.iteration,
             )
             # create new syncers with new config every heartbeat
-            components_list = self._create_new_components(integration_config)
+            components_list = integration.get_components()
             for component in components_list:
                 if self._component_interval_is_met(integration_uid, component):
-                    component.refresh_config(integration_config)
+                    component.refresh_config(integration.integration_config)
                     component.sync_once()
                     self.active_integrations[integration_uid][
                         component.identifier
@@ -128,35 +120,50 @@ class MultiServerMonitor:
                 logger.exception("Unknown exception during iteration", exc_info=True)
 
             if self._should_stop():
-                self._stop_disabled_integrations(self.current_integration_configs)
+                self._stop_disabled_integrations(self.current_integrations)
                 break
 
             sleep(self.monitor_config.interval)
 
-    def partition_integration_configs(self, new_integration_configs):
-        new_integration_uids = {s.uid for s in new_integration_configs}
-        current_integration_uids = {s.uid for s in self.current_integration_configs}
-        configs_to_add = [
-            c for c in new_integration_configs if c.uid not in current_integration_uids
-        ]
-        configs_to_remove = [
-            c
-            for c in self.current_integration_configs
-            if c.uid not in new_integration_uids
-        ]
-        return configs_to_add, configs_to_remove
+    def partition_integrations(
+        self, new_integrations: List[BaseIntegration]
+    ) -> Tuple[List[BaseIntegration], List[BaseIntegration]]:
+        to_add = exclude_by_key(
+            new_integrations,
+            self.current_integrations,
+            lambda i: i.integration_config.uid,
+        )
+
+        to_remove = exclude_by_key(
+            self.current_integrations,
+            new_integrations,
+            lambda i: i.integration_config.uid,
+        )
+
+        return to_add, to_remove
 
     def run_once(self):
-        integration_configs: List[
-            BaseServerConfig
-        ] = self.integration_management_service.get_all_servers_configuration(
+        integrations = self.integration_management_service.get_all_integrations(
             self.monitor_config
         )
-        configs_to_add, configs_to_remove = self.partition_integration_configs(
-            integration_configs
-        )
-        self.current_integration_configs = integration_configs
-        self._stop_disabled_integrations(configs_to_remove)
-        self._start_new_enabled_integrations(configs_to_add)
-        self._heartbeat(integration_configs)
+        to_add, to_remove = self.partition_integrations(integrations)
+        self.current_integrations = integrations
+        self._stop_disabled_integrations(to_remove)
+        self._start_new_enabled_integrations(to_add)
+        self._heartbeat(integrations)
         create_liveness_file()
+
+
+T = TypeVar("T")
+
+
+# Generated by WCA for GP
+def exclude_by_key(
+    list_a: Iterable[T], list_b: Iterable[T], key: Callable[[T], bool]
+) -> List[T]:
+    """
+    Returns a list of elements in list_a that are not present in list_b,
+    where the comparison is made using the given key function.
+    """
+    b_keys = {key(item) for item in list_b}
+    return [item for item in list_a if key(item) not in b_keys]

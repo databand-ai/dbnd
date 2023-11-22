@@ -1,23 +1,31 @@
 # © Copyright Databand.ai, an IBM Company 2022
+from typing import Type
+
 import prometheus_client
 import sentry_sdk
 
 from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._vendor import click
 
 
 def start_integration_multi_server(
     monitor_config: BaseMonitorConfig,
-    integration: BaseIntegration,
+    integration: Type[BaseIntegration],
     start_external_services=True,
 ):
     if start_external_services:
         sentry_sdk.init()
         prometheus_client.start_http_server(monitor_config.prometheus_port)
 
-    MultiServerMonitor(monitor_config=monitor_config, integration=integration).run()
+    MultiServerMonitor(
+        monitor_config=monitor_config,
+        integration_management_service=IntegrationManagementService([integration]),
+    ).run()
 
 
 def build_integration_monitor_config(**kwargs) -> BaseMonitorConfig:

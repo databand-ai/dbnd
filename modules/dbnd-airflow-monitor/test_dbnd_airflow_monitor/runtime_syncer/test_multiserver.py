@@ -17,6 +17,7 @@ from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.utils.uid_utils import get_uuid
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
+from test_dbnd_airflow_monitor.mock_airflow_integration import MockAirflowIntegration
 
 
 MOCK_SERVER_1_CONFIG = {
@@ -61,15 +62,10 @@ def airflow_monitor_config():
 
 
 @pytest.fixture
-def multi_server(
-    mock_integration_management_service,
-    mock_data_fetcher,
-    mock_tracking_service,
-    airflow_monitor_config,
-    mock_airflow_integration,
-):
+def multi_server(mock_integration_management_service, airflow_monitor_config):
     yield MultiServerMonitor(
-        monitor_config=airflow_monitor_config, integration=mock_airflow_integration
+        monitor_config=airflow_monitor_config,
+        integration_management_service=mock_integration_management_service,
     )
 
 
@@ -113,9 +109,9 @@ class TestMultiServer(object):
         self, multi_server, mock_integration_management_service, caplog
     ):
         # server config is empty (all components disabled) - nothing should run
-        mock_integration_management_service.mock_servers = [
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG),
-            AirflowServerConfig(**MOCK_SERVER_2_CONFIG),
+        mock_integration_management_service.mock_integrations = [
+            MockAirflowIntegration(AirflowServerConfig(**config))
+            for config in (MOCK_SERVER_1_CONFIG, MOCK_SERVER_2_CONFIG)
         ]
         multi_server.run_once()
 
@@ -126,16 +122,15 @@ class TestMultiServer(object):
         assert not count_logged_exceptions(caplog)
 
     def test_04_single_server_single_component(
-        self,
-        multi_server,
-        mock_integration_management_service,
-        mock_airflow_integration,
-        caplog,
+        self, multi_server, mock_integration_management_service, caplog
     ):
         components = {"state_sync": MockSyncer}
-        mock_airflow_integration.mock_components_dict = components
-        mock_integration_management_service.mock_servers = [
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
+        mock_airflow_integration = MockAirflowIntegration(
+            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            mock_components_dict=components,
+        )
+        mock_integration_management_service.mock_integrations = [
+            mock_airflow_integration
         ]
         multi_server.run_once()
         # Should start mock_server, should do 1 iteration
@@ -147,7 +142,7 @@ class TestMultiServer(object):
         assert len(multi_server.active_integrations) == 1
         assert len(multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]])
 
-        mock_integration_management_service.mock_servers = []
+        mock_integration_management_service.mock_integrations = []
         multi_server.run_once()
         # should remove the server, don't do the additional iteration
         assert len(multi_server.active_integrations) == 0
@@ -155,43 +150,44 @@ class TestMultiServer(object):
         assert not count_logged_exceptions(caplog)
 
     def test_05_test_error_cleanup(
-        self,
-        multi_server,
-        mock_integration_management_service,
-        mock_data_fetcher,
-        mock_tracking_service,
-        mock_reporting_service,
-        caplog,
+        self, multi_server, mock_integration_management_service, caplog
     ):
-        mock_integration_management_service.mock_servers = [
+        mock_airflow_integration = MockAirflowIntegration(
             AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
+        )
+        mock_integration_management_service.mock_integrations = [
+            mock_airflow_integration
         ]
-        mock_reporting_service.error = "some_error"
+        mock_airflow_integration.mock_reporting_service.error = "some_error"
         multi_server.run_once()
         # should start mock_server, should do 1 iteration
         assert len(multi_server.active_integrations) == 1
 
         # On first run should clean existing error
-        assert not mock_reporting_service.error
+        assert not mock_airflow_integration.reporting_service.error
 
-        mock_data_fetcher.alive = False
+        mock_airflow_integration.mock_data_fetcher.alive = False
         multi_server.run_once()
         # still alive
         assert len(multi_server.active_integrations) == 1
-        assert mock_reporting_service.error is not None
+        assert mock_airflow_integration.mock_reporting_service.error is not None
 
-        first_error_lines = mock_reporting_service.error.split("\n")
+        first_error_lines = mock_airflow_integration.mock_reporting_service.error.split(
+            "\n"
+        )
 
         multi_server.run_once()
-        assert mock_reporting_service.error is not None
-        new_error_lines = mock_reporting_service.error.split("\n")
+        assert mock_airflow_integration.mock_reporting_service.error is not None
+        new_error_lines = mock_airflow_integration.mock_reporting_service.error.split(
+            "\n"
+        )
         # should be same message except for last (Timestamp) line
         assert first_error_lines[:-1] == new_error_lines[:-1]
 
-        mock_data_fetcher.alive = True
+        mock_airflow_integration.mock_data_fetcher.alive = True
         multi_server.run_once()
         assert len(multi_server.active_integrations) == 1
-        assert not mock_reporting_service.error
+        assert not mock_airflow_integration.mock_reporting_service.error
 
     def test_06_liveness_prove(
         self, multi_server, mock_integration_management_service, caplog
@@ -211,15 +207,13 @@ class TestMultiServer(object):
         assert result.exit_code == 0
 
     def test_07_report_metadata(
-        self,
-        multi_server,
-        mock_data_fetcher,
-        mock_airflow_integration,
-        mock_integration_management_service,
-        mock_reporting_service,
+        self, multi_server, mock_integration_management_service
     ):
-        mock_integration_management_service.mock_servers = [
+        mock_airflow_integration = MockAirflowIntegration(
             AirflowServerConfig(**MOCK_SERVER_1_CONFIG)
+        )
+        mock_integration_management_service.mock_integrations = [
+            mock_airflow_integration
         ]
         plugin_metadata_dict = PluginMetadata(
             airflow_version="1.10.10",
@@ -232,18 +226,22 @@ class TestMultiServer(object):
         multi_server.run_once()
         expected_metadata = plugin_metadata_dict.copy()
         expected_metadata["monitor_version"] = airflow_monitor.__version__
-        assert mock_reporting_service.metadata == expected_metadata
+        assert (
+            mock_airflow_integration.mock_reporting_service.metadata
+            == expected_metadata
+        )
 
     def test_08_syncer_last_heartbeat(
-        self,
-        multi_server,
-        mock_integration_management_service,
-        mock_airflow_integration,
+        self, multi_server, mock_integration_management_service
     ):
         components = {"state_sync": MockSyncer}
-        mock_airflow_integration.mock_components_dict = components
-        config = AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True)
-        mock_integration_management_service.mock_servers = [config]
+        mock_airflow_integration = MockAirflowIntegration(
+            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            mock_components_dict=components,
+        )
+        mock_integration_management_service.mock_integrations = [
+            mock_airflow_integration
+        ]
         multi_server.run_once()
         # Should start mock_server, should do 1 iteration
         assert len(multi_server.active_integrations) == 1
@@ -262,7 +260,7 @@ class TestMultiServer(object):
         assert new_last_heartbeat != last_heartbeat
 
         # Now the interval is not met so shouldn't run again the component
-        config.sync_interval = 10
+        mock_airflow_integration.integration_config.sync_interval = 10
         multi_server.run_once()
         newer_last_heartbeat = multi_server.active_integrations[
             MOCK_SERVER_1_CONFIG["uid"]

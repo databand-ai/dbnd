@@ -4,6 +4,9 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
+from airflow_monitor.shared.integration_management_service import (
+    IntegrationManagementService,
+)
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.errors.base import DatabandConfigError
 
@@ -24,5 +27,8 @@ def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
     assert_valid_config(monitor_config)
 
     MultiServerMonitor(
-        monitor_config=monitor_config, integration=AirflowIntegration(monitor_config)
+        monitor_config=monitor_config,
+        integration_management_service=IntegrationManagementService(
+            integration_types=[AirflowIntegration]
+        ),
     ).run()

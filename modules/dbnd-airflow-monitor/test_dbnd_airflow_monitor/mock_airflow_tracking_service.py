@@ -10,8 +10,8 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
     PluginMetadata,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
+from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.error_aggregator import ErrorAggregatorResult
 from airflow_monitor.shared.integration_management_service import (
@@ -169,20 +169,16 @@ class MockTrackingService(BaseTrackingService):
 
 
 class MockIntegrationManagementService(IntegrationManagementService):
-    def __init__(self, monitor_type, server_monitor_config):
-        super(MockIntegrationManagementService, self).__init__(
-            monitor_type, server_monitor_config
-        )
+    def __init__(self):
+        super(MockIntegrationManagementService, self).__init__([])
         self.alive = True
-        self.mock_servers = []  # type: List[AirflowServerConfig]
+        self.mock_integrations = []  # type: List[BaseIntegration]
         self.monitor_state_updates = defaultdict(list)
 
     @can_be_dead
     @ticking
-    def get_all_servers_configuration(
-        self, monitor_config=None
-    ) -> List[AirflowServerConfig]:
-        return self.mock_servers
+    def get_all_integrations(self, monitor_config=None) -> List[BaseIntegration]:
+        return self.mock_integrations
 
 
 class MockReportingService(ReportingService):
