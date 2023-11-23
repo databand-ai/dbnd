@@ -24,7 +24,8 @@ def start_integration_multi_server(
 
     MultiServerMonitor(
         monitor_config=monitor_config,
-        integration_management_service=IntegrationManagementService([integration]),
+        integration_management_service=IntegrationManagementService(),
+        integration_types=[integration],
     ).run()
 
 

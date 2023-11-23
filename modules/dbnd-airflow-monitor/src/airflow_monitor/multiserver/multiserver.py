@@ -28,7 +28,6 @@ def start_multi_server_monitor(monitor_config: AirflowMonitorConfig):
 
     MultiServerMonitor(
         monitor_config=monitor_config,
-        integration_management_service=IntegrationManagementService(
-            integration_types=[AirflowIntegration]
-        ),
+        integration_management_service=IntegrationManagementService(),
+        integration_types=[AirflowIntegration],
     ).run()
