@@ -28,23 +28,21 @@ def start_integration_multi_server(
     ).run()
 
 
-def build_integration_monitor_config(**kwargs) -> BaseMonitorConfig:
+@click.command()
+@click.pass_obj
+@click.option("--interval", type=click.INT, help="Interval between iterations")
+@click.option(
+    "--number-of-iterations",
+    type=click.INT,
+    help="Limit the number of periodic monitor runs",
+)
+@click.option(
+    "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds"
+)
+@click.option("--syncer-name", type=click.STRING, help="Sync only specified instance")
+def monitor_cmd(obj, **kwargs):
+    # remove all None values to not override defaults/env configured params
     monitor_config_kwargs = {k: v for k, v in kwargs.items() if v is not None}
     monitor_config = BaseMonitorConfig.from_env(**monitor_config_kwargs)
 
-    return monitor_config
-
-
-def monitor_command_options(monitor_command):
-    monitor_command = click.option(
-        "--interval", type=click.INT, help="Interval between iterations"
-    )(monitor_command)
-    monitor_command = click.option(
-        "--number-of-iterations",
-        type=click.INT,
-        help="Limit the number of periodic monitor runs",
-    )(monitor_command)
-    monitor_command = click.option(
-        "--stop-after", type=click.INT, help="Limit time for monitor to run, in seconds"
-    )(monitor_command)
-    return monitor_command
+    start_integration_multi_server(monitor_config, obj)
