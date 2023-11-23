@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 class AirflowIntegration(BaseIntegration):
     MONITOR_TYPE = "airflow"
-    CONFIG_CLASS = AirflowServerConfig
-    integration_config: AirflowServerConfig
+    CONFIG_CLASS = AirflowIntegrationConfig
+    config: AirflowIntegrationConfig
 
     def get_components_dict(self):
         return {
@@ -48,7 +48,7 @@ class AirflowIntegration(BaseIntegration):
         all_components = []
         for _, syncer_class in components_dict.items():
             syncer_instance = syncer_class(
-                config=self.integration_config,
+                config=self.config,
                 tracking_service=tracking_service,
                 reporting_service=self.reporting_service,
                 data_fetcher=data_fetcher,
@@ -58,24 +58,21 @@ class AirflowIntegration(BaseIntegration):
         return all_components
 
     def get_data_fetcher(self):
-        fetcher = FETCHERS.get(self.integration_config.fetcher_type)
+        fetcher = FETCHERS.get(self.config.fetcher_type)
         if fetcher:
-            return decorate_fetcher(
-                fetcher(self.integration_config), self.integration_config.base_url
-            )
+            return decorate_fetcher(fetcher(self.config), self.config.base_url)
 
         err = "Unsupported fetcher_type: {}, use one of the following: {}".format(
-            self.integration_config.fetcher_type, "/".join(FETCHERS.keys())
+            self.config.fetcher_type, "/".join(FETCHERS.keys())
         )
         raise DatabandConfigError(err, help_msg="Please specify correct fetcher type")
 
     def get_tracking_service(self) -> AirflowTrackingService:
         return decorate_tracking_service(
             AirflowTrackingService(
-                monitor_type=self.MONITOR_TYPE,
-                server_id=self.integration_config.identifier,
+                monitor_type=self.MONITOR_TYPE, server_id=self.config.identifier
             ),
-            self.integration_config.identifier,
+            self.config.identifier,
         )
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
@@ -86,6 +83,6 @@ class AirflowIntegration(BaseIntegration):
 
         logger.info("Running runtime_config_updater last time before stopping")
         updater = AirflowRuntimeConfigUpdater(
-            self.integration_config, tracking_service, self.reporting_service
+            self.config, tracking_service, self.reporting_service
         )
         updater.sync_once()

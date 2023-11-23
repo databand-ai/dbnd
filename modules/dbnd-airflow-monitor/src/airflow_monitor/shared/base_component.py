@@ -7,7 +7,7 @@ from uuid import UUID
 
 from prometheus_client import Summary
 
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
 from airflow_monitor.shared.reporting_service import ReportingService
@@ -23,7 +23,7 @@ class BaseComponent:
     """
 
     SYNCER_TYPE: ClassVar[str]
-    config: BaseServerConfig
+    config: BaseIntegrationConfig
     tracking_service: BaseTrackingService
     reporting_service: ReportingService
     data_fetcher: object
@@ -31,7 +31,7 @@ class BaseComponent:
 
     def __init__(
         self,
-        config: BaseServerConfig,
+        config: BaseIntegrationConfig,
         tracking_service: BaseTrackingService,
         reporting_service: ReportingService,
         data_fetcher: object = None,
@@ -45,7 +45,7 @@ class BaseComponent:
     def sleep_interval(self):
         return self.config.sync_interval
 
-    def refresh_config(self, config: BaseServerConfig):
+    def refresh_config(self, config: BaseIntegrationConfig):
         self.config = config
         if (
             self.config.log_level

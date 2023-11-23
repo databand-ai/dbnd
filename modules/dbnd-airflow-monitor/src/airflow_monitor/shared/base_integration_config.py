@@ -13,7 +13,7 @@ DEFAULT_SYNC_BULK_SIZE = 10
 
 
 @attr.s(auto_attribs=True, kw_only=True)
-class BaseServerConfig:
+class BaseIntegrationConfig:
     uid: UUID
     source_name: str
     source_type: str
@@ -30,21 +30,19 @@ class BaseServerConfig:
     integration_config: dict = {}
 
     @classmethod
-    def create(
-        cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None
-    ):
-        if "integration_config" not in server_config:
+    def create(cls, config: dict, monitor_config: Optional[BaseMonitorConfig] = None):
+        if "integration_config" not in config:
             raise KeyError(
-                f"Unable to create server config for integration with uid={server_config.get('uid')}, name={server_config.get('name')} integration_config is not found."
+                f"Unable to create server config for integration with uid={config.get('uid')}, name={config.get('name')} integration_config is not found."
             )
-        integration_config = server_config.get("integration_config")
+        integration_config = config.get("integration_config")
 
-        return BaseServerConfig(
-            uid=server_config["uid"],
-            source_type=server_config["integration_type"],
-            source_name=server_config["name"],
-            credentials=server_config["credentials"],
-            tracking_source_uid=server_config["tracking_source_uid"],
+        return BaseIntegrationConfig(
+            uid=config["uid"],
+            source_type=config["integration_type"],
+            source_name=config["name"],
+            credentials=config["credentials"],
+            tracking_source_uid=config["tracking_source_uid"],
             integration_config=integration_config,
             sync_interval=integration_config.get(
                 "sync_interval", DEFAULT_SYNC_INTERVAL_IN_SECONDS

@@ -10,7 +10,7 @@ from click.testing import CliRunner
 import airflow_monitor
 
 from airflow_monitor.common.airflow_data import PluginMetadata
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
 from airflow_monitor.shared.base_component import BaseComponent
@@ -110,7 +110,7 @@ class TestMultiServer(object):
     ):
         # server config is empty (all components disabled) - nothing should run
         mock_integration_management_service.mock_integrations = [
-            MockAirflowIntegration(AirflowServerConfig(**config))
+            MockAirflowIntegration(AirflowIntegrationConfig(**config))
             for config in (MOCK_SERVER_1_CONFIG, MOCK_SERVER_2_CONFIG)
         ]
         multi_server.run_once()
@@ -126,7 +126,7 @@ class TestMultiServer(object):
     ):
         components = {"state_sync": MockSyncer}
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
             mock_components_dict=components,
         )
         mock_integration_management_service.mock_integrations = [
@@ -153,7 +153,7 @@ class TestMultiServer(object):
         self, multi_server, mock_integration_management_service, caplog
     ):
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowServerConfig(**MOCK_SERVER_4_CONFIG)
+            AirflowIntegrationConfig(**MOCK_SERVER_4_CONFIG)
         )
         mock_integration_management_service.mock_integrations = [
             mock_airflow_integration
@@ -210,7 +210,7 @@ class TestMultiServer(object):
         self, multi_server, mock_integration_management_service
     ):
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG)
+            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG)
         )
         mock_integration_management_service.mock_integrations = [
             mock_airflow_integration
@@ -236,7 +236,7 @@ class TestMultiServer(object):
     ):
         components = {"state_sync": MockSyncer}
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowServerConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
             mock_components_dict=components,
         )
         mock_integration_management_service.mock_integrations = [
@@ -260,7 +260,7 @@ class TestMultiServer(object):
         assert new_last_heartbeat != last_heartbeat
 
         # Now the interval is not met so shouldn't run again the component
-        mock_airflow_integration.integration_config.sync_interval = 10
+        mock_airflow_integration.config.sync_interval = 10
         multi_server.run_once()
         newer_last_heartbeat = multi_server.active_integrations[
             MOCK_SERVER_1_CONFIG["uid"]

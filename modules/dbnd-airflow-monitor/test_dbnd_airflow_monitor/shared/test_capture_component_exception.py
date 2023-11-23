@@ -5,7 +5,7 @@ import pytest
 
 from mock import patch
 
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.shared.errors import ClientConnectionError
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from dbnd._core.errors import DatabandError
@@ -18,7 +18,7 @@ class TestCaptureComponentException:
         self, mock_data_fetcher, mock_tracking_service, mock_reporting_service
     ):
         syncer = AirflowRuntimeSyncer(
-            config=AirflowServerConfig(
+            config=AirflowIntegrationConfig(
                 uid=get_uuid(),
                 source_name="test",
                 source_type="airflow",

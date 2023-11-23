@@ -14,7 +14,7 @@ from airflow_monitor.shared.adapter.adapter import (
     AssetToState,
 )
 from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer_metrics import (
     func_execution_time,
@@ -95,14 +95,14 @@ class GenericSyncer(BaseComponent):
     SYNCER_TYPE = "generic_syncer"
 
     tracking_service: BaseTrackingService
-    config: BaseServerConfig
+    config: BaseIntegrationConfig
     adapter: Adapter
     assets_to_states_machine: AssetsToStatesMachine
     syncer_instance_id: str
 
     def __init__(
         self,
-        config: BaseServerConfig,
+        config: BaseIntegrationConfig,
         tracking_service: BaseTrackingService,
         reporting_service: ReportingService,
         adapter: Adapter,

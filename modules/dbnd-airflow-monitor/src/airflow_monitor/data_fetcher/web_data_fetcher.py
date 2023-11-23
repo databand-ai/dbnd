@@ -14,7 +14,7 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
     PluginMetadata,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import (
     AirflowFetchingException,
@@ -61,8 +61,7 @@ def get_endpoint_url(base_url, api_mode):
 
 
 class WebFetcher(AirflowDataFetcher):
-    def __init__(self, config):
-        # type: (AirflowServerConfig) -> None
+    def __init__(self, config: AirflowIntegrationConfig) -> None:
         super(WebFetcher, self).__init__(config)
         self.env = "Airflow"
         self.base_url = config.base_url

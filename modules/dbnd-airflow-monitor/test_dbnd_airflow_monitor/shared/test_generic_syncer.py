@@ -13,7 +13,7 @@ from airflow_monitor.shared.adapter.adapter import (
     AssetState,
     AssetToState,
 )
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer import (
     GenericSyncer,
@@ -144,8 +144,8 @@ def mock_tracking_service() -> MockTrackingService:
 
 
 @pytest.fixture
-def mock_server_config() -> BaseServerConfig:
-    yield BaseServerConfig(
+def mock_config() -> BaseIntegrationConfig:
+    yield BaseIntegrationConfig(
         uid=INTEGRATION_UID,
         source_name="test_syncer",
         source_type="integration",
@@ -161,10 +161,10 @@ def mock_adapter() -> MockAdapter:
 
 @pytest.fixture
 def generic_runtime_syncer(
-    mock_tracking_service, mock_server_config, mock_reporting_service, mock_adapter
+    mock_tracking_service, mock_config, mock_reporting_service, mock_adapter
 ):
     syncer = GenericSyncer(
-        config=mock_server_config,
+        config=mock_config,
         tracking_service=mock_tracking_service,
         reporting_service=mock_reporting_service,
         adapter=mock_adapter,

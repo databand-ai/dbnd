@@ -4,7 +4,7 @@ import logging
 
 from typing import List
 
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.tracking_service.airflow_tracking_service import (
@@ -19,7 +19,7 @@ class AirflowRuntimeFixer(BaseComponent):
     SYNCER_TYPE = "runtime_fixer"
 
     tracking_service: AirflowTrackingService
-    config: AirflowServerConfig
+    config: AirflowIntegrationConfig
     data_fetcher: AirflowDataFetcher
 
     @property

@@ -6,7 +6,7 @@ import pytest
 
 from mock import Mock, patch
 
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from dbnd._core.utils.uid_utils import get_uuid
@@ -17,7 +17,7 @@ from ..mock_airflow_data_fetcher import MockDagRun, MockLog
 @pytest.fixture
 def runtime_syncer(mock_data_fetcher, mock_tracking_service, mock_reporting_service):
     syncer = AirflowRuntimeSyncer(
-        config=AirflowServerConfig(
+        config=AirflowIntegrationConfig(
             uid=get_uuid(),
             source_name="test",
             source_type="airflow",
@@ -38,7 +38,7 @@ def runtime_syncer(mock_data_fetcher, mock_tracking_service, mock_reporting_serv
 @pytest.fixture
 def runtime_fixer(mock_data_fetcher, mock_tracking_service, mock_reporting_service):
     syncer = AirflowRuntimeFixer(
-        config=AirflowServerConfig(
+        config=AirflowIntegrationConfig(
             uid=get_uuid(),
             source_name="test",
             source_type="airflow",

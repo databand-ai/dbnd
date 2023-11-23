@@ -58,15 +58,13 @@ class MultiServerMonitor:
 
     def _stop_disabled_integrations(self, integrations: List[BaseIntegration]):
         for integration in integrations:
-            logger.info(
-                "Stopping disabled integration %s", integration.integration_config.uid
-            )
+            logger.info("Stopping disabled integration %s", integration.config.uid)
             integration.on_integration_disabled()
-            self.active_integrations.pop(integration.integration_config.uid)
+            self.active_integrations.pop(integration.config.uid)
 
     def _start_new_enabled_integrations(self, integrations: List[BaseIntegration]):
         for integration in integrations:
-            integration_uid = integration.integration_config.uid
+            integration_uid = integration.config.uid
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
@@ -89,7 +87,7 @@ class MultiServerMonitor:
 
     def _heartbeat(self, integrations: List[BaseIntegration]):
         for integration in integrations:
-            integration_uid = integration.integration_config.uid
+            integration_uid = integration.config.uid
             logger.debug(
                 "Starting new sync iteration for integration_uid=%s, iteration %d",
                 integration_uid,
@@ -99,7 +97,7 @@ class MultiServerMonitor:
             components_list = integration.get_components()
             for component in components_list:
                 if self._component_interval_is_met(integration_uid, component):
-                    component.refresh_config(integration.integration_config)
+                    component.refresh_config(integration.config)
                     component.sync_once()
                     self.active_integrations[integration_uid][
                         component.identifier
@@ -129,15 +127,11 @@ class MultiServerMonitor:
         self, new_integrations: List[BaseIntegration]
     ) -> Tuple[List[BaseIntegration], List[BaseIntegration]]:
         to_add = exclude_by_key(
-            new_integrations,
-            self.current_integrations,
-            lambda i: i.integration_config.uid,
+            new_integrations, self.current_integrations, lambda i: i.config.uid
         )
 
         to_remove = exclude_by_key(
-            self.current_integrations,
-            new_integrations,
-            lambda i: i.integration_config.uid,
+            self.current_integrations, new_integrations, lambda i: i.config.uid
         )
 
         return to_add, to_remove

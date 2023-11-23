@@ -5,8 +5,8 @@ from typing import Optional
 import attr
 
 from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 
 
 # Do not change this name unless you change the same constant in compat.py in dbnd-airflow
@@ -14,7 +14,7 @@ MONITOR_DAG_NAME = "databand_airflow_monitor"
 
 
 @attr.s
-class AirflowServerConfig(BaseServerConfig):
+class AirflowIntegrationConfig(BaseIntegrationConfig):
     state_sync_enabled = attr.ib(default=False)  # type: bool
     xcom_sync_enabled = attr.ib(default=False)  # type: bool
     dag_sync_enabled = attr.ib(default=False)  # type: bool
@@ -58,32 +58,30 @@ class AirflowServerConfig(BaseServerConfig):
     restart_after_not_synced_minutes = attr.ib(default=5)  # type: int
 
     @classmethod
-    def create(
-        cls, server_config: dict, monitor_config: Optional[BaseMonitorConfig] = None
-    ):
+    def create(cls, config: dict, monitor_config: Optional[BaseMonitorConfig] = None):
         if monitor_config is None:
             monitor_config = AirflowMonitorConfig.from_env()
 
-        monitor_instance_config = server_config.get("monitor_config") or {}
+        monitor_instance_config = config.get("monitor_config") or {}
         kwargs = {
             k: v
             for k, v in monitor_instance_config.items()
             if k in attr.fields_dict(cls)
         }
 
-        dag_ids = server_config["dag_ids"]
+        dag_ids = config["dag_ids"]
         if dag_ids:
             dag_ids = dag_ids + "," + MONITOR_DAG_NAME
 
         conf = cls(
-            uid=server_config["uid"],
+            uid=config["uid"],
             source_type="airflow",
-            source_name=server_config["name"],
-            tracking_source_uid=server_config["tracking_source_uid"],
-            base_url=server_config["base_url"],
-            api_mode=server_config["api_mode"],
-            fetcher_type=monitor_config.fetcher or server_config["fetcher"],
-            composer_client_id=server_config["composer_client_id"],
+            source_name=config["name"],
+            tracking_source_uid=config["tracking_source_uid"],
+            base_url=config["base_url"],
+            api_mode=config["api_mode"],
+            fetcher_type=monitor_config.fetcher or config["fetcher"],
+            composer_client_id=config["composer_client_id"],
             dag_ids=dag_ids,
             sql_alchemy_conn=monitor_config.sql_alchemy_conn,  # TODO: currently support only one server!
             json_file_path=monitor_config.json_file_path,  # TODO: currently support only one server!

@@ -12,14 +12,14 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
     PluginMetadata,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 
 
 logger = logging.getLogger(__name__)
 
 
 class AirflowDataFetcher(object):
-    def __init__(self, config: AirflowServerConfig):
+    def __init__(self, config: AirflowIntegrationConfig):
         self.source_name = config.source_name
 
     def get_last_seen_values(self) -> LastSeenValues:

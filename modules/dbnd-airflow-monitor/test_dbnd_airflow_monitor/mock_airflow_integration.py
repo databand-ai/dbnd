@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 
@@ -11,7 +11,7 @@ from .mock_airflow_tracking_service import MockReportingService, MockTrackingSer
 
 class MockAirflowIntegration(AirflowIntegration):
     def __init__(
-        self, integration_config: AirflowServerConfig, mock_components_dict=None
+        self, integration_config: AirflowIntegrationConfig, mock_components_dict=None
     ):
         super().__init__(integration_config)
         self.mock_tracking_service = MockTrackingService()

@@ -12,7 +12,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsStateData,
     LastSeenValues,
 )
-from airflow_monitor.common.config_data import AirflowServerConfig
+from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import AirflowFetchingException
 
@@ -30,8 +30,7 @@ def json_conv(data):
 
 
 class DbFetcher(AirflowDataFetcher):
-    def __init__(self, config):
-        # type: (AirflowServerConfig) -> DbFetcher
+    def __init__(self, config: AirflowIntegrationConfig) -> None:
         super(DbFetcher, self).__init__(config)
         # It's important to do this import to prevent import issues
         import airflow  # noqa: F401

@@ -6,8 +6,8 @@ import airflow_monitor
 
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_component import BaseComponent
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.base_server_monitor_config import BaseServerConfig
 from airflow_monitor.shared.reporting_service import ReportingService
 
 
@@ -30,15 +30,15 @@ class BaseIntegration(ABC):
     """
 
     MONITOR_TYPE: ClassVar[str]
+
     # two bellow should match:
     #  * CONFIG_CLASS to actually create config
     #  * integration_config typing for better intellisense
+    CONFIG_CLASS: ClassVar[Type[BaseIntegrationConfig]] = BaseIntegrationConfig
+    config: BaseIntegrationConfig
 
-    CONFIG_CLASS: ClassVar[Type[BaseServerConfig]] = BaseServerConfig
-    integration_config: BaseServerConfig
-
-    def __init__(self, integration_config: BaseServerConfig) -> None:
-        self.integration_config = integration_config
+    def __init__(self, integration_config: BaseIntegrationConfig) -> None:
+        self.config = integration_config
 
     @classmethod
     def build_integration(
@@ -61,7 +61,7 @@ class BaseIntegration(ABC):
         pass
 
     def on_integration_enabled(self) -> None:
-        self.reporting_service.clean_error_message(self.integration_config.uid)
+        self.reporting_service.clean_error_message(self.config.uid)
         self._report_third_party_data()
 
     def _report_third_party_data(self) -> None:
@@ -74,12 +74,12 @@ class BaseIntegration(ABC):
         if third_party_info and third_party_info.error_list:
             formatted_error_list = ", ".join(third_party_info.error_list)
             self.reporting_service.report_error(
-                self.integration_config.uid,
-                f"verify_environment_{self.integration_config.uid}",
+                self.config.uid,
+                f"verify_environment_{self.config.uid}",
                 formatted_error_list,
             )
 
         if third_party_info and third_party_info.metadata:
             metadata.update(third_party_info.metadata)
 
-        self.reporting_service.report_metadata(self.integration_config.uid, metadata)
+        self.reporting_service.report_metadata(self.config.uid, metadata)
