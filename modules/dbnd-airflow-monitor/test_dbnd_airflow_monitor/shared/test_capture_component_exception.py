@@ -22,7 +22,7 @@ class TestCaptureComponentException:
                 uid=get_uuid(),
                 source_name="test",
                 source_type="airflow",
-                tracking_source_uid=mock_tracking_service.server_id,
+                tracking_source_uid=mock_tracking_service.tracking_source_uid,
             ),
             tracking_service=mock_tracking_service,
             data_fetcher=mock_data_fetcher,

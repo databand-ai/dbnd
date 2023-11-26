@@ -4,6 +4,7 @@ import logging
 from typing import List
 
 from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
+from airflow_monitor.shared.decorators import decorate_tracking_service
 from airflow_monitor.shared.utils import _get_api_client
 from dbnd._vendor.cachetools import TTLCache
 
@@ -15,15 +16,17 @@ LONG_REQUEST_TIMEOUT = 300
 
 
 class BaseTrackingService:
-    def __init__(self, monitor_type: str, server_id: str):
+    def __init__(self, monitor_type: str, tracking_source_uid: str):
         self.monitor_type = monitor_type
-        self.server_id = server_id
+        self.tracking_source_uid = tracking_source_uid
         self._api_client = _get_api_client()
+
+        decorate_tracking_service(self, tracking_source_uid)
 
     def save_tracking_data(self, assets_data: dict):
         boxed_payload = {"metadata": {"format": self.monitor_type}, "data": assets_data}
         return self._api_client.api_request(
-            endpoint=f"tracking-monitor/{self.server_id}/save_tracking_data",
+            endpoint=f"tracking-monitor/{self.tracking_source_uid}/save_tracking_data",
             method="POST",
             data=boxed_payload,
             request_timeout=LONG_REQUEST_TIMEOUT,

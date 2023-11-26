@@ -84,15 +84,13 @@ class MockTrackingService(BaseTrackingService):
         self.last_seen_run_id = None
         self.last_cursor = None
         self.last_state = None
-        self.counter = 0
         self.error = None
         self.active_runs = None
 
     def save_tracking_data(self, assets_data):
         self.sent_data.append(assets_data)
-        if self.error and self.counter == 1:
+        if self.error:
             raise self.error
-        self.counter += 1
 
     def save_assets_state(
         self, integration_id, syncer_instance_id, assets_to_state: List[AssetToState]
@@ -210,9 +208,13 @@ class TestGenericSyncer:
         generic_runtime_syncer.sync_once()
         # call get data with same cursor before failure
         assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
+        # every request appears twice because of retries
         assert mock_tracking_service.sent_data == [
             {"data": [0]},
+            {"data": [0]},
             {"data": [1]},
+            {"data": [1]},
+            {"data": [2]},
             {"data": [2]},
         ]
 

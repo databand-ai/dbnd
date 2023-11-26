@@ -27,13 +27,13 @@ def _min_start_time(start_time_window: int) -> Optional[datetime]:
 
 
 class AirflowTrackingService(BaseTrackingService):
-    def __init__(self, monitor_type: str, server_id: str):
+    def __init__(self, monitor_type: str, tracking_source_uid: str):
         super(AirflowTrackingService, self).__init__(
-            monitor_type=monitor_type, server_id=server_id
+            monitor_type=monitor_type, tracking_source_uid=tracking_source_uid
         )
 
     def _generate_url_for_tracking_service(self, name: str) -> str:
-        return f"tracking-monitor/{self.server_id}/{name}"
+        return f"tracking-monitor/{self.tracking_source_uid}/{name}"
 
     def _make_request(
         self,

@@ -5,7 +5,6 @@ import pytest
 from mock import MagicMock
 
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
-from airflow_monitor.shared.decorators import decorate_fetcher
 
 
 class TestFetcher(AirflowDataFetcher):
@@ -16,12 +15,12 @@ def test_db_fetcher_retries():
     class TestException(Exception):
         pass
 
-    test_fetcher = TestFetcher(MagicMock())
     func_mock = MagicMock(
         side_effect=TestException(), __name__="get_airflow_dagruns_to_sync"
     )
-    test_fetcher.get_airflow_dagruns_to_sync = func_mock
-    decorated_fetcher = decorate_fetcher(test_fetcher, "some label")
+    TestFetcher.get_airflow_dagruns_to_sync = func_mock
+    test_fetcher = TestFetcher(MagicMock())
+    decorated_fetcher = test_fetcher
     with pytest.raises(TestException):
         decorated_fetcher.get_airflow_dagruns_to_sync()
     # it should be called more than once

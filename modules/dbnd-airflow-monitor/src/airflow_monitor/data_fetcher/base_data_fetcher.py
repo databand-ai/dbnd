@@ -13,6 +13,7 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
+from airflow_monitor.shared.decorators import decorate_fetcher
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 class AirflowDataFetcher(object):
     def __init__(self, config: AirflowIntegrationConfig):
         self.source_name = config.source_name
+
+        decorate_fetcher(self, config.base_url)
 
     def get_last_seen_values(self) -> LastSeenValues:
         raise NotImplementedError()

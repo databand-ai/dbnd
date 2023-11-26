@@ -102,4 +102,4 @@ class BaseComponent:
         if self.config.tracking_source_uid:
             return self.config.tracking_source_uid
 
-        return self.tracking_service.server_id
+        return self.tracking_service.tracking_source_uid

@@ -52,7 +52,3 @@ class BaseIntegrationConfig:
                 "runs_bulk_size", DEFAULT_SYNC_BULK_SIZE
             ),
         )
-
-    @property
-    def identifier(self):
-        return self.tracking_source_uid

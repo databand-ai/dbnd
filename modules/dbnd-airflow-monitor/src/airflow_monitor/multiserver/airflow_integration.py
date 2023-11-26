@@ -13,10 +13,6 @@ from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
 from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_integration import BaseIntegration
-from airflow_monitor.shared.decorators import (
-    decorate_fetcher,
-    decorate_tracking_service,
-)
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
@@ -60,7 +56,7 @@ class AirflowIntegration(BaseIntegration):
     def get_data_fetcher(self):
         fetcher = FETCHERS.get(self.config.fetcher_type)
         if fetcher:
-            return decorate_fetcher(fetcher(self.config), self.config.base_url)
+            return fetcher(self.config)
 
         err = "Unsupported fetcher_type: {}, use one of the following: {}".format(
             self.config.fetcher_type, "/".join(FETCHERS.keys())
@@ -68,11 +64,9 @@ class AirflowIntegration(BaseIntegration):
         raise DatabandConfigError(err, help_msg="Please specify correct fetcher type")
 
     def get_tracking_service(self) -> AirflowTrackingService:
-        return decorate_tracking_service(
-            AirflowTrackingService(
-                monitor_type=self.MONITOR_TYPE, server_id=self.config.identifier
-            ),
-            self.config.identifier,
+        return AirflowTrackingService(
+            monitor_type=self.MONITOR_TYPE,
+            tracking_source_uid=str(self.config.tracking_source_uid),
         )
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:

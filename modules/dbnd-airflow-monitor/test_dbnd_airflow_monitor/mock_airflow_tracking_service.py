@@ -53,9 +53,9 @@ def ticking(f):
 
 
 class MockTrackingService(BaseTrackingService):
-    def __init__(self, server_id=None):
+    def __init__(self, tracking_source_uid=None):
         super(MockTrackingService, self).__init__(
-            monitor_type="airflow", server_id=server_id
+            monitor_type="airflow", tracking_source_uid=tracking_source_uid
         )
 
         self.dag_runs = []  # type: List[MockDagRun]
