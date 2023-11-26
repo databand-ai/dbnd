@@ -124,9 +124,11 @@ class GenericSyncer(BaseComponent):
 
         active_assets = self._get_active_assets()
         synced_active_data = self.process_assets_in_chunks(active_assets)
+        logger.info("Finished collecting and processing active assets")
 
         new_assets = self._get_new_assets_and_update_cursor(cursor)
         synced_new_data = self.process_assets_in_chunks(new_assets)
+        logger.info("Finished collecting and processing new assets")
 
         self.reporting_service.report_monitor_time_data(
             self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
@@ -138,6 +140,9 @@ class GenericSyncer(BaseComponent):
             syncer_instance_id=self.syncer_instance_id,
         )
         update_assets = Assets(assets_to_state=active_assets_to_states)
+        logger.info(
+            "_get_active_assets collected %d active assets", len(update_assets.data)
+        )
         return update_assets
 
     def _get_new_assets_and_update_cursor(self, cursor: Any) -> Assets:
@@ -161,6 +166,10 @@ class GenericSyncer(BaseComponent):
                 state="update",
                 data=new_cursor,
             )
+        logger.info(
+            "_get_new_assets_and_update_cursor collected %d active assets",
+            len(new_assets.data),
+        )
         return new_assets
 
     def _get_or_init_cursor(self) -> Any:
@@ -211,27 +220,30 @@ class GenericSyncer(BaseComponent):
             with self.measure_time("get_assets_data"):
                 assets_data = self.adapter.get_assets_data(assets_to_process)
 
-            logger.info(
-                "Saving new assets data for tracking source %s, asset_ids=%s data=%s",
-                self.server_id,
-                assets_to_str(assets_data.assets_to_state),
-                get_data_dimension_str(assets_data.data),
-            )
-
             if assets_data.data:
                 with self.measure_time("save_tracking_data"):
                     self.tracking_service.save_tracking_data(assets_data.data)
 
+                logger.info(
+                    "Saved new assets data for tracking source %s, asset_ids=%s data=%s",
+                    self.server_id,
+                    assets_to_str(assets_data.assets_to_state),
+                    get_data_dimension_str(assets_data.data),
+                )
+
                 any_data_synced = True
+            else:
+                logger.info("No assets to save - _process_assets_batch")
 
             new_assets_states = assets_data.assets_to_state
         except Exception:
             logger.exception(
                 "Unexpected error while processing assets batch, asset_ids=%s",
                 assets_to_str(assets_to_process.assets_to_state),
+                exc_info=True,
             )
-            # if we were able to get_assets_data but wasn't able to save_tracking_data
-            # we still should consider all assets as failed
+            # if we were able to get_assets_data but weren't able to save_tracking_data
+            # we should still consider all assets as failed
             new_assets_states = None
 
         new_assets_states = add_missing_assets_as_failed(
