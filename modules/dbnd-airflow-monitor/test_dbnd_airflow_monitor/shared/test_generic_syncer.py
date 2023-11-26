@@ -321,12 +321,14 @@ class TestGenericSyncer:
         mock_tracking_service: MockTrackingService,
     ):
         with mock.patch(
-            "airflow_monitor.shared.generic_syncer_metrics.generic_syncer_total_assets_size.labels"
+            "airflow_monitor.shared.integration_metrics_reporter.integration_total_assets_size.labels"
         ) as generic_syncer_total_assets_size:
             for i in range(1, 3):
                 generic_runtime_syncer.sync_once()
                 generic_syncer_total_assets_size.assert_called_with(
-                    integration_id=INTEGRATION_UID, syncer_instance_id="123"
+                    integration_id=str(INTEGRATION_UID),
+                    tracking_source_uid="12345",
+                    syncer_type="integration",
                 )
                 # generic_syncer_total_assets_size.labels
                 labels = generic_syncer_total_assets_size.return_value

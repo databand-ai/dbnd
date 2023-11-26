@@ -1,15 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
-from collections import Counter
 from enum import Enum
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 import attr
-
-from airflow_monitor.shared.generic_syncer_metrics import (
-    report_total_assets_max_retry_requests,
-    report_total_failed_assets_requests,
-)
 
 
 class AssetState(Enum):
@@ -106,10 +100,7 @@ def update_asset_retry_state(
 
 
 def update_assets_retry_state(
-    assets_to_state: List[AssetToState],
-    max_retries: int,
-    integration_id: str,
-    syncer_instance_id: str,
+    assets_to_state: List[AssetToState], max_retries: int
 ) -> List[AssetToState]:
     """
     Process the given assets and their states based on the defined rules.
@@ -124,18 +115,6 @@ def update_assets_retry_state(
         update_asset_retry_state(asset_to_state, max_retries)
         for asset_to_state in assets_to_state
     ]
-
-    asset_states = Counter([asset.state for asset in new_assets_to_state])
-    report_total_failed_assets_requests(
-        integration_id=integration_id,
-        syncer_instance_id=syncer_instance_id,
-        total_failed_assets=asset_states.get(AssetState.FAILED_REQUEST, 0),
-    )
-    report_total_assets_max_retry_requests(
-        integration_id=integration_id,
-        syncer_instance_id=syncer_instance_id,
-        total_max_retry_assets=asset_states.get(AssetState.MAX_RETRY, 0),
-    )
 
     return new_assets_to_state
 

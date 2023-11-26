@@ -70,4 +70,4 @@ class TestTransitionState:
             AssetToState("id", state=AssetState.MAX_RETRY, retry_count=2),
             AssetToState("id", state=AssetState.FAILED_REQUEST, retry_count=3),
         ]
-        assert update_assets_retry_state(assets, 3, "", "") == expected
+        assert update_assets_retry_state(assets, 3) == expected

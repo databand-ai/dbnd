@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
-import contextlib
 import logging
 
+from collections import Counter
 from typing import Any, Collection, List, Tuple
 
 import attr
@@ -16,9 +16,8 @@ from airflow_monitor.shared.adapter.adapter import (
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.generic_syncer_metrics import (
-    func_execution_time,
-    report_total_assets_size,
+from airflow_monitor.shared.integration_metrics_reporter import (
+    IntegrationMetricsReporter,
 )
 from airflow_monitor.shared.reporting_service import ReportingService
 
@@ -112,6 +111,11 @@ class GenericSyncer(BaseComponent):
         )
         self.adapter = adapter
         self.syncer_instance_id = syncer_instance_id
+        self.metrics_reporter = IntegrationMetricsReporter(
+            integration_id=str(self.config.uid),
+            tracking_source_uid=self.tracking_service.tracking_source_uid,
+            syncer_type=self.config.source_type,
+        )
 
     def _sync_once(self):
         cursor = self._get_or_init_cursor()
@@ -149,10 +153,8 @@ class GenericSyncer(BaseComponent):
                 syncer_instance_id=self.syncer_instance_id,
                 assets_to_state=new_assets.assets_to_state,
             )
-            report_total_assets_size(
-                integration_id=self.config.uid,
-                syncer_instance_id=self.syncer_instance_id,
-                assets_size=len(new_assets.assets_to_state),
+            self.metrics_reporter.report_total_assets_size(
+                len(new_assets.assets_to_state)
             )
         if new_cursor and new_cursor != cursor:
             # report last cursor only when all pages saved
@@ -214,11 +216,11 @@ class GenericSyncer(BaseComponent):
     def _process_assets_batch(self, assets_to_process: Assets) -> bool:
         any_data_synced = False
         try:
-            with self.measure_time("get_assets_data"):
+            with self.metrics_reporter.execution_time("get_assets_data").time():
                 assets_data = self.adapter.get_assets_data(assets_to_process)
 
             if assets_data.data:
-                with self.measure_time("save_tracking_data"):
+                with self.metrics_reporter.execution_time("save_tracking_data").time():
                     self.tracking_service.save_tracking_data(assets_data.data)
 
                 logger.info(
@@ -249,11 +251,9 @@ class GenericSyncer(BaseComponent):
 
         # Here we take care of retry count, transition to MAX_RETRIES, etc.
         new_assets_states = update_assets_retry_state(
-            new_assets_states,
-            max_retries=self.config.syncer_max_retries,
-            integration_id=self.config.uid,
-            syncer_instance_id=self.syncer_instance_id,
+            new_assets_states, max_retries=self.config.syncer_max_retries
         )
+        self.report_assets_metrics(new_assets_states)
 
         self.tracking_service.save_assets_state(
             integration_id=str(self.config.uid),
@@ -263,14 +263,14 @@ class GenericSyncer(BaseComponent):
 
         return any_data_synced
 
-    @contextlib.contextmanager
-    def measure_time(self, func_name: str):
-        with func_execution_time.labels(
-            integration_id=self.config.uid,
-            syncer_instance_id=self.syncer_instance_id,
-            func_name=func_name,
-        ).time():
-            yield
+    def report_assets_metrics(self, new_assets_states: List[AssetToState]) -> None:
+        asset_states = Counter([asset.state for asset in new_assets_states])
+        self.metrics_reporter.report_total_failed_assets_requests(
+            total_failed_assets=asset_states.get(AssetState.FAILED_REQUEST, 0)
+        )
+        self.metrics_reporter.report_total_assets_max_retry_requests(
+            total_max_retry_assets=asset_states.get(AssetState.MAX_RETRY, 0)
+        )
 
     @property
     def identifier(self) -> str:
