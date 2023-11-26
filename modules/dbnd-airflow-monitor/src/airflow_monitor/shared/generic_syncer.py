@@ -10,8 +10,8 @@ from airflow_monitor.shared.adapter.adapter import (
     Adapter,
     Assets,
     AssetState,
-    AssetsToStatesMachine,
     AssetToState,
+    update_assets_retry_state,
 )
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
@@ -97,7 +97,6 @@ class GenericSyncer(BaseComponent):
     tracking_service: BaseTrackingService
     config: BaseIntegrationConfig
     adapter: Adapter
-    assets_to_states_machine: AssetsToStatesMachine
     syncer_instance_id: str
 
     def __init__(
@@ -113,11 +112,6 @@ class GenericSyncer(BaseComponent):
         )
         self.adapter = adapter
         self.syncer_instance_id = syncer_instance_id
-        self.assets_to_states_machine = AssetsToStatesMachine(
-            integration_id=self.config.uid,
-            syncer_instance_id=self.syncer_instance_id,
-            max_retries=config.syncer_max_retries,
-        )
 
     def _sync_once(self):
         cursor = self._get_or_init_cursor()
@@ -251,7 +245,12 @@ class GenericSyncer(BaseComponent):
         )
 
         # Here we take care of retry count, transition to MAX_RETRIES, etc.
-        new_assets_states = self.assets_to_states_machine.process(new_assets_states)
+        new_assets_states = update_assets_retry_state(
+            new_assets_states,
+            max_retries=self.config.syncer_max_retries,
+            integration_id=self.config.uid,
+            syncer_instance_id=self.syncer_instance_id,
+        )
 
         self.tracking_service.save_assets_state(
             integration_id=str(self.config.uid),

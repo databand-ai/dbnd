@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
+from collections import Counter
 from enum import Enum
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
@@ -33,7 +34,7 @@ class AssetState(Enum):
         return [cls.INIT.value, cls.ACTIVE.value, cls.FAILED_REQUEST.value]
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True)
 class AssetToState(ABC):
     """
     Represents the mapping of an asset to its state.
@@ -85,55 +86,61 @@ class AssetToState(ABC):
         )
 
 
-@attr.s(auto_attribs=True)
-class AssetsToStatesMachine:
+def update_asset_retry_state(
+    asset_to_state: AssetToState, max_retries: int
+) -> AssetToState:
+    if asset_to_state.state == AssetState.ACTIVE and asset_to_state.retry_count > 0:
+        # reset retry counter if asset was FAILED (retry_count > 0) and now it's ACTIVE
+        # the check for `retry_count > 0` is small performance optimization - to skip
+        # evolve if nothing need to be changed, assuming most of the assets will be
+        # ACTIVE with retry_count=0 - it can be significant.
+        return attr.evolve(asset_to_state, retry_count=0)
+
+    if asset_to_state.state == AssetState.FAILED_REQUEST:
+        if asset_to_state.retry_count > max_retries:
+            return attr.evolve(asset_to_state, state=AssetState.MAX_RETRY)
+
+        return attr.evolve(asset_to_state, retry_count=asset_to_state.retry_count + 1)
+
+    return asset_to_state
+
+
+def update_assets_retry_state(
+    assets_to_state: List[AssetToState],
+    max_retries: int,
+    integration_id: str,
+    syncer_instance_id: str,
+) -> List[AssetToState]:
     """
-    Represents a state machine for processing assets and their states.
+    Process the given assets and their states based on the defined rules.
+
+    Args:
+        assets_to_state (List[AssetToState]): A list of AssetToState objects to be processed.
+
+    Returns:
+        List[AssetToState]: A list of processed AssetToState objects.
     """
+    new_assets_to_state = [
+        update_asset_retry_state(asset_to_state, max_retries)
+        for asset_to_state in assets_to_state
+    ]
 
-    max_retries: int = 5
-    integration_id: str = ""
-    syncer_instance_id: str = ""
+    asset_states = Counter([asset.state for asset in new_assets_to_state])
+    report_total_failed_assets_requests(
+        integration_id=integration_id,
+        syncer_instance_id=syncer_instance_id,
+        total_failed_assets=asset_states.get(AssetState.FAILED_REQUEST, 0),
+    )
+    report_total_assets_max_retry_requests(
+        integration_id=integration_id,
+        syncer_instance_id=syncer_instance_id,
+        total_max_retry_assets=asset_states.get(AssetState.MAX_RETRY, 0),
+    )
 
-    def process(self, assets_to_state: List[AssetToState]) -> List[AssetToState]:
-        """
-        Process the given assets and their states based on the defined rules.
-
-        Args:
-            assets_to_state (List[AssetToState]): A list of AssetToState objects to be processed.
-
-        Returns:
-            List[AssetToState]: A list of processed AssetToState objects.
-        """
-        failed_assets_requests_counter = 0
-        max_retry_assets_requests_counter = 0
-        new_assets_to_state = []
-        for asset_to_state in assets_to_state:
-            if asset_to_state.state == AssetState.ACTIVE:
-                asset_to_state.retry_count = 0
-            elif asset_to_state.state == AssetState.FAILED_REQUEST:
-                if asset_to_state.retry_count > self.max_retries:
-                    asset_to_state.state = AssetState.MAX_RETRY
-                    max_retry_assets_requests_counter += 1
-                else:
-                    asset_to_state.retry_count += 1
-                    failed_assets_requests_counter += 1
-
-            new_assets_to_state.append(asset_to_state)
-        report_total_failed_assets_requests(
-            integration_id=self.integration_id,
-            syncer_instance_id=self.syncer_instance_id,
-            total_failed_assets=failed_assets_requests_counter,
-        )
-        report_total_assets_max_retry_requests(
-            integration_id=self.integration_id,
-            syncer_instance_id=self.syncer_instance_id,
-            total_max_retry_assets=max_retry_assets_requests_counter,
-        )
-        return new_assets_to_state
+    return new_assets_to_state
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True)
 class Assets:
     """
     Represents a collection of assets and their states.
@@ -143,7 +150,7 @@ class Assets:
     assets_to_state: Optional[List[AssetToState]] = None
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True)
 class ThirdPartyInfo:
     metadata: Optional[Dict[str, str]]
     error_list: Optional[List[str]]
