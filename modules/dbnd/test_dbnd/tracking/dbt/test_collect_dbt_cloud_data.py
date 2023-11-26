@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 from mock.mock import ANY, MagicMock
 
-from dbnd._core.tracking.dbt.dbt_cloud import collect_data_from_dbt_cloud
+from dbnd.providers.dbt.dbt_cloud import collect_data_from_dbt_cloud
 
 
-@patch("dbnd._core.tracking.dbt.dbt_cloud._get_tracker")
-@patch("dbnd._core.tracking.dbt.dbt_cloud.DbtCloudApiClient")
+@patch("dbnd.providers.dbt.dbt_cloud._get_tracker")
+@patch("dbnd.providers.dbt.dbt_cloud.DbtCloudApiClient")
 class TestCollectDataFromDbtCloud:
     DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"  # pragma: allowlist secret
     DBT_CLOUD_ACCOUNT_ID = 5445

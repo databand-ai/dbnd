@@ -14,9 +14,9 @@ import yaml
 from jinja2 import Environment, TemplateError, UndefinedError
 
 from dbnd._core.errors.errors_utils import log_exception
-from dbnd._core.tracking.dbt.dbt_adapters import Adapter
 from dbnd._core.tracking.metrics import TRACKER_MISSING_MESSAGE, _get_tracker
 from dbnd._core.utils.one_time_logger import get_one_time_logger
+from dbnd.providers.dbt.dbt_adapters import Adapter
 
 
 T = TypeVar("T")

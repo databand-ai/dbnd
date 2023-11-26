@@ -38,8 +38,6 @@ from dbnd._core.task_build.dbnd_decorator import (
 )
 from dbnd._core.task_build.task_context import current
 from dbnd._core.task_build.task_registry import register_config_cls, register_task
-from dbnd._core.tracking.dbt.dbt_cloud import collect_data_from_dbt_cloud
-from dbnd._core.tracking.dbt.dbt_core import collect_data_from_dbt_core
 from dbnd._core.tracking.log_data_request import LogDataRequest
 from dbnd._core.tracking.metrics import (
     dataset_op_logger,
@@ -68,6 +66,8 @@ from dbnd._core.utils.project.project_fs import (
     project_path,
     relative_path,
 )
+from dbnd.providers.dbt.dbt_cloud import collect_data_from_dbt_cloud
+from dbnd.providers.dbt.dbt_core import collect_data_from_dbt_core
 from targets import _set_patches
 
 

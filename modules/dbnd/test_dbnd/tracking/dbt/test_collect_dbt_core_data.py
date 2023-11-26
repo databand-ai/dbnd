@@ -14,7 +14,8 @@ from mock import MagicMock, patch
 
 import dbnd
 
-from dbnd._core.tracking.dbt.dbt_core import (
+from dbnd._core.utils.basics.environ_utils import env
+from dbnd.providers.dbt.dbt_core import (
     DbtCoreAssets,
     _extract_environment,
     _extract_jinja_values,
@@ -22,7 +23,6 @@ from dbnd._core.tracking.dbt.dbt_core import (
     _read_and_truncate_logs,
     collect_data_from_dbt_core,
 )
-from dbnd._core.utils.basics.environ_utils import env
 
 
 class TestDBTCoreExtractMetaData:
@@ -172,9 +172,9 @@ def test_extract_environment(profile, expected):
     assert _extract_environment({"args": {}}, profile) == expected
 
 
-@patch("dbnd._core.tracking.dbt.dbt_core._load_json_file")
-@patch("dbnd._core.tracking.dbt.dbt_core._read_and_truncate_logs")
-@patch("dbnd._core.tracking.dbt.dbt_core._load_yaml_with_jinja")
+@patch("dbnd.providers.dbt.dbt_core._load_json_file")
+@patch("dbnd.providers.dbt.dbt_core._read_and_truncate_logs")
+@patch("dbnd.providers.dbt.dbt_core._load_yaml_with_jinja")
 def test_load_dbt_core_assets(
     mock_load_yaml_with_jinja, mock_read_and_truncate_logs, mock_load_json_file
 ):
@@ -196,8 +196,8 @@ def test_read_and_truncate_logs():
     original_log_content = "Some log content"
 
     m = mock_open(read_data=original_log_content)
-    with patch("dbnd._core.tracking.dbt.dbt_core.open", m):
-        with patch("dbnd._core.tracking.dbt.dbt_core.shutil.copy") as copy_mock:
+    with patch("dbnd.providers.dbt.dbt_core.open", m):
+        with patch("dbnd.providers.dbt.dbt_core.shutil.copy") as copy_mock:
             result = _read_and_truncate_logs(dbt_project_path)
 
     assert (
@@ -253,7 +253,7 @@ def test_dbt_sdk_functions_are_importable_from_top_level():
 
 def test_undefined_error_not_called():
     values = {"env_var_key": "{{ env_var('env_var_identifier') }}"}
-    with patch("dbnd._core.tracking.dbt.dbt_core.log_exception") as mock:
+    with patch("dbnd.providers.dbt.dbt_core.log_exception") as mock:
         with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
             _extract_jinja_values(values)
         assert mock.call_count == 0
@@ -261,7 +261,7 @@ def test_undefined_error_not_called():
 
 def test_undefined_error_called(caplog):
     values = {"test_jinja_error": "{{ test_undefined_for_jinja(whatever) }}"}
-    with patch("dbnd._core.tracking.dbt.dbt_core.log_exception") as mock:
+    with patch("dbnd.providers.dbt.dbt_core.log_exception") as mock:
         with env(env_var_identifier="env_var_literal", env_var_number_key="2"):
             _extract_jinja_values(values)
 
@@ -278,8 +278,8 @@ def test_undefined_error_called(caplog):
         )
 
 
-@patch("dbnd._core.tracking.dbt.dbt_core._get_tracker")
-@patch("dbnd._core.tracking.dbt.dbt_core._load_dbt_core_assets")
+@patch("dbnd.providers.dbt.dbt_core._get_tracker")
+@patch("dbnd.providers.dbt.dbt_core._load_dbt_core_assets")
 def test_dbt_core_processing_not_happening_if_no_tracker_is_available(
     load_dbt_core_assets_mock, get_tracker_mock
 ):

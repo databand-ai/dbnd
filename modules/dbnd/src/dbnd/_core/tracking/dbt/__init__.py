@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from dbnd._core.tracking.dbt.dbt_core import collect_data_from_dbt_core
+from dbnd.providers.dbt.dbt_core import collect_data_from_dbt_core
 
 
 # backward compatibility for import like:
