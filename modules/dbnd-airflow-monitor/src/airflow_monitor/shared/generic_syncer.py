@@ -134,9 +134,11 @@ class GenericSyncer(BaseComponent):
             syncer_instance_id=self.syncer_instance_id,
         )
         update_assets = Assets(assets_to_state=active_assets_to_states)
-        logger.info(
-            "_get_active_assets collected %d active assets", len(update_assets.data)
-        )
+        if active_assets_to_states:
+            logger.info(
+                "_get_active_assets collected %d active assets",
+                len(active_assets_to_states),
+            )
         return update_assets
 
     def _get_new_assets_and_update_cursor(self, cursor: Any) -> Assets:
@@ -160,10 +162,11 @@ class GenericSyncer(BaseComponent):
                 state="update",
                 data=new_cursor,
             )
-        logger.info(
-            "_get_new_assets_and_update_cursor collected %d active assets",
-            len(new_assets.data),
-        )
+        if new_assets.assets_to_state:
+            logger.info(
+                "_get_new_assets_and_update_cursor collected %d active assets",
+                len(new_assets.assets_to_state),
+            )
         return new_assets
 
     def _get_or_init_cursor(self) -> Any:
