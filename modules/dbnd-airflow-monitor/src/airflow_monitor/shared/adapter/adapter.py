@@ -165,6 +165,9 @@ class Adapter(ABC, Generic[T]):
         This method should be implemented by subclasses to return new assets available
         in the integration and corresponding new cursor object given initial cursor.
 
+        This method should not do any exception handling, so that errors such as
+        wrong credentials or missing resource will be raised and managed by the monitor.
+
         Args:
             cursor (object): The cursor object that will be used to query for integration assets
 

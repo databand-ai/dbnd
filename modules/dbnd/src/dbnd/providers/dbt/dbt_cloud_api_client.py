@@ -20,9 +20,16 @@ class DbtCloudApiClient:
     administrative_api_url = "https://cloud.getdbt.com/api/v2/accounts/"
     metadata_api_url = "https://metadata.cloud.getdbt.com/graphql"
 
-    def __init__(self, account_id: int, dbt_cloud_api_token: str, max_retries=3):
+    def __init__(
+        self,
+        account_id: int,
+        dbt_cloud_api_token: str,
+        max_retries=3,
+        supress_exceptions=True,
+    ):
         self.account_id = account_id
         self.api_token = dbt_cloud_api_token
+        self._supress_exceptions = supress_exceptions
         self.session = Session()
         self.session.headers = {
             "Authorization": f"Token {self.api_token}",
@@ -66,14 +73,16 @@ class DbtCloudApiClient:
             res.raise_for_status()
             deserialized_res = res.json()
         except HTTPError as http_error:
+            if not self._supress_exceptions:
+                raise
             # We want to send server all errors that are not 404 response
             if http_error.response.status_code != HTTPStatus.NOT_FOUND:
                 logger.debug("Received unexpected response code from dbt cloud api")
                 log_exception("unexpected response code from dbt cloud api", http_error)
-
             return None
-
         except Exception as e:
+            if not self._supress_exceptions:
+                raise
             log_exception("Something went wrong getting data dbt cloud api", e)
             return None
 

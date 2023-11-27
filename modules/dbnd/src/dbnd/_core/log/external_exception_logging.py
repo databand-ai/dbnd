@@ -21,9 +21,9 @@ def _format_exception(e_type, e_value, e_traceback):
 
 def log_exception_to_server(exception=None, source="tracking-sdk"):
     try:
-        from dbnd._core.current import get_databand_context
+        from dbnd._core.current import try_get_databand_context
 
-        databand_context = get_databand_context()
+        databand_context = try_get_databand_context()
         if not databand_context:
             return
 

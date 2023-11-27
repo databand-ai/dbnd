@@ -150,6 +150,8 @@ class GenericSyncer(BaseComponent):
         return update_assets
 
     def _get_new_assets_and_update_cursor(self, cursor: Any) -> Assets:
+        # We do not catch exceptions here, so that if there is a real error getting data
+        # it will get to capture_component_exception and sent to the webserver.
         new_assets, new_cursor = self.adapter.get_new_assets_for_cursor(cursor)
         if new_assets.assets_to_state:
             self.tracking_service.save_assets_state(
