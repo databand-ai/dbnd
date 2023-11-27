@@ -2,29 +2,24 @@
 
 import logging
 
-from prometheus_client import Gauge, Summary
+from prometheus_client import Counter, Summary
 
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LABELS = ("integration_id", "tracking_source_uid", "syncer_type")
 
-integration_total_failed_assets_requests = Gauge(
-    "dbnd_integration_total_failed_assets_requests",
-    "The number of failed assets requests (probably due to error) that submitted for retry",
-    labelnames=DEFAULT_LABELS,
+
+integration_assets_in_state = Counter(
+    "dbnd_integration_assets_in_state",
+    "Assets count per state at the end of iteration",
+    labelnames=DEFAULT_LABELS + ("asset_state",),
 )
 
-integration_total_max_retry_assets_requests = Gauge(
-    "dbnd_integration_total_max_retry_assets_requests",
-    "The number of failed assets requests (probably due to error) that reached max retry attempt",
-    labelnames=DEFAULT_LABELS,
-)
-
-integration_total_assets_size = Gauge(
+integration_total_assets_size = Counter(
     "dbnd_integration_assets_total_assets_size",
     "The total number of assets in sync once iteration",
-    labelnames=DEFAULT_LABELS,
+    labelnames=DEFAULT_LABELS + ("asset_source",),
 )
 
 func_execution_time = Summary(
@@ -42,15 +37,10 @@ class IntegrationMetricsReporter:
             "syncer_type": syncer_type,
         }
 
-    def report_total_failed_assets_requests(self, total_failed_assets):
-        integration_total_failed_assets_requests.labels(**self.default_labels).set(
-            total_failed_assets
-        )
-
-    def report_total_assets_max_retry_requests(self, total_max_retry_assets):
-        integration_total_max_retry_assets_requests.labels(**self.default_labels).set(
-            total_max_retry_assets
-        )
+    def report_assets_in_state(self, asset_state: str, count: int) -> None:
+        integration_assets_in_state.labels(
+            **self.default_labels, asset_state=asset_state
+        ).inc(count)
 
     def execution_time(self, func_name: str) -> Summary:
         """
@@ -61,5 +51,7 @@ class IntegrationMetricsReporter:
         """
         return func_execution_time.labels(**self.default_labels, func_name=func_name)
 
-    def report_total_assets_size(self, assets_size):
-        integration_total_assets_size.labels(**self.default_labels).set(assets_size)
+    def report_total_assets_size(self, asset_source: str, asset_count: int) -> None:
+        integration_total_assets_size.labels(
+            **self.default_labels, asset_source=asset_source
+        ).inc(asset_count)

@@ -137,12 +137,16 @@ class GenericSyncer(BaseComponent):
             integration_id=str(self.config.uid),
             syncer_instance_id=self.syncer_instance_id,
         )
-        update_assets = Assets(assets_to_state=active_assets_to_states)
         if active_assets_to_states:
+            self.metrics_reporter.report_total_assets_size(
+                asset_source="get_active_assets",
+                asset_count=len(active_assets_to_states),
+            )
             logger.info(
                 "_get_active_assets collected %d active assets",
                 len(active_assets_to_states),
             )
+        update_assets = Assets(assets_to_state=active_assets_to_states)
         return update_assets
 
     def _get_new_assets_and_update_cursor(self, cursor: Any) -> Assets:
@@ -154,7 +158,8 @@ class GenericSyncer(BaseComponent):
                 assets_to_state=new_assets.assets_to_state,
             )
             self.metrics_reporter.report_total_assets_size(
-                len(new_assets.assets_to_state)
+                asset_source="get_new_assets",
+                asset_count=len(new_assets.assets_to_state),
             )
         if new_cursor and new_cursor != cursor:
             # report last cursor only when all pages saved
@@ -264,13 +269,11 @@ class GenericSyncer(BaseComponent):
         return any_data_synced
 
     def report_assets_metrics(self, new_assets_states: List[AssetToState]) -> None:
-        asset_states = Counter([asset.state for asset in new_assets_states])
-        self.metrics_reporter.report_total_failed_assets_requests(
-            total_failed_assets=asset_states.get(AssetState.FAILED_REQUEST, 0)
-        )
-        self.metrics_reporter.report_total_assets_max_retry_requests(
-            total_max_retry_assets=asset_states.get(AssetState.MAX_RETRY, 0)
-        )
+        asset_states = Counter([a.state for a in new_assets_states])
+        for state, count in asset_states.items():
+            self.metrics_reporter.report_assets_in_state(
+                asset_state=state.value, count=count
+            )
 
     @property
     def identifier(self) -> str:
