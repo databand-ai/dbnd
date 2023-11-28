@@ -21,9 +21,13 @@
 
 import collections
 
+from typing import List
+
 from dbnd import output
 from dbnd._core.utils.traversing import getpaths, traverse
+from dbnd_run.task.pipeline_task import PipelineTask
 from dbnd_run.tasks import Task
+from dbnd_run.testing.helpers import TTask
 from targets import Target, target
 
 
@@ -59,3 +63,26 @@ class TestTraversing(object):
         actual = traverse(value, convert_f=_find_target, filter_none=True)
         assert actual
         assert actual.get("a").get("b") == nested_v
+
+    def test_deps_building(self):
+        class P1(PipelineTask):
+            def band(self):
+                return TTask(task_name=self.task_name + "_sub_task")
+
+        def force_pipline_dependency(
+            dependee: PipelineTask, depend_on: List[PipelineTask]
+        ):
+            """
+            Force a dbnd pipeline to run after other pipelines, even if they do not naturally depend on one another.
+            Can depend on one or more pipelines, waiting for all to complete before starting the dependee
+            """
+            for prerequisite in depend_on:
+                dependee.set_upstream(prerequisite)
+                for descendant in dependee.descendants.get_children():
+                    descendant.set_upstream(prerequisite)
+
+        p = P1(task_name="p_wait_for_all")
+        depend_on = [P1(task_name="d1"), P1(task_name="d2")]
+
+        force_pipline_dependency(p, depend_on)
+        p.dbnd_run()

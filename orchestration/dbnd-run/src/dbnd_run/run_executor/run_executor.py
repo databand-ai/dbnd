@@ -777,7 +777,8 @@ def set_active_run_context(run):
 
     with DatabandContext.context(_context=run.context):
         with DatabandRun.context(_context=run) as dr:
-            yield dr
+            with RunExecutor.context(_context=run.run_executor) as de:
+                yield dr
 
 
 class _RunExecutor_Task(Task):
