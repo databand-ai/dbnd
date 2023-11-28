@@ -194,7 +194,7 @@ if is_dbnd_run_package_installed():
 
 # shortcuts for useful objects
 str(_set_patches)  # NOQA
-__version__ = "1.0.18.0"
+__version__ = "1.0.19.0"
 
 __title__ = "databand"
 __description__ = "Machine Learning Orchestration"
