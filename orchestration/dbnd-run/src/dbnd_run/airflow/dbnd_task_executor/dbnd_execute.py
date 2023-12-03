@@ -145,9 +145,12 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
 
     task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
 
-    if task_run.task_engine.task_definition.task_family == "kubernetes":
+    if (
+        task_run.task_run_executor.task_engine.task_definition.task_family
+        == "kubernetes"
+    ):
         # If we are running in K8s - use pod retry delay instead of task retry delay
 
-        return task_run.task_engine.pod_default_retry_delay
+        return task_run.task_run_executor.pod_default_retry_delay
     else:
         return task_run.task.task_retry_delay
