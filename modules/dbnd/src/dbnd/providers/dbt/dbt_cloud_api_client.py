@@ -91,7 +91,14 @@ class DbtCloudApiClient:
     def _get_run_artifact(self, artifact_name, run_id, step=1):
         path = f"{self.account_id}/runs/{run_id}/artifacts/{artifact_name}"
         url = self._build_administrative_url(path)
-        return self.send_request(endpoint=url, data={"step": step})
+        try:
+            return self.send_request(endpoint=url, data={"step": step})
+        except HTTPError as http_error:
+            # Since we don't know if step has artifact or not, we try to get it and raise exception in case status code is not not foud error
+            if http_error.response.status_code != HTTPStatus.NOT_FOUND:
+                raise
+
+            return None
 
     def get_manifest_artifact(self, run_id, step=1):
         return self._get_run_artifact(
