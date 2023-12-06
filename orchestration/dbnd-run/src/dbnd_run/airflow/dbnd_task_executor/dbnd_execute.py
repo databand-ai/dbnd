@@ -151,6 +151,6 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
     ):
         # If we are running in K8s - use pod retry delay instead of task retry delay
 
-        return task_run.task_run_executor.pod_default_retry_delay
+        return task_run.task_run_executor.task_engine.pod_default_retry_delay
     else:
         return task_run.task.task_retry_delay
