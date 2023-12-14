@@ -121,15 +121,15 @@ class GenericSyncer(BaseComponent):
         cursor = self._get_or_init_cursor()
 
         active_assets = self._get_active_assets()
-        synced_active_data = self.process_assets_in_chunks(active_assets)
+        self.process_assets_in_chunks(active_assets)
         logger.info("Finished collecting and processing active assets")
 
         new_assets = self._get_new_assets_and_update_cursor(cursor)
-        synced_new_data = self.process_assets_in_chunks(new_assets)
+        self.process_assets_in_chunks(new_assets)
         logger.info("Finished collecting and processing new assets")
 
         self.reporting_service.report_monitor_time_data(
-            self.config.uid, synced_new_data=(synced_active_data or synced_new_data)
+            self.config.uid, synced_new_data=False
         )
 
     def _get_active_assets(self) -> Assets:
@@ -193,9 +193,9 @@ class GenericSyncer(BaseComponent):
             )
         return cursor
 
-    def process_assets_in_chunks(self, assets: Assets) -> bool:
+    def process_assets_in_chunks(self, assets: Assets) -> None:
         if not assets.assets_to_state:
-            return False
+            return
 
         failed, non_failed = split_failed_and_not_failed(assets.assets_to_state)
         logger.info(
@@ -203,25 +203,19 @@ class GenericSyncer(BaseComponent):
             len(failed),
             len(non_failed),
         )
-        any_data_synced = False
 
         bulk_size = self.config.sync_bulk_size
         for i in range(0, len(non_failed), bulk_size):
             assets_chunk = non_failed[i : i + bulk_size]
-            any_data_synced |= self._process_assets_batch(
+            self._process_assets_batch(
                 attr.evolve(assets, assets_to_state=assets_chunk)
             )
 
         # process failed assets one-by-one, to prevent 1 bad asset failing all the rest
         for asset in failed:
-            any_data_synced |= self._process_assets_batch(
-                attr.evolve(assets, assets_to_state=[asset])
-            )
+            self._process_assets_batch(attr.evolve(assets, assets_to_state=[asset]))
 
-        return any_data_synced
-
-    def _process_assets_batch(self, assets_to_process: Assets) -> bool:
-        any_data_synced = False
+    def _process_assets_batch(self, assets_to_process: Assets) -> None:
         try:
             with self.metrics_reporter.execution_time("get_assets_data").time():
                 assets_data = self.adapter.get_assets_data(assets_to_process)
@@ -236,8 +230,9 @@ class GenericSyncer(BaseComponent):
                     assets_to_str(assets_data.assets_to_state),
                     get_data_dimension_str(assets_data.data),
                 )
-
-                any_data_synced = True
+                self.reporting_service.report_monitor_time_data(
+                    self.config.uid, synced_new_data=True
+                )
             else:
                 logger.info("No assets to save - _process_assets_batch")
 
@@ -267,8 +262,6 @@ class GenericSyncer(BaseComponent):
             syncer_instance_id=self.syncer_instance_id,
             assets_to_state=new_assets_states,
         )
-
-        return any_data_synced
 
     def report_assets_metrics(self, new_assets_states: List[AssetToState]) -> None:
         asset_states = Counter([a.state for a in new_assets_states])
