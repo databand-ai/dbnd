@@ -661,7 +661,7 @@ class RunExecutor(SingletonContext):
                 "--set",
                 "run.run_result_json_path={}".format(result_map_target.path),
                 "--set",
-                "run.execution_date={}".format(
+                "run_info.execution_date={}".format(
                     run.execution_date.strftime("%Y-%m-%dT%H%M%S.%f")
                 ),
             ]

@@ -326,6 +326,8 @@ class KubernetesEngineConfig(ContainerEngineConfig):
         "We use the IP for airflow webserver to lookup the sidecar See more here: https://stackoverflow.com/a/59262628",
     )
 
+    fix_pickle = parameter(default=False)
+
     def _initialize(self):
         super(KubernetesEngineConfig, self)._initialize()
 

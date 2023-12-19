@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class TaskRunExecutor(_TaskRunExecutorCtrl):
-    def __init__(self, task_run, run_executor, task_engine, airflow_context=None):
+    def __init__(self, task_run, run_executor, task_engine):
         super(TaskRunExecutor, self).__init__(task_run=task_run)
 
         self.deploy = TaskSyncCtrl(task_run=task_run)
@@ -91,8 +91,6 @@ class TaskRunExecutor(_TaskRunExecutorCtrl):
             remote_log_file=self.remote_log_file,
             local_log_file=self.local_log_file,
         )
-
-        self.airflow_context = airflow_context
 
     def task_run_attempt_file(self, *path):
         return target(self.attempt_folder, *path)

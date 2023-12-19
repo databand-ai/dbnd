@@ -32,6 +32,7 @@ from airflow.utils.timezone import utcnow
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
+from dbnd._core.log import dbnd_log_exception
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
@@ -239,8 +240,24 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         return None
 
     def _make_kube_watcher_dbnd(self):
+
+        try:
+            if self.kube_dbnd.engine_config.fix_pickle:
+                # fixing an issue of POpen
+                # k8s config and some DAtaband tasks are unpicable
+                from multiprocessing import reduction
+
+                from dbnd._core.utils.seven import cloudpickle
+
+                reduction.ForkingPickler = cloudpickle.Pickler
+        except Exception:
+            dbnd_log_exception(
+                "failed to set pickler (kubernetes.fix_pickle_for_watcher)"
+            )
+
         watcher = DbndKubernetesJobWatcher(**get_job_watcher_kwargs(self))
         watcher.start()
+
         return watcher
 
     @staticmethod

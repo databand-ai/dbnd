@@ -38,7 +38,7 @@ def get_job_watcher_kwargs(dbnd_kubernetes_scheduler: "DbndKubernetesScheduler")
         "watcher_queue": dbnd_kubernetes_scheduler.watcher_queue,
         "resource_version": dbnd_kubernetes_scheduler.current_resource_version,
         "kube_config": dbnd_kubernetes_scheduler.kube_config,
-        "kube_dbnd": dbnd_kubernetes_scheduler.kube_dbnd,
+        "kubernetes_engine_config": dbnd_kubernetes_scheduler.kube_dbnd.engine_config,
     }
     if AIRFLOW_ABOVE_10:
         kwargs.update({"multi_namespace_mode": False})
