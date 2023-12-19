@@ -692,7 +692,15 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                         af_task_try_number,
                     )
                     # update in memory object with new attempt number
-                    task_run.update_task_run_attempt(af_task_try_number)
+                    from dbnd_run.task_ctrl.task_run_executor import TaskRunExecutor
+
+                    task_run.set_task_run_attempt(af_task_try_number)
+                    task_run.task_run_executor = TaskRunExecutor(
+                        task_run,
+                        run_executor=task_run.task_run_executor.run_executor,
+                        task_engine=task_run.task_run_executor.task_engine,
+                    )
+
                     # sync the tracker with the new task_run_attempt
                     databand_run.tracker.tracking_store.add_task_runs(
                         run=databand_run, task_runs=[task_run]

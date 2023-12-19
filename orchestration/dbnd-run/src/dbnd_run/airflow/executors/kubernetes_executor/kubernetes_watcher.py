@@ -22,6 +22,7 @@ from kubernetes.client import Configuration
 from dbnd._core.current import is_verbose
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
+from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 from dbnd_run.airflow.compat import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10, AIRFLOW_VERSION_2
 
 
@@ -30,10 +31,8 @@ if AIRFLOW_ABOVE_10:
 else:
     from airflow.contrib.executors.kubernetes_executor import KubernetesJobWatcher
 
-
 if typing.TYPE_CHECKING:
     from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
-
 
 logger = logging.getLogger(__name__)
 
@@ -86,9 +85,12 @@ class WatcherPodEvent(object):
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     """"""
 
-    def __init__(self, kube_dbnd: "DbndKubernetesClient", **kwargs):
+    def __init__(self, kubernetes_engine_config: "KubernetesEngineConfig", **kwargs):
         super().__init__(**kwargs)
-        self.kube_dbnd = kube_dbnd
+        self.kubernetes_engine_config = kubernetes_engine_config
+
+    def get_kube_dbnd(self) -> "DbndKubernetesClient":
+        return self.kubernetes_engine_config.build_kube_dbnd()
 
     def run(self):
         """
@@ -115,7 +117,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             os.getpid(),
         )
         # we want a new refreshed client!
-        kube_client = self.kube_dbnd.engine_config.get_kube_client()
+        kube_client = self.kubernetes_engine_config.get_kube_client()
         try:
             while True:
                 try:
@@ -137,10 +139,10 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                     self.log.info(
                         "KubernetesWatcher restarting with resource_version: %s in %s seconds",
                         self.resource_version,
-                        self.kube_dbnd.engine_config.watcher_recreation_interval_seconds,
+                        self.kubernetes_engine_config.watcher_recreation_interval_seconds,
                     )
                     time.sleep(
-                        self.kube_dbnd.engine_config.watcher_recreation_interval_seconds
+                        self.kubernetes_engine_config.watcher_recreation_interval_seconds
                     )
         except (KeyboardInterrupt, DatabandSigTermError):
             pass
@@ -155,11 +157,11 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         from kubernetes import watch
 
         watcher = watch.Watch()
-        request_timeout = self.kube_dbnd.engine_config.watcher_request_timeout_seconds
+        request_timeout = self.kubernetes_engine_config.watcher_request_timeout_seconds
         kwargs = {
             "label_selector": "airflow-worker={}".format(worker_uuid),
             "_request_timeout": (request_timeout, request_timeout),
-            "timeout_seconds": self.kube_dbnd.engine_config.watcher_client_timeout_seconds,
+            "timeout_seconds": self.kubernetes_engine_config.watcher_client_timeout_seconds,
         }
 
         if resource_version:
@@ -221,7 +223,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
         _fail_event = pod_event.as_tuple_with_state(State.FAILED)
 
         debug_phase = (
-            self.kube_dbnd.engine_config.debug_phase
+            self.kubernetes_engine_config.debug_phase
         )  # print only if user defined debug phase
         if is_verbose() or (debug_phase and phase == debug_phase):
             self.log.info(
@@ -252,7 +254,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.watcher_queue.put(_fail_event)
 
         elif phase == "Pending":
-            pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+            pod_ctrl = self.get_kube_dbnd().get_pod_ctrl(
                 pod_id, namespace=pod_data.metadata.namespace
             )
             try:
@@ -264,7 +266,7 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
                 self.watcher_queue.put(_fail_event)
 
         elif phase == "Running":
-            pod_ctrl = self.kube_dbnd.get_pod_ctrl(
+            pod_ctrl = self.get_kube_dbnd().get_pod_ctrl(
                 pod_id, namespace=pod_data.metadata.namespace
             )
             try:

@@ -110,7 +110,11 @@ def dbnd_operator__execute(dbnd_operator, context):
             # we need to update our task_run_executor attempt accordingly.
             if task_run.attempt_number != context["ti"].try_number:
                 task_run.set_task_run_attempt(context["ti"].try_number)
-                task_run.task_run_executor = TaskRunExecutor(task_run)
+                task_run.task_run_executor = TaskRunExecutor(
+                    task_run,
+                    run_executor=task_run.task_run_executor.run_executor,
+                    task_engine=task_run.task_run_executor.task_engine,
+                )
 
             ret_value = task_run.task_run_executor.execute(airflow_context=context)
     else:
