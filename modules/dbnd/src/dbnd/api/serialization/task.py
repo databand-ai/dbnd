@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import re
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.parameter.parameter_definition import ParameterGroup, _ParameterKind
@@ -8,7 +9,13 @@ from dbnd._core.tracking.schemas.tracking_info_objects import (
     TaskRunInfo,
     TaskRunParamInfo,
 )
+from dbnd._core.utils.data_anonymizers import (
+    DEFAULT_MASKING_VALUE,
+    SECRET_NAMES,
+    mask_sensitive_data,
+)
 from dbnd._core.utils.dotdict import _as_dotted_dict
+from dbnd._vendor._marshmallow import post_dump
 from dbnd._vendor.marshmallow import fields, post_load
 from dbnd._vendor.marshmallow_enum import EnumField
 
@@ -62,6 +69,26 @@ class TaskRunParamSchema(ApiStrictSchema):
     parameter_name = fields.String()
     value_origin = fields.String()
     value = fields.String(allow_none=True)
+
+    def dump_value_safe(self, data: dict) -> str:
+        parameter_name = data["parameter_name"]
+        parameter_value = data["value"]
+
+        matches = map(
+            lambda secret_name: re.search(secret_name, parameter_name), SECRET_NAMES
+        )
+
+        if any(matches):
+            return DEFAULT_MASKING_VALUE
+
+        return mask_sensitive_data(parameter_value)
+
+    @post_dump(pass_many=True)
+    def mask_sensitive_values(self, data, many, **kwargs):
+        if many:
+            return [{**param, "value": self.dump_value_safe(param)} for param in data]
+
+        return {**data, "value": self.dump_value_safe(data)}
 
     @post_load
     def make_task_run_param(self, data, **kwargs):

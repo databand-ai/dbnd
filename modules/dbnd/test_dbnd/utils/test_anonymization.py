@@ -1,6 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 import json
 
+from abc import ABC, abstractmethod
+
 import pytest
 
 from dbnd._core.utils.data_anonymizers import mask_sensitive_data
@@ -35,43 +37,115 @@ PARAM_VALUE = "abc" * 10
 EXPECTED_MASKED_OUTPUT = "***"
 
 
-def to_json(param_name: str, param_value: str = PARAM_VALUE):
-    return json.dumps({param_name: param_value})
-
-
-def to_env_variable(param_name: str, param_value: str = PARAM_VALUE):
-    return f"{param_name.upper()}={param_value.upper()}"
-
-
 def to_python_dict(param_name: str, param_value: str = PARAM_VALUE):
     return f"'{param_name}':'{param_value}'"
 
 
-def to_yaml_1(param_name: str, param_value: str = PARAM_VALUE):
-    return f"{param_name}='{param_value}'"
+class MaskSensitiveDataTest(ABC):
+    @abstractmethod
+    def format_to_string(self, data_to_mask: dict) -> str:
+        raise NotImplementedError()
+
+    def should_mask_values_for_sensitive_param_names(self, param_name: str):
+        # Arrange
+        raw_data = {param_name: PARAM_VALUE}
+        raw_string = self.format_to_string(raw_data)
+
+        # Act
+        masked_string = mask_sensitive_data(raw_string)
+
+        # Assert
+        expected_output = {param_name: EXPECTED_MASKED_OUTPUT}
+        assert masked_string == self.format_to_string(expected_output)
+
+    def should_not_mask_values_non_sensitive_param_names(self, param_name: str):
+        # Arrange
+        raw_data = {param_name: PARAM_VALUE}
+        raw_string = self.format_to_string(raw_data)
+
+        # Act
+        masked_string = mask_sensitive_data(raw_string)
+
+        # Assert
+        expected_output = raw_data
+        assert masked_string == self.format_to_string(expected_output)
 
 
-def to_yaml_2(param_name: str, param_value: str = PARAM_VALUE):
-    return f"{param_name}: '{param_value}'"
+class TestMaskingSensitiveData(MaskSensitiveDataTest):
+    def format_to_string(self, data_to_mask: dict) -> str:
+        return json.dumps(data_to_mask)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_mask_values_for_sensitive_param_names(param_name)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in NON_SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_not_mask_values_non_sensitive_param_names(param_name)
 
 
-format_functions_list = [to_json, to_env_variable, to_python_dict, to_yaml_1, to_yaml_2]
+class TestMaskingSensitiveDataEnvVariableFormat(MaskSensitiveDataTest):
+    def format_to_string(self, data_to_mask: dict) -> str:
+        res = ""
+        for k, v in data_to_mask.items():
+            res += f"{k.upper()}={v.upper()}"
+
+        return res
+
+    @pytest.mark.parametrize("param_name", [(param) for param in SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_mask_values_for_sensitive_param_names(param_name)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in NON_SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_not_mask_values_non_sensitive_param_names(param_name)
 
 
-def test_anonymization_positive():
-    for param_name in SECRETS_LIST:
-        for f in format_functions_list:
-            string_to_check = f(param_name)
-            mask_result = mask_sensitive_data(string_to_check)
-            assert mask_result == f(param_name, EXPECTED_MASKED_OUTPUT)
+class TestMaskingSensitiveDataYaml1Format(MaskSensitiveDataTest):
+    def format_to_string(self, data_to_mask: dict) -> str:
+        res = ""
+        for param_name, param_value in data_to_mask.items():
+            res += f"{param_name}='{param_value}'"
+
+        return res
+
+    @pytest.mark.parametrize("param_name", [(param) for param in SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_mask_values_for_sensitive_param_names(param_name)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in NON_SECRETS_LIST])
+    def test_should_not_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_not_mask_values_non_sensitive_param_names(param_name)
 
 
-def test_anonymization_negative():
-    for param_name in NON_SECRETS_LIST:
-        for f in format_functions_list:
-            string_to_check = f(param_name)
-            mask_result = mask_sensitive_data(string_to_check)
-            assert mask_result == string_to_check
+class TestMaskingSensitiveDataYaml2Format(MaskSensitiveDataTest):
+    def format_to_string(self, data_to_mask: dict) -> str:
+        res = ""
+        for param_name, param_value in data_to_mask.items():
+            res += f"{param_name}: '{param_value}'"
+
+        return res
+
+    @pytest.mark.parametrize("param_name", [(param) for param in SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_mask_values_for_sensitive_param_names(param_name)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in NON_SECRETS_LIST])
+    def test_should_not_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_not_mask_values_non_sensitive_param_names(param_name)
+
+
+class TestMaskingSensitiveDataPythonDictFormat(MaskSensitiveDataTest):
+    def format_to_string(self, data_to_mask: dict) -> str:
+        return str(data_to_mask)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_mask_values_for_sensitive_param_names(param_name)
+
+    @pytest.mark.parametrize("param_name", [(param) for param in NON_SECRETS_LIST])
+    def test_should_mask_values_for_sensitive_param_names(self, param_name: str):
+        self.should_not_mask_values_non_sensitive_param_names(param_name)
 
 
 def test_multiple_calls():
