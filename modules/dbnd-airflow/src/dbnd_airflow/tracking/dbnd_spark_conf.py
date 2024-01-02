@@ -16,7 +16,7 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.log import dbnd_log_exception, is_verbose
-from dbnd._core.log.dbnd_log import ENV_DBND__VERBOSE
+from dbnd._core.log.dbnd_log import ENV_DBND__VERBOSE, dbnd_log_debug, dbnd_log_info
 from dbnd._core.tracking.airflow_dag_inplace_tracking import (
     get_task_run_uid_for_inline_script,
 )
@@ -115,6 +115,7 @@ def get_dbnd_context_spark_conf(
 
     # simple case, used doesn't have his own configuration
     if not spark_conf:
+        dbnd_log_debug("Injecting Env variables %s", dbnd_spark_conf)
         return dbnd_spark_conf
 
     # we need to merge
@@ -134,6 +135,7 @@ def get_dbnd_context_spark_conf(
                 spark_conf[property_name] + "," + dbnd_spark_conf[property_name]
             )
 
+    dbnd_log_debug("Injecting Env variables with merge: %s", dbnd_spark_conf)
     return merged_conf
 
 
@@ -185,9 +187,11 @@ def get_spark_submit_cli_with_dbnd_context(
         -1,
     )
     if index == -1:
-        raise Exception(
-            "Failed to find spark-submit in %s" % " ".join(original_command_as_list)
+        dbnd_log_exception(
+            "Failed to find 'spark-submit' cmd in %s"
+            % " ".join(original_command_as_list)
         )
+        return original_command_as_list
 
     return (
         original_command_as_list[0 : index + 1]
@@ -198,12 +202,12 @@ def get_spark_submit_cli_with_dbnd_context(
 
 @contextmanager
 def track_emr_add_steps_operator(operator, tracking_info):
-    logger.info("Tracking EmrAddStepsOperator")
+    dbnd_log_info("Updating HadoopJarStep.Args with dbnd context")
 
     spark_envs = get_dbnd_context_spark_conf(tracking_info)
     # EMR uses list arguments, it's safe to update it
-    dbnd_context_as_cli = convert_spark_conf_to_cli_args(spark_envs)
 
+    dbnd_context_as_cli = convert_spark_conf_to_cli_args(spark_envs)
     for step in operator.steps:
         args = step["HadoopJarStep"]["Args"]
         if args and "spark-submit" in args[0]:
@@ -211,11 +215,9 @@ def track_emr_add_steps_operator(operator, tracking_info):
             step["HadoopJarStep"]["Args"] = get_spark_submit_cli_with_dbnd_context(
                 args, dbnd_context_as_cli=dbnd_context_as_cli
             )
-            logger.info(
-                "Properties for HadoopJarStep was updated for task %s", operator.task_id
-            )
+
         else:
-            logger.info("spark-submit has been not found in the operator")
+            dbnd_log_exception("spark-submit has been not found in the operator")
     yield
 
 

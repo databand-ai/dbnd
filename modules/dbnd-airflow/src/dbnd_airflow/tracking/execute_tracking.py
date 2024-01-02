@@ -64,8 +64,6 @@ def is_dag_eligable_for_tracking(dag_id, tracking_list):
 
 
 def _try_to_start_airflow_operator_tracking(context):
-    dbnd_log_debug("Running tracked .execute")
-
     if is_dbnd_disabled():
         dbnd_log_debug("Databand is disabled via project config.")
         # we are not tracking if dbnd is disabled

@@ -9,7 +9,8 @@ from dbnd._core.configuration.environ_config import (
     dbnd_log_init_msg,
     spark_tracking_enabled,
 )
-from dbnd._core.log import dbnd_log_debug
+from dbnd._core.log import dbnd_log_debug, dbnd_log_exception
+from dbnd._core.log.dbnd_log import ENV_DBND__VERBOSE, is_verbose, set_verbose
 from dbnd._core.utils.seven import import_errors
 
 
@@ -83,9 +84,9 @@ def _safe_get_active_spark_context():
             return SparkContext._active_spark_context
         else:
             # spark context is not initialized at this step
-            logger.info("SparkContext._jvm is not set")
+            dbnd_log_debug("SparkContext._jvm is not set")
     except Exception as ex:
-        logger.info("Failed to get SparkContext: %s", ex)
+        dbnd_log_exception("Failed to get SparkContext: %s", ex)
 
 
 def _safe_get_jvm_view():
@@ -124,20 +125,37 @@ def load_spark_env():
     if not spark_conf:
         return
 
-    dbnd_log_init_msg("loading configuration using spark conf")
+    dbnd_log_init_msg("loading DBND configuration using spark conf")
     spark_conf = dict(spark_conf.getAll())
     spark_conf = {key.lstrip("spark.env."): value for key, value in spark_conf.items()}
 
-    dbnd_environ = get_environ_config_from_dict(spark_conf, "environ")
+    if ENV_DBND__VERBOSE in spark_conf:
+        from dbnd._core.utils.basics.helpers import parse_bool
 
-    dbnd_config.set_values(dbnd_environ, "spark")
+        if parse_bool(spark_conf.get(ENV_DBND__VERBOSE)):
+            set_verbose()
+
+    dbnd_environ = get_environ_config_from_dict(spark_conf, "environ")
+    dbnd_config.set_values(dbnd_environ, "spark.env")
+
+    dbnd_log_init_msg("DBND configuration from spark conf: %s" % dbnd_environ)
+
+    return dbnd_environ
 
 
 def try_load_spark_env():
     try:
         if not verify_spark_pre_conditions():
             return None
+
+        dbnd_log_init_msg("Failed to check spark env")
+    except Exception:
+        dbnd_log_init_msg("Failed to check spark env")
+        return None
+
+    try:
         load_spark_env()
     except Exception:
-        dbnd_log_init_msg("Failed to load spark env")
+        if is_verbose():
+            dbnd_log_exception("Failed to check spark env")
         return None
