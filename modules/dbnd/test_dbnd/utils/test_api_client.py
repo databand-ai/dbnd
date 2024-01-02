@@ -27,6 +27,7 @@ class TestApiClient(TestCase):
             self.connection_error,
             self.ok_response,
             self.ok_response,
+            self.ok_response,
         ]
         sut = self.create_sut(retries=2)
         try:
@@ -53,11 +54,15 @@ class TestApiClient(TestCase):
             self.fail(
                 f"Api client should be resilient to failures, but instead got: {e}"
             )
-        assert self.network_request_mock.call_count == 3
-        assert self.network_request_mock.mock_calls[1] == self.login_call()
+        assert self.network_request_mock.call_count == 4
+        assert self.network_request_mock.mock_calls[2] == self.login_call()
 
     def test_api_client_should_retry_login_3_times(self):
-        self.network_request_mock.side_effect = self.connection_error
+        self.network_request_mock.side_effect = [
+            self.ok_response,
+            self.connection_error,
+            self.connection_error,
+        ]
         sut = self.create_sut(retries=3)
         try:
             with self.dont_sleep():
@@ -66,9 +71,10 @@ class TestApiClient(TestCase):
             # Request will fail, this is expected
             pass
 
+        _csrf_call = self.csrf_call()
         _call = self.login_call()
-        assert self.network_request_mock.call_count == 3
-        self.network_request_mock.assert_has_calls([_call, _call, _call])
+        assert self.network_request_mock.call_count == 4
+        self.network_request_mock.assert_has_calls([_csrf_call, _call, _call, _call])
 
     @mock.patch("requests.session")
     def test_api_client_with_key_error_should_retry_3_times(self, mock_session):
@@ -99,6 +105,17 @@ class TestApiClient(TestCase):
         return call(
             "/api/v1/auth/login",
             method="POST",
+            data=mock.ANY,
+            headers=mock.ANY,
+            query=mock.ANY,
+            request_timeout=mock.ANY,
+            session=mock.ANY,
+        )
+
+    def csrf_call(self):
+        return call(
+            "/api/v1/auth/csrf",
+            method="GET",
             data=mock.ANY,
             headers=mock.ANY,
             query=mock.ANY,
