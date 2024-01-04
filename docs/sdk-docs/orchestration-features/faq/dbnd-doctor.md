@@ -6,7 +6,7 @@ DBND has a built-in `@task` that runs numerous checks on your environment.
 
 Use the following command to run the diagnostic task:
 ```bash
-dbnd run dbnd_doctors
+dbnd run dbnd_doctor
 ```
 
 ## Troubleshooting Logs
