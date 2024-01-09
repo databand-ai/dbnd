@@ -2,7 +2,6 @@
 from typing import Type
 
 import prometheus_client
-import sentry_sdk
 
 from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
@@ -19,7 +18,6 @@ def start_integration_multi_server(
     start_external_services=True,
 ):
     if start_external_services:
-        sentry_sdk.init()
         prometheus_client.start_http_server(monitor_config.prometheus_port)
 
     MultiServerMonitor(
