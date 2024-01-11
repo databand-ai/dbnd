@@ -72,7 +72,10 @@ public interface DbndApi {
     Call<Void> saveExternalLinks(@Body SaveExternalLinks data);
 
     @POST("/api/v1/auth/login")
-    Call<LoginRes> login(@Body LoginReq data);
+    Call<LoginRes> login(@Body LoginReq data, @Header("Cookie") String cookie, @Header("X-CSRF-Token") String csrfToken);
+
+    @GET("/api/v1/auth/csrf")
+    Call<Void> csrfToken();
 
     @GET("/api/v1/task/full-graph")
     Call<TaskFullGraph> taskFullGraph(@Query("job_name") String jobName, @Query("run_uid") String runUid);
@@ -99,6 +102,6 @@ public interface DbndApi {
     Call<List<DatasetOperationRes>> operations(@Path("run_uid") String runUid);
 
     @POST("/api/v1/auth/personal_access_token")
-    Call<CreateTokenRes> createPersonalAccessToken(@Body CreateTokenReq req, @Header("Cookie") String cookie);
+    Call<CreateTokenRes> createPersonalAccessToken(@Body CreateTokenReq req, @Header("Cookie") String cookie, @Header("X-CSRF-Token") String csrfToken);
 
 }

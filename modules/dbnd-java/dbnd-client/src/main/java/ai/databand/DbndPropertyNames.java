@@ -17,6 +17,16 @@ public abstract class DbndPropertyNames {
     public static final String DBND__CORE__DATABAND_ACCESS_TOKEN = "dbnd.core.databand_access_token";
 
     /**
+     * Databand csrf token.
+     */
+    public static final String DBND__CSRF_TOKEN = "dbnd.csrf_token";
+
+    /**
+     * Databand session cookie.
+     */
+    public static final String DBND__SESSION_COOKIE = "dbnd.session_cookie";
+
+    /**
      * Tracking enabled flag.
      */
     public static final String DBND__TRACKING = "dbnd.tracking";

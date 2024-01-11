@@ -22,25 +22,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_DAG_ID;
-import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_EXECUTION_DATE;
-import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TASK_ID;
-import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_TRY_NUMBER;
-import static ai.databand.DbndPropertyNames.AIRFLOW_CTX_UID;
-import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_ATTEMPT_UID;
-import static ai.databand.DbndPropertyNames.DBND_PARENT_TASK_RUN_UID;
-import static ai.databand.DbndPropertyNames.DBND_ROOT_RUN_UID;
-import static ai.databand.DbndPropertyNames.DBND_TRACE_ID;
-import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN;
-import static ai.databand.DbndPropertyNames.DBND__CORE__DATABAND_URL;
-import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_HEAD_BYTES;
-import static ai.databand.DbndPropertyNames.DBND__LOG__PREVIEW_TAIL_BYTES;
-import static ai.databand.DbndPropertyNames.DBND__RUN__JOB_NAME;
-import static ai.databand.DbndPropertyNames.DBND__RUN__NAME;
-import static ai.databand.DbndPropertyNames.DBND__TRACKING;
-import static ai.databand.DbndPropertyNames.DBND__TRACKING__DATA_PREVIEW;
-import static ai.databand.DbndPropertyNames.DBND__TRACKING__LOG_VALUE_PREVIEW;
-import static ai.databand.DbndPropertyNames.DBND__VERBOSE;
+import static ai.databand.DbndPropertyNames.*;
 
 /**
  * Databand configuration.
@@ -220,6 +202,14 @@ public class DbndConfig implements PropertiesSource {
 
     public Optional<String> jobName() {
         return getValue(DBND__RUN__JOB_NAME);
+    }
+
+    public Optional<String> csrfToken() {
+        return getValue(DBND__CSRF_TOKEN);
+    }
+
+    public Optional<String> sessionCookie() {
+        return getValue(DBND__SESSION_COOKIE);
     }
 
     public Optional<String> personalAccessToken() {

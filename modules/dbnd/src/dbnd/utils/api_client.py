@@ -196,6 +196,13 @@ class ApiClient(object):
                 self.default_headers["Authorization"] = "Bearer {}".format(token)
                 return
 
+            # get the csrf token cookie (if enabled on the server)
+            self.api_request("auth/csrf", None, method="GET")
+            csrf_token = self.session.cookies.get("X-CSRF-TOKEN")
+            if csrf_token:
+                logger.debug("Got csrf token from session")
+                self.default_headers["X-CSRFToken"] = csrf_token
+
             if "username" in credentials and "password" in credentials:
                 logger.debug("Attempting to login to webserver")
                 self.api_request("auth/login", method="POST", data=credentials)

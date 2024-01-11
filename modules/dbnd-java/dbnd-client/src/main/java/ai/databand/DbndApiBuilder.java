@@ -66,6 +66,38 @@ public class DbndApiBuilder {
             );
         }
         /*
+         * If CSRF token is enabled then we will add corresponding header into each API call.
+         * CSRF token should be passed in "X-CSRF-Token" header.
+         */
+        if (config.csrfToken().isPresent()) {
+            clientBuilder.addInterceptor(
+                chain -> {
+                    Request origin = chain.request();
+                    Request withCsrf = origin
+                        .newBuilder()
+                        .addHeader("X-CSRF-Token", config.csrfToken().get())
+                        .build();
+                    return chain.proceed(withCsrf);
+                }
+            );
+        }
+        /*
+         * If session cookie is enabled then we will add corresponding header into each API call.
+         * Session cookie should be passed in "Cookie" header.
+         */
+        if (config.sessionCookie().isPresent()) {
+            clientBuilder.addInterceptor(
+                chain -> {
+                    Request origin = chain.request();
+                    Request withSessionCookie = origin
+                        .newBuilder()
+                        .addHeader("Cookie", config.sessionCookie().get())
+                        .build();
+                    return chain.proceed(withSessionCookie);
+                }
+            );
+        }
+        /*
          * OkHttp doesn't do proper redirects on 301: https://github.com/square/okhttp/issues/6627
          * This interceptor introduces workaround — if request is being redirected we will handle it manually.
          */

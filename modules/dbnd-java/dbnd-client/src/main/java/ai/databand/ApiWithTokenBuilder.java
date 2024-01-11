@@ -17,8 +17,10 @@ import okhttp3.Headers;
 import retrofit2.Response;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This api builder is used in unit tests.
@@ -31,22 +33,33 @@ public class ApiWithTokenBuilder {
         DbndClient dbnd = new DbndClient(config);
         DbndApi api = dbnd.api();
 
-        Response<LoginRes> loginRes = api.login(new LoginReq()).execute();
+        Response<Void> csrfRes = api.csrfToken().execute();
+        Optional<String> optionalCookie = csrfRes.headers().values("set-cookie").stream().filter(cookieStr -> cookieStr.contains("X-CSRF-TOKEN")).findFirst();
+        String csrfToken = optionalCookie.orElseThrow(NullPointerException::new).split(";")[0].split("=")[1];
+
+        String cookie = Objects.requireNonNull(csrfRes.headers().get("set-cookie")).concat(";");
+
+        Response<LoginRes> loginRes = api.login(new LoginReq(), cookie, csrfToken).execute();
         Headers headers = loginRes.headers();
 
-        String cookie = Objects.requireNonNull(headers.get("set-cookie")).concat(";");
+        cookie = Objects.requireNonNull(headers.get("set-cookie")).concat(";");
 
-        Response<CreateTokenRes> tokenRes = api.createPersonalAccessToken(new CreateTokenReq(), cookie).execute();
+        Response<CreateTokenRes> tokenRes = api.createPersonalAccessToken(new CreateTokenReq(), cookie, csrfToken).execute();
         CreateTokenRes tokenResBody = tokenRes.body();
         Objects.requireNonNull(tokenResBody, "Token response body should not be empty");
         String token = tokenResBody.getToken();
 
+        String finalCookie = cookie;
+        Map<String, String> tokens = new HashMap<String, String>() {{
+            put(DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN, token);
+            put(DbndPropertyNames.DBND__CSRF_TOKEN, csrfToken);
+            put(DbndPropertyNames.DBND__SESSION_COOKIE, finalCookie);
+        }};
+
         DbndConfig configWithToken = new DbndConfig(new DbndSparkConf(
             new Env(
                 new JavaOpts(
-                    new SimpleProps(
-                        Collections.singletonMap(DbndPropertyNames.DBND__CORE__DATABAND_ACCESS_TOKEN, token)
-                    )
+                    new SimpleProps(tokens)
                 )
             )
         ));
