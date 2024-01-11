@@ -15,6 +15,7 @@ from airflow_monitor.shared.integration_management_service import (
 )
 from airflow_monitor.shared.liveness_probe import create_liveness_file
 from airflow_monitor.shared.logger_config import configure_logging
+from airflow_monitor.shared.monitoring.newrelic import transaction_scope
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -150,11 +151,12 @@ class MultiServerMonitor:
         return to_add, to_remove
 
     def run_once(self):
-        integrations = self.get_integrations()
-        to_add, to_remove = self.partition_integrations(integrations)
-        self.current_integrations = integrations
-        self._stop_disabled_integrations(to_remove)
-        self._start_new_enabled_integrations(to_add)
+        with transaction_scope("refresh_integrations"):
+            integrations = self.get_integrations()
+            to_add, to_remove = self.partition_integrations(integrations)
+            self.current_integrations = integrations
+            self._stop_disabled_integrations(to_remove)
+            self._start_new_enabled_integrations(to_add)
         self._heartbeat(integrations)
         create_liveness_file()
 
