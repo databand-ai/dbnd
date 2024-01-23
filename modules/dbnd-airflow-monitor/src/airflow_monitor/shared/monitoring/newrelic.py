@@ -15,6 +15,26 @@ except ImportError:
     newrelic_available = False
 
 
+def configure_newrelic():
+    if not newrelic_available:
+        return
+
+    from newrelic.core.config import apply_config_setting, global_settings
+
+    ignore_errors = (
+        "google.auth.exceptions:RefreshError",
+        "requests.exceptions:ConnectionError",
+        "requests.exceptions:HTTPError",
+        "requests.exceptions:SSLError",
+        "requests.exceptions:Timeout",
+        "requests.exceptions:ConnectTimeout",
+        "airflow_monitor.shared.errors:ClientConnectionError",
+    )
+    apply_config_setting(
+        global_settings(), "error_collector.ignore_classes", " ".join(ignore_errors)
+    )
+
+
 @contextlib.contextmanager
 def transaction_scope(name: str):
     if not newrelic_available:

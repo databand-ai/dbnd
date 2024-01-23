@@ -8,6 +8,7 @@ from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
 )
+from airflow_monitor.shared.monitoring.newrelic import configure_newrelic
 from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._vendor import click
 
@@ -19,6 +20,7 @@ def start_integration_multi_server(
 ):
     if start_external_services:
         prometheus_client.start_http_server(monitor_config.prometheus_port)
+        configure_newrelic()
 
     MultiServerMonitor(
         monitor_config=monitor_config,
