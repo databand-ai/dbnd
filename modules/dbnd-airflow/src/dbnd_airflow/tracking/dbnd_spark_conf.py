@@ -97,10 +97,12 @@ def get_dbnd_context_spark_conf(
             "spark.env.DBND__TRACKING": "True",
             # Spark properties to explicitly enable tracking in cluster mode
             "spark.yarn.appMasterEnv.DBND__TRACKING": "True",
+            # might be missing in server mode
             "spark.yarn.appMasterEnv.SPARK_ENV_LOADED": "1",
             "spark.yarn.appMasterEnv.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
             "spark.yarn.appMasterEnv.DBND_HOME": "/tmp/dbnd",
             # Spark properties to explicitly enable tracking in K8S mode
+            "spark.kubernetes.driverEnv.DBND__TRACKING": "True",
             "spark.kubernetes.driverEnv.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
         }
     )

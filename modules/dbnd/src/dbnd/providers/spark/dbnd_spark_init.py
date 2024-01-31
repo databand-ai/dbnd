@@ -148,14 +148,15 @@ def try_load_spark_env():
         if not verify_spark_pre_conditions():
             return None
 
-        dbnd_log_init_msg("Failed to check spark env")
+        dbnd_log_init_msg("Spark pre conditions are verified")
     except Exception:
-        dbnd_log_init_msg("Failed to check spark env")
+        dbnd_log_init_msg("Failed to verify spark pre-conditions")
         return None
 
     try:
         load_spark_env()
+        dbnd_log_init_msg("Spark env is loaded")
     except Exception:
         if is_verbose():
-            dbnd_log_exception("Failed to check spark env")
+            dbnd_log_exception("Failed to load spark env")
         return None
