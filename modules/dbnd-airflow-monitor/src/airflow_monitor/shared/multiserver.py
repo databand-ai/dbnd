@@ -7,6 +7,8 @@ from time import sleep
 from typing import Callable, Iterable, List, Tuple, Type, TypeVar
 from uuid import UUID
 
+from prometheus_client import Summary
+
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
@@ -16,10 +18,38 @@ from airflow_monitor.shared.integration_management_service import (
 from airflow_monitor.shared.liveness_probe import create_liveness_file
 from airflow_monitor.shared.logger_config import configure_logging
 from airflow_monitor.shared.monitoring.newrelic import transaction_scope
+from airflow_monitor.shared.monitoring.prometheus_tools import (
+    integration_components_count,
+    integration_iteration_time,
+    monitor_integrations_count,
+    monitor_iteration_time,
+)
 from dbnd._core.utils.timezone import utcnow
 
 
 logger = logging.getLogger(__name__)
+
+
+def _measure_integrations_count(integrations: List[BaseIntegration]) -> None:
+    monitor_integrations_count.set(len(integrations))
+
+
+def _measure_components_count(
+    integration: BaseIntegration, components_list: List[BaseComponent]
+) -> None:
+    integration_components_count.labels(
+        integration=integration.config.uid,
+        monitor=integration.MONITOR_TYPE,
+        fetcher=integration.config.fetcher_type,
+    ).set(len(components_list))
+
+
+def _measure_integration_iteration_time(integration: BaseIntegration) -> Summary:
+    return integration_iteration_time.labels(
+        integration=integration.config.uid,
+        monitor=integration.MONITOR_TYPE,
+        fetcher=integration.config.fetcher_type,
+    ).time()
 
 
 class MultiServerMonitor:
@@ -100,6 +130,7 @@ class MultiServerMonitor:
         return time_from_last_heartbeat >= component.sleep_interval
 
     def _heartbeat(self, integrations: List[BaseIntegration]):
+        _measure_integrations_count(integrations)
         for integration in integrations:
             integration_uid = integration.config.uid
             logger.debug(
@@ -107,15 +138,17 @@ class MultiServerMonitor:
                 integration_uid,
                 self.iteration,
             )
-            # create new syncers with new config every heartbeat
-            components_list = integration.get_components()
-            for component in components_list:
-                if self._component_interval_is_met(integration_uid, component):
-                    component.refresh_config(integration.config)
-                    component.sync_once()
-                    self.active_integrations[integration_uid][
-                        component.identifier
-                    ] = utcnow()
+            with _measure_integration_iteration_time(integration):
+                # create new syncers with new config every heartbeat
+                components_list = integration.get_components()
+                _measure_components_count(integration, components_list)
+                for component in components_list:
+                    if self._component_interval_is_met(integration_uid, component):
+                        component.refresh_config(integration.config)
+                        component.sync_once()
+                        self.active_integrations[integration_uid][
+                            component.identifier
+                        ] = utcnow()
 
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)
@@ -150,6 +183,7 @@ class MultiServerMonitor:
 
         return to_add, to_remove
 
+    @monitor_iteration_time.time()
     def run_once(self):
         with transaction_scope("refresh_integrations"):
             integrations = self.get_integrations()
