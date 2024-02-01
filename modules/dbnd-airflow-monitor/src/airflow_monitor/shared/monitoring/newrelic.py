@@ -29,6 +29,7 @@ def configure_newrelic():
         "requests.exceptions:Timeout",
         "requests.exceptions:ConnectTimeout",
         "airflow_monitor.shared.errors:ClientConnectionError",
+        "dbnd._core.errors.base:DatabandConnectionException",
     )
     apply_config_setting(
         global_settings(), "error_collector.ignore_classes", " ".join(ignore_errors)
