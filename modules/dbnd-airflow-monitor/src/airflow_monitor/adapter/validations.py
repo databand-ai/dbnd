@@ -10,11 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 # Do not change this messages without changing the same messages in airflow_monitor_service.py in dbnd-web
-AUTO_TRACKING_PACKAGE_IS_MISSING_MESSAGE = (
-    "dbnd-airflow-auto-tracking package is not installed"
-)
+AUTO_TRACKING_PACKAGE_IS_MISSING_MESSAGE = "Airflow monitoring is not working due to dbnd-airflow-auto-tracking package not being installed. Run the following command to install the required dbnd PyPI packages on your Airflow scheduler: pip install dbnd-airflow-auto-tracking."
 MISSING_AIRFLOW_2_TRACKING_SUPPORT_CONFIG_MESSAGE = (
-    "lazy_load_plugins config is not set to false in Airflow 2.0"
+    "SDK tracking may not be working properly due to lazy_load_plugins config not being to false in Airflow 2.0. You need to disable Lazy Load plugins. This can be done by setting the config in Airflow: core.lazy_load_plugins=False or the environment variable AIRFLOW__CORE__LAZY_LOAD_PLUGINS=False",
 )
 
 
