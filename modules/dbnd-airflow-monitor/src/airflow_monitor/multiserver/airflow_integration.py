@@ -10,7 +10,6 @@ from airflow_monitor.config_updater.runtime_config_updater import (
 )
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.web_data_fetcher import WebFetcher
-from airflow_monitor.fixer.runtime_fixer import AirflowRuntimeFixer
 from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
 from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
@@ -33,7 +32,6 @@ class AirflowIntegration(BaseIntegration):
     def get_components_dict(self):
         return {
             "state_sync": AirflowRuntimeSyncer,
-            "fixer": AirflowRuntimeFixer,
             "config_updater": AirflowRuntimeConfigUpdater,
         }
 

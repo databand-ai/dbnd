@@ -120,7 +120,7 @@ class TestMultiServer(object):
         assert len(multi_server.active_integrations) == 2
         for components_dict in multi_server.active_integrations.values():
             # All components should be there regardless if they are disabled in the config (no longer supported feature)
-            assert len(components_dict) == 3
+            assert len(components_dict) == 2
         assert not count_logged_exceptions(caplog)
 
     def test_04_single_server_single_component(self, multi_server, caplog):
