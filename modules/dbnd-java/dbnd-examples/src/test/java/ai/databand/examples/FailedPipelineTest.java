@@ -59,7 +59,7 @@ public class FailedPipelineTest {
         Pair<Tasks, TaskFullGraph> tasksAndGraph = pipelinesVerify.verifyTasks(jobName, job);
         Tasks tasks = tasksAndGraph.left();
 
-        TaskRun executeBad = pipelinesVerify.assertTaskExists("java_bad_pipeline-parent", tasks, "failed");
+        TaskRun executeBad = pipelinesVerify.assertTaskExists("java_bad_pipeline", tasks, "failed");
 
         Map<String, Integer> tasksAttemptsIds = tasks.getTaskInstances().values()
             .stream()

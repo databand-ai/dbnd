@@ -63,7 +63,7 @@ public class ListenerSchemaTest {
         Pair<Tasks, TaskFullGraph> tasksAndGraph = pipelinesVerify.verifyTasks(jobName, job);
         Tasks tasks = tasksAndGraph.left();
 
-        TaskRun taskRun = pipelinesVerify.assertTaskExists(jobName + "-parent", tasks, "success");
+        TaskRun taskRun = pipelinesVerify.assertTaskExists(jobName, tasks, "success");
         Map<String, List<DatasetOperationRes>> datasetOpsByTask = pipelinesVerify.fetchDatasetOperations(job);
 
         pipelinesVerify.assertMetricInTask(taskRun, "total_records", 41, "user");

@@ -71,7 +71,7 @@ public class LogDatasetTest {
         Pair<Tasks, TaskFullGraph> tasksAndGraph = pipelinesVerify.verifyTasks(jobName, job);
         Tasks tasks = tasksAndGraph.left();
 
-        pipelinesVerify.assertTaskExists(jobName + "-parent", tasks, "success");
+        pipelinesVerify.assertTaskExists(jobName, tasks, "success");
         Map<String, List<DatasetOperationRes>> datasetOpsByTask = pipelinesVerify.fetchDatasetOperations(job);
 
         pipelinesVerify.assertDatasetOperationExists(

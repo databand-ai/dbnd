@@ -82,7 +82,7 @@ public class PipelinesVerify {
             .stream()
             .collect(Collectors.toMap(TaskRun::getUid, TaskRun::getLatestTaskRunAttemptId));
 
-        TaskRun driverTask = assertTaskExists(String.format("%s-parent", pipelineName), tasks);
+        TaskRun driverTask = assertTaskExists(pipelineName, tasks);
 
         TaskRun unitImputation = assertTaskExists("unitImputation", tasks);
 
@@ -281,18 +281,24 @@ public class PipelinesVerify {
     }
 
     protected TaskRun assertTaskExists(String taskName, Tasks tasks, String state) {
-        Map<String, TaskRun> taskRuns = tasks.getTaskInstances()
+        // apparently here for some reason taskId is not unique
+        // Map<String, TaskRun> taskRuns = tasks.getTaskInstances()
+        //     .values()
+        //     .stream()
+        //     .collect(Collectors.toMap(t -> t.getTaskId(), Function.identity()));
+        List<TaskRun> taskRuns = tasks.getTaskInstances()
             .values()
             .stream()
-            .collect(Collectors.toMap(t -> t.getHasDownstreams() ? String.format("%s-parent", t.getTaskId()) : t.getTaskId(), Function.identity()));
+            .filter(t -> t.getTaskId().equals(taskName))
+            .collect(Collectors.toList());
 
-        TaskRun task = taskRuns.get(taskName);
+        TaskRun task = taskRuns.get(0);
 
         assertThat(
             String.format(
                 "Task [%s] should be created in dbnd but wasn't! There may be API compatibility issue. Existing tasks: %s",
                 taskName,
-                taskRuns.values().stream().map(t -> t.getHasDownstreams() ? String.format("%s-parent", t.getTaskId()) : t.getTaskId()).collect(Collectors.toList()).toString()
+                taskRuns.toString()
             ),
             task,
             Matchers.notNullValue()
