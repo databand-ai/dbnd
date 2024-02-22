@@ -1,4 +1,4 @@
-FROM python:3.9.15-slim
+FROM icr.io/databand/base-images/python:3.9.15-slim
 
 # install pip==21.3.1 for python 3.6
 RUN apt-get update -yqq && \
