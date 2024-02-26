@@ -145,7 +145,11 @@ def dbnd_operator__get_task_retry_delay(dbnd_operator):
 
     run = try_get_databand_run()
     if not run:
-        return
+        logging.info(
+            "Retry delay=%s, we are running from native Airflow process",
+            dbnd_operator._retry_delay,
+        )
+        return dbnd_operator._retry_delay
 
     task_run = run.get_task_run_by_id(dbnd_operator.dbnd_task_id)
 
