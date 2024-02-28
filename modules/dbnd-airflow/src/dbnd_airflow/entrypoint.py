@@ -55,6 +55,6 @@ def dbnd_airflow_tracking_entrypoint():
     if is_verbose():
         dbnd_log_debug("Airflow wrapping has finished (pid=%s)" % os.getpid())
 
-    airflow_logger.error(
+    airflow_logger.info(
         "DBND Tracking Entrypoint {version}".format(version=dbnd.__version__)
     )
