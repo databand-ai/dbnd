@@ -89,7 +89,7 @@ configparser==3.5.3
 # coverage==5.0.4
 
 croniter==0.3.31
-cryptography==2.8
+cryptography==41.0.0
 cx-Oracle==7.3.0
 datadog==0.35.0
 decorator==4.4.2
