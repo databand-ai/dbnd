@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+from datetime import timedelta
 
 import pytest
 
@@ -8,6 +9,10 @@ from airflow_monitor.shared.adapter.adapter import (
     update_asset_retry_state,
     update_assets_retry_state,
 )
+from dbnd._core.utils.timezone import utcnow
+
+
+freezed_time = utcnow()
 
 
 class TestTransitionState:
@@ -15,40 +20,148 @@ class TestTransitionState:
         "asset_to_state, expected_asset_to_state",
         [
             (
-                AssetToState("asset1", state=AssetState.ACTIVE, retry_count=0),
-                AssetToState("asset1", state=AssetState.ACTIVE, retry_count=0),
+                AssetToState(
+                    "asset1",
+                    state=AssetState.ACTIVE,
+                    retry_count=0,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset1",
+                    state=AssetState.ACTIVE,
+                    retry_count=0,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset1", state=AssetState.ACTIVE, retry_count=3),
-                AssetToState("asset1", state=AssetState.ACTIVE, retry_count=0),
+                AssetToState(
+                    "asset1",
+                    state=AssetState.ACTIVE,
+                    retry_count=3,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset1",
+                    state=AssetState.ACTIVE,
+                    retry_count=0,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset2", state=AssetState.FAILED_REQUEST, retry_count=0),
-                AssetToState("asset2", state=AssetState.FAILED_REQUEST, retry_count=1),
+                AssetToState(
+                    "asset2",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=0,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset2",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=1,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset3", state=AssetState.FAILED_REQUEST, retry_count=4),
-                AssetToState("asset3", state=AssetState.FAILED_REQUEST, retry_count=5),
+                AssetToState(
+                    "asset3",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=4,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset3",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=5,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset4", state=AssetState.FAILED_REQUEST, retry_count=5),
-                AssetToState("asset4", state=AssetState.FAILED_REQUEST, retry_count=6),
+                AssetToState(
+                    "asset4",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=5,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset4",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=6,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset5", state=AssetState.FAILED_REQUEST, retry_count=6),
-                AssetToState("asset5", state=AssetState.MAX_RETRY, retry_count=6),
+                AssetToState(
+                    "asset5",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=6,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset5",
+                    state=AssetState.MAX_RETRY,
+                    retry_count=6,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("asset6", state=AssetState.FAILED_REQUEST, retry_count=7),
-                AssetToState("asset6", state=AssetState.MAX_RETRY, retry_count=7),
+                AssetToState(
+                    "asset6",
+                    state=AssetState.FAILED_REQUEST,
+                    retry_count=7,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "asset6",
+                    state=AssetState.MAX_RETRY,
+                    retry_count=7,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("id", state=AssetState.MAX_RETRY, retry_count=2),
-                AssetToState("id", state=AssetState.MAX_RETRY, retry_count=2),
+                AssetToState(
+                    "id",
+                    state=AssetState.MAX_RETRY,
+                    retry_count=2,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "id",
+                    state=AssetState.MAX_RETRY,
+                    retry_count=2,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
             (
-                AssetToState("id", state=AssetState.INIT, retry_count=-1),
-                AssetToState("id", state=AssetState.INIT, retry_count=-1),
+                AssetToState(
+                    "id",
+                    state=AssetState.INIT,
+                    retry_count=-1,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
+                AssetToState(
+                    "id",
+                    state=AssetState.INIT,
+                    retry_count=-1,
+                    created_at=freezed_time,
+                    updated_at=freezed_time,
+                ),
             ),
         ],
     )
@@ -57,17 +170,169 @@ class TestTransitionState:
 
     def test_update_assets_retry_state(self):
         assets = [
-            AssetToState("id", state=AssetState.ACTIVE, retry_count=3),
-            AssetToState("id", state=AssetState.INIT, retry_count=1),
-            AssetToState("id", state=AssetState.FAILED_REQUEST, retry_count=4),
-            AssetToState("id", state=AssetState.MAX_RETRY, retry_count=2),
-            AssetToState("id", state=AssetState.FAILED_REQUEST, retry_count=2),
+            AssetToState(
+                "id",
+                state=AssetState.ACTIVE,
+                retry_count=0,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.INIT,
+                retry_count=1,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=4,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.MAX_RETRY,
+                retry_count=2,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=2,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
         ]
         expected = [
-            AssetToState("id", state=AssetState.ACTIVE, retry_count=0),
-            AssetToState("id", state=AssetState.INIT, retry_count=1),
-            AssetToState("id", state=AssetState.MAX_RETRY, retry_count=4),
-            AssetToState("id", state=AssetState.MAX_RETRY, retry_count=2),
-            AssetToState("id", state=AssetState.FAILED_REQUEST, retry_count=3),
+            AssetToState(
+                "id",
+                state=AssetState.ACTIVE,
+                retry_count=0,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.INIT,
+                retry_count=1,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.MAX_RETRY,
+                retry_count=4,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.MAX_RETRY,
+                retry_count=2,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "id",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=3,
+                created_at=freezed_time,
+                updated_at=freezed_time,
+            ),
+        ]
+        assert update_assets_retry_state(assets, 3) == expected
+
+    def test_update_assets_expired_state(self):
+        expired_time = freezed_time - timedelta(days=4)
+        assets = [
+            AssetToState(
+                "1",
+                state=AssetState.ACTIVE,
+                retry_count=3,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "2",
+                state=AssetState.ACTIVE,
+                retry_count=0,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "3",
+                state=AssetState.INIT,
+                retry_count=1,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "4",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=4,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "5",
+                state=AssetState.MAX_RETRY,
+                retry_count=2,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "6",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=2,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+        ]
+        expected = [
+            AssetToState(
+                "1",
+                state=AssetState.EXPIRED,
+                retry_count=3,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "2",
+                state=AssetState.EXPIRED,
+                retry_count=0,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "3",
+                state=AssetState.INIT,
+                retry_count=1,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "4",
+                state=AssetState.MAX_RETRY,
+                retry_count=4,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "5",
+                state=AssetState.MAX_RETRY,
+                retry_count=2,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
+            AssetToState(
+                "6",
+                state=AssetState.FAILED_REQUEST,
+                retry_count=3,
+                created_at=expired_time,
+                updated_at=freezed_time,
+            ),
         ]
         assert update_assets_retry_state(assets, 3) == expected

@@ -1,9 +1,15 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 import attr
+
+from dbnd._core.utils.timezone import utcnow
+
+
+ASSET_TO_STATE_MAX_LIVENESS = timedelta(days=3)
 
 
 class AssetState(Enum):
@@ -16,6 +22,7 @@ class AssetState(Enum):
     FINISHED = "finished"
     FAILED_REQUEST = "failed_request"
     MAX_RETRY = "max_retry"
+    EXPIRED = "expired"
 
     @classmethod
     def get_active_states(cls) -> List[str]:
@@ -36,6 +43,8 @@ class AssetToState(ABC):
 
     asset_id: str
     state: AssetState = AssetState.INIT
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     retry_count: int = 0
 
     def asdict(self) -> Dict[str, object]:
@@ -50,6 +59,13 @@ class AssetToState(ABC):
             "state": self.state.value,
             "data": {"retry_count": self.retry_count},
         }
+
+    @property
+    def time_active(self) -> Optional[timedelta]:
+        if not self.created_at:
+            return
+
+        return utcnow() - self.created_at
 
     @classmethod
     def from_dict(cls, assset_dict: Dict[str, object]) -> "AssetToState":
@@ -83,12 +99,20 @@ class AssetToState(ABC):
 def update_asset_retry_state(
     asset_to_state: AssetToState, max_retries: int
 ) -> AssetToState:
-    if asset_to_state.state == AssetState.ACTIVE and asset_to_state.retry_count > 0:
-        # reset retry counter if asset was FAILED (retry_count > 0) and now it's ACTIVE
-        # the check for `retry_count > 0` is small performance optimization - to skip
-        # evolve if nothing need to be changed, assuming most of the assets will be
-        # ACTIVE with retry_count=0 - it can be significant.
-        return attr.evolve(asset_to_state, retry_count=0)
+    if asset_to_state.state == AssetState.ACTIVE:
+        if (
+            asset_to_state.time_active
+            and asset_to_state.time_active > ASSET_TO_STATE_MAX_LIVENESS
+        ):
+            # Modify state to time out in case the asset was active more than 3 days
+            return attr.evolve(asset_to_state, state=AssetState.EXPIRED)
+
+        if asset_to_state.retry_count > 0:
+            # reset retry counter if asset was FAILED (retry_count > 0) and now it's ACTIVE
+            # the check for `retry_count > 0` is small performance optimization - to skip
+            # evolve if nothing need to be changed, assuming most of the assets will be
+            # ACTIVE with retry_count=0 - it can be significant.
+            return attr.evolve(asset_to_state, retry_count=0)
 
     if asset_to_state.state == AssetState.FAILED_REQUEST:
         if asset_to_state.retry_count > max_retries:
