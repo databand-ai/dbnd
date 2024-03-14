@@ -62,6 +62,10 @@ class DbFetcher(AirflowDataFetcher):
         from sqlalchemy.orm import sessionmaker
 
         if not self._engine:
+            if not conf.has_section("core"):
+                logger.info("Adding 'core' section to airflow config.")
+                conf.add_section("core")
+
             conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
             self._engine = create_engine(self.sql_conn_string)
 
