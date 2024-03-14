@@ -522,11 +522,11 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         pod_name = submitted_pod.pod_name
 
         # node_name is coming from outside
-        # if it's not None, we already got Runnning phase event
+        # if it's not None, we already got Running phase event
         if submitted_pod.node_name:
             self.log.info(
-                "%s: Zombie bug: Seeing pod event again. "
-                "Probably something happening with pod and it's node: %s",
+                "%s: Zombie bug: Seeing another pod Running event again. "
+                "Probably something happening with pod or its node: %s",
                 submitted_pod.task_run,
                 submitted_pod.pod_name,
             )
@@ -542,7 +542,9 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         submitted_pod.node_name = node_name
 
-        # only to print this info to Console , track=False
+        # Only to print this info to Console , track=False
+        # Otherwise we might have a conflict! ( and even here , we might print some conflict info)
+        # if the job have failed to fast
         task_run.set_task_run_state(TaskRunState.RUNNING, track=False)
 
     def _process_pod_success(self, submitted_pod):

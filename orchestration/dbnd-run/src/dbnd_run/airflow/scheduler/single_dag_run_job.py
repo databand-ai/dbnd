@@ -537,6 +537,23 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                         flag_upstream_failed=True,
                     )
 
+                    # handle process kill -> no end time is set
+                    if ti.state == State.UP_FOR_RETRY and ti.end_date is None:
+                        self.log.info(
+                            "Task Instance %s is at UP_FOR_RETRY state without end_date, "
+                            "fixed with now().",
+                            ti,
+                        )
+                        ti.end_date = timezone.utcnow()
+                        session.merge(ti)
+                        session.commit()
+                    self.log.debug(
+                        "Task Instance %s state %s -> end_date %s ",
+                        ti,
+                        ti.state,
+                        ti.end_date,
+                    )
+
                     # Is the task runnable? -- then run it
                     # the dependency checker can change states of tis
                     if ti.are_dependencies_met(
@@ -686,7 +703,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 af_task_try_number = get_af_task_try_number(ti)
                 if task_run and task_run.attempt_number != af_task_try_number:
                     self.log.info(
-                        "Found a new attempt for task %60s (%s -> %s) in Airflow. Submitting to Databand.",
+                        "Found a new attempt for task %60s (%s -> %s) in Airflow DB(might come from Pod/Scheduler). Submitting to Databand.",
                         ti.task_id,
                         task_run.attempt_number,
                         af_task_try_number,
@@ -958,7 +975,6 @@ def report_airflow_task_instance(
     af_instances = []
     for task_run in task_runs:
         if not task_run.is_reused:
-
             # we build airflow infos only for not reused tasks
             af_instance = AirflowTaskInfo(
                 execution_date=execution_date,

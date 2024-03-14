@@ -125,6 +125,9 @@ class TrackingConfig(Config):
         )
         # translating TrackingConfig to meta_conf
         meta_conf_by_config = self._build_meta_conf()
+        if meta_conf is None:
+            return meta_conf_by_type.merge_if_none(meta_conf_by_config)
+
         return meta_conf.merge_if_none(meta_conf_by_type).merge_if_none(
             meta_conf_by_config
         )
