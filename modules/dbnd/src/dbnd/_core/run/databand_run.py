@@ -144,7 +144,7 @@ class DatabandRun(SingletonContext):
         """
         if af_context is not None:
             return f"Airflow-run-await-sync_{self.run_uid}"
-        return get_random_name(seed=self.run_uid)
+        return get_random_name(seed=str(self.run_uid))
 
     def get_task_runs(self, without_executor=True, without_system=False):
         """
