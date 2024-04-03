@@ -13,8 +13,10 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
+from airflow_monitor.common.metric_reporter import METRIC_REPORTER, measure_time
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import AirflowFetchingException
+from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ def json_conv(data):
 
 class DbFetcher(AirflowDataFetcher):
     def __init__(self, config: AirflowIntegrationConfig) -> None:
-        super(DbFetcher, self).__init__(config)
+        super().__init__(config)
         # It's important to do this import to prevent import issues
         import airflow  # noqa: F401
 
@@ -92,10 +94,10 @@ class DbFetcher(AirflowDataFetcher):
 
                 close_all_sessions()
             raise AirflowFetchingException(
-                "Exception occurred in function %s in Airflow: %s"
-                % (function_name, error_message)
+                f"Exception occurred in function {function_name} in Airflow: {error_message}"
             )
 
+    @retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1))
     def get_last_seen_values(self) -> LastSeenValues:
         from dbnd_airflow.export_plugin.api_functions import get_last_seen_values
 
@@ -107,12 +109,14 @@ class DbFetcher(AirflowDataFetcher):
         self._on_data_received(json_data, "get_last_seen_values")
         return LastSeenValues.from_dict(json_data)
 
+    @measure_time(metric=METRIC_REPORTER.exporter_response_time, label=__file__)
+    @retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1))
     def get_airflow_dagruns_to_sync(
         self,
-        last_seen_dag_run_id: Optional[int],
-        last_seen_log_id: Optional[int],
-        extra_dag_run_ids: Optional[List[int]],
-        dag_ids: Optional[str],
+        last_seen_dag_run_id: Optional[int] = None,
+        last_seen_log_id: Optional[int] = None,
+        extra_dag_run_ids: Optional[List[int]] = None,
+        dag_ids: Optional[str] = None,
     ) -> AirflowDagRunsResponse:
         from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
 
@@ -133,6 +137,8 @@ class DbFetcher(AirflowDataFetcher):
         self._on_data_received(json_data, "get_airflow_dagruns_to_sync")
         return AirflowDagRunsResponse.from_dict(json_data)
 
+    @measure_time(metric=METRIC_REPORTER.exporter_response_time, label=__file__)
+    @retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1))
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
     ) -> DagRunsFullData:
@@ -154,6 +160,8 @@ class DbFetcher(AirflowDataFetcher):
         self._on_data_received(json_data, "get_full_dag_runs")
         return DagRunsFullData.from_dict(json_data)
 
+    @measure_time(metric=METRIC_REPORTER.exporter_response_time, label=__file__)
+    @retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1))
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
         from dbnd_airflow.export_plugin.api_functions import get_dag_runs_states_data
 

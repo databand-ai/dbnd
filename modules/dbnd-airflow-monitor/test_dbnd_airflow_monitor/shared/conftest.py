@@ -17,6 +17,7 @@ from airflow_monitor.shared.adapter.adapter import (
 from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from airflow_monitor.shared.generic_syncer import GenericSyncer
+from dbnd._vendor.tenacity import retry, stop_after_attempt
 
 
 INTEGRATION_UID = uuid4()
@@ -24,7 +25,7 @@ INTEGRATION_UID = uuid4()
 
 class MockAdapter(Adapter):
     def __init__(self):
-        super(MockAdapter, self).__init__()
+        super().__init__()
         self.cursor: int = 0
         self.error: Exception = None
 
@@ -71,7 +72,7 @@ class MockAdapter(Adapter):
 
 class MockTrackingService(BaseTrackingService):
     def __init__(self, monitor_type: str, tracking_source_uid: str):
-        BaseTrackingService.__init__(self, monitor_type, tracking_source_uid)
+        super().__init__(monitor_type, tracking_source_uid)
         self.sent_data = []
         self.assets_state = []
         self.last_seen_run_id = None
@@ -80,6 +81,7 @@ class MockTrackingService(BaseTrackingService):
         self.error = None
         self.active_runs = None
 
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def save_tracking_data(self, assets_data):
         self.sent_data.append(assets_data)
         if self.error:
@@ -89,13 +91,12 @@ class MockTrackingService(BaseTrackingService):
         self, integration_id, syncer_instance_id, assets_to_state: List[AssetToState]
     ):
         self.assets_state.append(assets_to_state)
-        return
 
     def update_last_cursor(self, integration_id, syncer_instance_id, state, data):
         self.last_cursor = data
         self.last_state = state
 
-    def get_last_cursor_and_state(self) -> (int, str):
+    def get_last_cursor_and_state(self) -> Tuple[int, str]:
         return self.last_cursor, self.last_state
 
     def get_last_cursor(self, integration_id, syncer_instance_id) -> int:
@@ -107,7 +108,7 @@ class MockTrackingService(BaseTrackingService):
             for asset_to_state_dict in self.active_runs:
                 try:
                     assets_to_state.append(AssetToState.from_dict(asset_to_state_dict))
-                except:
+                except Exception:
                     continue
             return assets_to_state
 

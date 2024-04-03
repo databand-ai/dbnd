@@ -1,7 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import logging
-
+from abc import ABC, ABCMeta, abstractmethod
 from typing import List, Optional
 
 from airflow_monitor.airflow_monitor_utils import log_received_tasks, send_metrics
@@ -13,21 +12,19 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.shared.decorators import decorate_fetcher
 
 
-logger = logging.getLogger(__name__)
+class AirflowDataFetcher(ABC):
+    __metaclass__ = ABCMeta
 
-
-class AirflowDataFetcher(object):
     def __init__(self, config: AirflowIntegrationConfig):
         self.source_name = config.source_name
 
-        decorate_fetcher(self, config.base_url)
-
+    @abstractmethod
     def get_last_seen_values(self) -> LastSeenValues:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def get_airflow_dagruns_to_sync(
         self,
         last_seen_dag_run_id: Optional[int],
@@ -35,18 +32,21 @@ class AirflowDataFetcher(object):
         extra_dag_run_ids: Optional[List[int]],
         dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
     ) -> DagRunsFullData:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def is_alive(self):
-        raise NotImplementedError()
+        pass
 
     def get_plugin_metadata(self) -> PluginMetadata:
         return PluginMetadata()

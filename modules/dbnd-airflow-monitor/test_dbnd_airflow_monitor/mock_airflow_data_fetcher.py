@@ -37,15 +37,15 @@ class MockDagRun:
     test_updated_at = attr.ib(default=None)
 
     def as_dict(self):
-        return dict(
-            id=self.id,
-            dag_id=self.dag_id,
-            execution_date=self.execution_date,
-            state=self.state,
-            is_paused=self.is_paused,
-            max_log_id=self.max_log_id,
-            events=self.events,
-        )
+        return {
+            "id": self.id,
+            "dag_id": self.dag_id,
+            "execution_date": self.execution_date,
+            "state": self.state,
+            "is_paused": self.is_paused,
+            "max_log_id": self.max_log_id,
+            "events": self.events,
+        }
 
 
 @attr.s
@@ -54,7 +54,7 @@ class MockTaskInstance:
     execution_date = attr.ib(default="date1")  # type: str
 
     def as_dict(self):
-        return dict(dag_id=self.dag_id, execution_date=self.execution_date)
+        return {"dag_id": self.dag_id, "execution_date": self.execution_date}
 
 
 @attr.s
@@ -66,7 +66,7 @@ class MockLog:
 
 class MockDataFetcher(AirflowDataFetcher):
     def __init__(self):
-        super(MockDataFetcher, self).__init__(
+        super().__init__(
             AirflowIntegrationConfig(
                 uid=get_uuid(),
                 source_name="test",
@@ -84,7 +84,7 @@ class MockDataFetcher(AirflowDataFetcher):
             last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
             if self.dag_runs
             else None,
-            last_seen_log_id=max(l.id for l in self.logs) if self.logs else None,
+            last_seen_log_id=max(log.id for log in self.logs) if self.logs else None,
         )
 
     @can_be_dead
@@ -133,14 +133,14 @@ class MockDataFetcher(AirflowDataFetcher):
             last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
             if self.dag_runs
             else None,
-            last_seen_log_id=max(l.id for l in self.logs) if self.logs else None,
+            last_seen_log_id=max(log.id for log in self.logs) if self.logs else None,
         )
 
     @can_be_dead
     def get_full_dag_runs(
         self, dag_run_ids: List[int], include_sources: bool
     ) -> DagRunsFullData:
-        dag_run_ids = [dr_id for dr_id in dag_run_ids]
+        dag_run_ids = list(dag_run_ids)
         return DagRunsFullData(
             dags=[],
             dag_runs=[dr for dr in self.dag_runs if dr.id in dag_run_ids],
@@ -154,7 +154,7 @@ class MockDataFetcher(AirflowDataFetcher):
 
     @can_be_dead
     def get_dag_runs_state_data(self, dag_run_ids: List[int]) -> DagRunsStateData:
-        dag_run_ids = {dr_id for dr_id in dag_run_ids}
+        dag_run_ids = set(dag_run_ids)
         return DagRunsStateData(
             dag_runs=[dr for dr in self.dag_runs if dr.id in dag_run_ids],
             task_instances=[
@@ -164,3 +164,6 @@ class MockDataFetcher(AirflowDataFetcher):
                 for _ in range(dr.n_task_instances)
             ],
         )
+
+    def is_alive(self):
+        pass

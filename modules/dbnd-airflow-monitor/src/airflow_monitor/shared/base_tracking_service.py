@@ -3,10 +3,11 @@ import logging
 
 from typing import List
 
+from airflow_monitor.common.metric_reporter import METRIC_REPORTER, measure_time
 from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
-from airflow_monitor.shared.decorators import decorate_tracking_service
 from airflow_monitor.shared.utils import _get_api_client
 from dbnd._vendor.cachetools import TTLCache
+from dbnd._vendor.tenacity import retry, stop_after_attempt
 
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class BaseTrackingService:
         self.tracking_source_uid = tracking_source_uid
         self._api_client = _get_api_client()
 
-        decorate_tracking_service(self, tracking_source_uid)
-
+    @measure_time(metric=METRIC_REPORTER.exporter_response_time, label=__file__)
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def save_tracking_data(self, assets_data: dict):
         boxed_payload = {"metadata": {"format": self.monitor_type}, "data": assets_data}
         return self._api_client.api_request(
@@ -32,6 +33,7 @@ class BaseTrackingService:
             request_timeout=LONG_REQUEST_TIMEOUT,
         )
 
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def save_assets_state(
         self,
         integration_id: str,
@@ -45,6 +47,7 @@ class BaseTrackingService:
             data=data_to_send,
         )
 
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def get_active_assets(
         self, integration_id: str, syncer_instance_id: str
     ) -> List[AssetToState]:
@@ -57,11 +60,12 @@ class BaseTrackingService:
         for asset_to_state_dict in result:
             try:
                 assets_to_state.append(AssetToState.from_dict(asset_to_state_dict))
-            except:
+            except Exception:
                 logger.exception("failed to parse asset data, asset will be skipped")
                 continue
         return assets_to_state
 
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def update_last_cursor(
         self, integration_id: str, syncer_instance_id: str, state: str, data: str
     ):
@@ -71,6 +75,7 @@ class BaseTrackingService:
             data={"state": state, "data": {"last_cursor_value": data}},
         )
 
+    @retry(stop=stop_after_attempt(2), reraise=True)
     def get_last_cursor(self, integration_id: str, syncer_instance_id: str):
         result = self._api_client.api_request(
             endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor?syncer_instance_id={syncer_instance_id}",
