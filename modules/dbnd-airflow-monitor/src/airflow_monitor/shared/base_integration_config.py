@@ -36,13 +36,19 @@ class BaseIntegrationConfig:
                 f"Unable to create server config for integration with uid={config.get('uid')}, name={config.get('name')} integration_config is not found."
             )
         integration_config = config.get("integration_config")
-
+        tracking_source_uid = None
+        if "tracking_source_uid" in config:
+            tracking_source_uid = config["tracking_source_uid"]
+        elif len(integration_config.get("synced_entities", [])) > 0:
+            tracking_source_uid = integration_config["synced_entities"][0][
+                "tracking_source_uid"
+            ]
         return BaseIntegrationConfig(
             uid=config["uid"],
             source_type=config["integration_type"],
             source_name=config["name"],
             credentials=config["credentials"],
-            tracking_source_uid=config["tracking_source_uid"],
+            tracking_source_uid=tracking_source_uid,
             integration_config=integration_config,
             sync_interval=integration_config.get(
                 "sync_interval", DEFAULT_SYNC_INTERVAL_IN_SECONDS
