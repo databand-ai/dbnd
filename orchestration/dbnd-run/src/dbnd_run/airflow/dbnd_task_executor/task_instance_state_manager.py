@@ -4,6 +4,7 @@ from collections import Counter, defaultdict
 from typing import List
 
 from airflow.models import TaskInstance
+from airflow.utils.session import provide_session
 
 
 class AirflowTaskInstanceStateManager(object):
@@ -40,8 +41,9 @@ class AirflowTaskInstanceStateManager(object):
         for ti in task_instances:
             ti.state = self.get_state(ti.dag_id, ti.execution_date, ti.task_id)
 
+    @provide_session
     def refresh_task_instances_state(
-        self, task_instances, dag_id, execution_date, session
+        self, task_instances, dag_id, execution_date, session=None
     ):
         self.refresh_from_db(dag_id, execution_date, session)
         self.sync_to_object(task_instances)

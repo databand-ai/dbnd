@@ -202,6 +202,7 @@ class RunExecutor(SingletonContext):
             )
 
         self._is_initialized = False
+        self.task_executor = None
 
     @property
     def run_settings(self) -> RunSettings:
@@ -582,7 +583,7 @@ class RunExecutor(SingletonContext):
 
         # THIS IS THE POINT WHEN WE SUBMIT ALL TASKS TO EXECUTION
         # we should make sure that we create executor without driver task
-        task_executor = get_task_executor(
+        self.task_executor = get_task_executor(
             self,
             task_executor_type=run_executor.task_executor_type,
             host_engine=run_executor.host_engine,
@@ -596,7 +597,7 @@ class RunExecutor(SingletonContext):
             hearbeat = start_heartbeat_sender(self)
 
         with nested(hearbeat):
-            task_executor.do_run()
+            self.task_executor.do_run()
 
         # We need place the pipeline's task_band in the place we required to by outside configuration
         if run_settings.run.run_result_json_path:
@@ -809,7 +810,7 @@ class _RunExecutor_Task(Task):
                 )
         except BaseException as ex:
             # we print it on any exception
-            logger.warning("Run failure: %s" % ex)
+            logger.warning("Run failure: %s %s" % (type(ex).__name__, ex))
             logger.warning(
                 "\n\n\n\n{sep}\n\n   -= Your run has failed, please review errors below =-\n\n{sep}\n".format(
                     sep=console_utils.error_separator()

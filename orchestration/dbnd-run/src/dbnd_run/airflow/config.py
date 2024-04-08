@@ -88,6 +88,10 @@ class AirflowConfig(Config):
         default=True,
     )[bool]
 
+    use_legacy_single_dag_run_job = parameter(
+        description="Use legacy SingleDagRunJob (useful for Airflow 1) ", default=False
+    )[bool]
+
     def __init__(self, *args, **kwargs):
         super(AirflowConfig, self).__init__(*args, **kwargs)
         if not self.optimize_airflow_db_access:

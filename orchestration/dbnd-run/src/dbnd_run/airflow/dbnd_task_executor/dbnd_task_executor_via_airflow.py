@@ -1,5 +1,4 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import contextlib
@@ -16,8 +15,9 @@ from airflow.utils.state import State
 from sqlalchemy.orm import Session
 
 from dbnd import dbnd_config
+from dbnd._core.current import is_verbose
 from dbnd._core.errors import DatabandError
-from dbnd._core.settings import DatabandSettings
+from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
 from dbnd_run import errors
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
@@ -37,13 +37,18 @@ from dbnd_run.airflow.dbnd_task_executor.dbnd_task_to_airflow_operator import (
     build_dbnd_operator_from_taskrun,
     set_af_operator_doc_md,
 )
+from dbnd_run.airflow.dbnd_task_executor.task_instance_state_manager import (
+    AirflowTaskInstanceStateManager,
+)
 from dbnd_run.airflow.executors import AirflowTaskExecutorType
 from dbnd_run.airflow.executors.simple_executor import InProcessExecutor
-from dbnd_run.airflow.scheduler.single_dag_run_job import (
-    SingleDagRunJob,
+from dbnd_run.airflow.scheduler import airflow_to_databand_sync
+from dbnd_run.airflow.scheduler.airflow_to_databand_sync import (
     report_airflow_task_instance,
 )
+from dbnd_run.airflow.scheduler.dagrun_zombies import fix_zombie_dagrun_task_instances
 from dbnd_run.airflow.utils import create_airflow_pool
+from dbnd_run.current import is_killed
 from dbnd_run.plugin.dbnd_plugins import assert_plugin_enabled
 from dbnd_run.run_executor_engine import RunExecutorEngine
 
@@ -130,13 +135,24 @@ def create_dagrun_from_dbnd_run(
     )
     tis = {ti.task_id: ti for ti in tis}
 
+    logger.info("Tasks in DAG %s", len(dag.tasks))
     for af_task in dag.tasks:
         ti = tis.get(af_task.task_id)
         if ti is None:
             ti = TaskInstance(af_task, execution_date=execution_date)
             ti.start_date = timezone.utcnow()
             ti.end_date = timezone.utcnow()
+
+            logger.debug(
+                "create dagrun - task instance create %s -> %s",
+                af_task.task_id,
+                ti.state,
+            )
             session.add(ti)
+
+        logger.debug(
+            "create dagrun - task instance %s -> %s", af_task.task_id, ti.state
+        )
         task_run = databand_run.get_task_run_by_af_id(af_task.task_id)
         # all tasks part of the backfill are scheduled to dagrun
 
@@ -146,6 +162,12 @@ def create_dagrun_from_dbnd_run(
         )
         if task_run.is_reused:
             # this task is completed and we don't need to run it anymore
+
+            logger.debug(
+                "create dagrun - task_run is reused on ti create %s -> %s task_run_state",
+                af_task.task_id,
+                task_run.task_run_state,
+            )
             ti.state = State.SUCCESS
             ti.try_number = 1
 
@@ -174,6 +196,17 @@ class AirflowTaskExecutor(RunExecutorEngine):
         self.airflow_task_executor = self._get_airflow_executor()
 
         self._validate_airflow_db()
+
+        self.dag: typing.Optional[DAG] = None
+        self.dag_run: typing.Optional[DagRun] = None
+
+        # caching for Optimized Rule in airflow
+        self._ti_state_manager = AirflowTaskInstanceStateManager()
+
+        self._runtime_k8s_zombie_cleaner = None
+
+    def get_ti_state_manager(self):
+        return self._ti_state_manager
 
     def _validate_airflow_db(self):
         from airflow import configuration, settings
@@ -308,13 +341,22 @@ class AirflowTaskExecutor(RunExecutorEngine):
         return dag
 
     def do_run(self):
-        dag = self.build_airflow_dag(task_runs=self.task_runs)
+        self._fix_db_listener()
+
+        self.dag = dag = self.build_airflow_dag(task_runs=self.task_runs)
+
         with set_dag_as_current(dag):
             report_airflow_task_instance(
                 dag.dag_id, self.run.execution_date, self.task_runs, self.airflow_config
             )
+            self.dag_run = self.create_dag_run(dag)
+            try:
+                self.run_airflow_dag(dag)
 
-            self.run_airflow_dag(dag)
+            finally:
+
+                if self.dag_run:
+                    fix_zombie_dagrun_task_instances(self.dag_run)
 
     def _pickle_dag_and_save_pickle_id_for_versioned(self, dag, session):
         dp = DagPickle(dag=dag)
@@ -346,14 +388,24 @@ class AirflowTaskExecutor(RunExecutorEngine):
         dag.pickle_id = dp.id
         dag.last_pickled = timezone.utcnow()
 
+    def _fix_db_listener(self):
+        if not self.airflow_config.disable_db_ping_on_connect:
+            return
+
+        from airflow import settings as airflow_settings
+
+        try:
+            remove_listener_by_name(
+                airflow_settings.engine, "engine_connect", "ping_connection"
+            )
+        except Exception as ex:
+            logger.warning("Failed to optimize DB access: %s" % ex)
+
     @provide_session
-    def run_airflow_dag(self, dag, session=None):
-        # type:  (DAG, Session) -> None
+    def create_dag_run(self, dag, session=None):
         af_dag = dag
         databand_run = self.run
-        databand_context = databand_run.context
         execution_date = databand_run.execution_date
-        s = databand_context.settings  # type: DatabandSettings
         s_run = self.run_executor.run_config  # type: RunConfig
 
         run_id = s_run.id
@@ -364,15 +416,27 @@ class AirflowTaskExecutor(RunExecutorEngine):
                 databand_run.name, databand_run.execution_date.isoformat()
             )
 
-        if self.airflow_config.disable_db_ping_on_connect:
-            from airflow import settings as airflow_settings
+        self._pickle_dag_and_save_pickle_id_for_versioned(af_dag, session=session)
+        af_dag.sync_to_db(session=session)
+        logger.info("create_dagrun_from_dbnd_run starts ")
+        # let create relevant TaskInstance, so SingleDagRunJob will run them
+        dagrun = create_dagrun_from_dbnd_run(
+            databand_run=databand_run,
+            dag=af_dag,
+            run_id=run_id,
+            execution_date=execution_date,
+            session=session,
+            state=State.RUNNING,
+            external_trigger=False,
+        )
+        return dagrun
 
-            try:
-                remove_listener_by_name(
-                    airflow_settings.engine, "engine_connect", "ping_connection"
-                )
-            except Exception as ex:
-                logger.warning("Failed to optimize DB access: %s" % ex)
+    @provide_session
+    def run_airflow_dag(self, dag, session=None):
+        # type:  (DAG, Session) -> None
+        af_dag = dag
+        databand_run = self.run
+        s_run = self.run_executor.run_config  # type: RunConfig
 
         if isinstance(self.airflow_task_executor, InProcessExecutor):
             heartrate = 0
@@ -385,20 +449,6 @@ class AirflowTaskExecutor(RunExecutorEngine):
         # "been reached before trying to execute a dag run "
         # "again.
         delay_on_limit = 1.0
-
-        self._pickle_dag_and_save_pickle_id_for_versioned(af_dag, session=session)
-        af_dag.sync_to_db(session=session)
-
-        # let create relevant TaskInstance, so SingleDagRunJob will run them
-        create_dagrun_from_dbnd_run(
-            databand_run=databand_run,
-            dag=af_dag,
-            run_id=run_id,
-            execution_date=execution_date,
-            session=session,
-            state=State.RUNNING,
-            external_trigger=False,
-        )
 
         self.airflow_task_executor.fail_fast = s_run.fail_fast
         # we don't want to be stopped by zombie jobs/tasks
@@ -429,33 +479,81 @@ class AirflowTaskExecutor(RunExecutorEngine):
             airflow_conf.set("core", "dag_concurrency", str(10000))
 
         airflow_conf.set("core", "max_active_runs_per_dag", str(10000))
-
-        job = SingleDagRunJob(
-            dag=af_dag,
-            execution_date=databand_run.execution_date,
-            mark_success=s_run.mark_success,
-            executor=self.airflow_task_executor,
-            donot_pickle=(
-                s_run.donot_pickle or airflow_conf.getboolean("core", "donot_pickle")
-            ),
-            ignore_first_depends_on_past=s_run.ignore_first_depends_on_past,
-            ignore_task_deps=s_run.ignore_dependencies,
-            fail_fast=s_run.fail_fast,
-            pool=s_run.pool,
-            delay_on_limit_secs=delay_on_limit,
-            verbose=s.system.verbose,
-            heartrate=heartrate,
-            airflow_config=self.airflow_config,
+        donot_pickle = s_run.donot_pickle or airflow_conf.getboolean(
+            "core", "donot_pickle"
         )
 
-        # we need localDagJob to be available from "internal" functions
-        # because of ti_state_manager use
-        from dbnd._core.current import is_verbose
-
-        with SingleDagRunJob.new_context(
-            _context=job, allow_override=True, verbose=is_verbose()
+        if (
+            self.airflow_config.clean_zombie_task_instances
+            and "KubernetesExecutor" in self.airflow_task_executor.__class__.__name__
         ):
-            job.run()
+            from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_runtime_zombies_cleaner import (
+                ClearKubernetesRuntimeZombiesForDagRun,
+            )
+
+            self._runtime_k8s_zombie_cleaner = ClearKubernetesRuntimeZombiesForDagRun(
+                k8s_executor=self.airflow_task_executor
+            )
+            logger.info(
+                "Zombie cleaner is enabled. "
+                "It runs every %s seconds, threshold is %s seconds",
+                self._runtime_k8s_zombie_cleaner.zombie_query_interval_secs,
+                self._runtime_k8s_zombie_cleaner.zombie_threshold_secs,
+            )
+
+        if self.airflow_config.use_legacy_single_dag_run_job:
+            from dbnd_run.airflow.scheduler.af1_single_dag_run_job import (
+                SingleDagRunJob,
+            )
+
+            self.backfill_job = SingleDagRunJob(
+                dag=af_dag,
+                execution_date=databand_run.execution_date,
+                mark_success=s_run.mark_success,
+                executor=self.airflow_task_executor,
+                donot_pickle=donot_pickle,
+                ignore_first_depends_on_past=s_run.ignore_first_depends_on_past,
+                ignore_task_deps=s_run.ignore_dependencies,
+                fail_fast=s_run.fail_fast,
+                pool=s_run.pool,
+                delay_on_limit_secs=delay_on_limit,
+                verbose=is_verbose(),
+                heartrate=heartrate,
+                airflow_config=self.airflow_config,
+            )
+            self.backfill_job._log = PrefixLoggerAdapter(
+                "scheduler", self.backfill_job.log
+            )
+
+            self.backfill_job.run()
+
+        else:
+            if not AIRFLOW_VERSION_2:
+                raise Exception(
+                    "Plese change dbnd configuration to airflow.use_legacy_single_dag_run_job=True"
+                )
+            from dbnd_run.airflow.scheduler.af2_single_dag_run_job import (
+                SingleDagRunJob,
+            )
+
+            self.backfill_job = SingleDagRunJob(
+                dag=af_dag,
+                start_date=databand_run.execution_date,
+                end_date=databand_run.execution_date,
+                mark_success=s_run.mark_success,
+                executor=self.airflow_task_executor,
+                ignore_first_depends_on_past=s_run.ignore_first_depends_on_past,
+                ignore_task_deps=s_run.ignore_dependencies,
+                continue_on_failures=not s_run.fail_fast,
+                pool=s_run.pool,
+                delay_on_limit_secs=delay_on_limit,
+                verbose=is_verbose(),
+                run_at_least_once=True,  # important for one time execution!
+                donot_pickle=True,  # already pickled by us
+                heartrate=heartrate,
+            )
+
+            self.backfill_job.run()
 
     def _get_airflow_executor(self):
         """Creates a new instance of the configured executor if none exists and returns it"""
@@ -485,11 +583,39 @@ class AirflowTaskExecutor(RunExecutorEngine):
                 raise errors.executor_k8s.kubernetes_with_non_compatible_engine(
                     self.target_engine
                 )
-            kube_dbnd = self.target_engine.build_kube_dbnd()
-            if kube_dbnd.engine_config.debug:
+            if self.target_engine.debug:
                 logging.getLogger("airflow.contrib.kubernetes").setLevel(logging.DEBUG)
 
-            return DbndKubernetesExecutor(kube_dbnd=kube_dbnd)
+            return DbndKubernetesExecutor(kubernetes_engine_config=self.target_engine)
+
+    def clean_zombie_dagruns_if_required(self):
+        if self.airflow_config.clean_zombies_during_backfill:
+            from dbnd_run.airflow.scheduler.dagrun_zombies_clean_job import (
+                DagRunZombiesCleanerJob,
+            )
+
+            DagRunZombiesCleanerJob().run()
+
+    def handle_process_dag_task_instanced_iteration(self, ti_status):
+        all_ti = list(ti_status.to_run.values())
+        if self.dag_run:
+            self._ti_state_manager.refresh_task_instances_state(
+                all_ti, self.backfill_job.dag.dag_id, self.dag_run.execution_date
+            )
+            airflow_to_databand_sync.update_databand_task_run_states(self.dag_run)
+            airflow_to_databand_sync.sync_task_run_attempts_retries(ti_status)
+
+            if self._runtime_k8s_zombie_cleaner:
+                # this code exists in airflow original scheduler
+                # clean zombies ( we don't need multiple runs here actually
+                self._runtime_k8s_zombie_cleaner.find_and_clean_dag_zombies(
+                    dag=self.dag, execution_date=self.dag_run.execution_date
+                )
+
+        if is_killed():
+            raise errors.task_execution.databand_context_killed(
+                "SingleDagRunJob scheduling main loop"
+            )
 
 
 def set_af_doc_md(run, dag):

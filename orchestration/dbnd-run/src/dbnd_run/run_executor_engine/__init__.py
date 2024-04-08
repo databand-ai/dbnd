@@ -30,3 +30,6 @@ class RunExecutorEngine(RunCtrl):
 
     def do_run(self):
         raise NotImplementedError()
+
+    def get_ti_state_manager(self):
+        return None

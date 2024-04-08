@@ -151,7 +151,7 @@ class TaskRunsBuilder(object):
             tasks_completed, task_skipped_as_not_required = find_tasks_to_skip_complete(
                 roots, enabled_tasks, run_config.task_complete_parallelism_level
             )
-
+        logger.debug("Completed tasks: %s", tasks_completed)
         # # if any of the tasks is spark add policy
         # from dbnd._core.task.spark import _BaseSparkTask
         # for t in tasks_to_run:
@@ -186,9 +186,15 @@ class TaskRunsBuilder(object):
                 run_executor.build_task_run_executor(task_run, task_engine)
 
             if task.task_id in completed_ids:
+                logger.debug("Task is reused: %s : %s", task.task_id, task.task_outputs)
                 task_run.is_reused = True
 
             if task.task_id in task_skipped_as_not_required_ids:
+                logger.debug(
+                    "Task is task_skipped_as_not_required_ids: %s : %s",
+                    task.task_id,
+                    task.task_outputs,
+                )
                 task_run.is_reused = True
                 task_run.is_skipped_as_not_required = True
 

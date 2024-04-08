@@ -23,7 +23,6 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import datetime
 import logging
 import typing
 
@@ -35,28 +34,18 @@ from airflow.utils.db import provide_session
 from airflow.utils.state import State
 from sqlalchemy.orm.session import make_transient
 
-from dbnd._core.constants import TaskRunState, UpdateSource
 from dbnd._core.current import get_databand_run
 from dbnd._core.errors import DatabandSystemError
 from dbnd._core.errors.base import DatabandFailFastError, DatabandRunError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd._core.task_run.task_run import TaskRun
-from dbnd._core.utils.basics.singleton_context import SingletonContext
-from dbnd_run import errors
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_2
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     is_task_instance_finished,
     reset_state_for_orphaned_tasks,
 )
 from dbnd_run.airflow.config import AirflowConfig
-from dbnd_run.airflow.dbnd_task_executor.task_instance_state_manager import (
-    AirflowTaskInstanceStateManager,
-)
-from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_runtime_zombies_cleaner import (
-    ClearKubernetesRuntimeZombiesForDagRun,
-)
-from dbnd_run.airflow.scheduler.dagrun_zombies import fix_zombie_dagrun_task_instances
-from dbnd_run.current import get_run_executor, is_killed
+from dbnd_run.airflow.scheduler import airflow_to_databand_sync
+from dbnd_run.current import get_run_executor
 
 
 if AIRFLOW_VERSION_2:
@@ -73,7 +62,9 @@ else:
     from airflow.ti_deps.dep_context import RUNNABLE_STATES, RUNNING_DEPS, DepContext
 
 if typing.TYPE_CHECKING:
-    from airflow.models import TaskInstance
+    from dbnd_run.airflow.dbnd_task_executor.dbnd_task_executor_via_airflow import (
+        AirflowTaskExecutor,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +72,7 @@ SCHEDULED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 
 
 # based on airflow BackfillJob
-class SingleDagRunJob(BaseJob, SingletonContext):
+class SingleDagRunJob(BaseJob):
     """
     A backfill job consists of a dag or subdag for a specific time range. It
     triggers a set of task instance runs, in the right order and lasts for
@@ -132,24 +123,16 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         self._logged_count = 0  # counter for status update
         self._logged_status = ""  # last printed status
 
-        self.ti_state_manager = AirflowTaskInstanceStateManager()
         self.airflow_config = airflow_config  # type: AirflowConfig
-        if (
-            self.airflow_config.clean_zombie_task_instances
-            and "KubernetesExecutor" in self.executor_class
-        ):
-            self._runtime_k8s_zombie_cleaner = ClearKubernetesRuntimeZombiesForDagRun(
-                k8s_executor=self.executor
-            )
-            logger.info(
-                "Zombie cleaner is enabled. "
-                "It runs every %s seconds, threshold is %s seconds",
-                self._runtime_k8s_zombie_cleaner.zombie_query_interval_secs,
-                self._runtime_k8s_zombie_cleaner.zombie_threshold_secs,
-            )
-        else:
-            self._runtime_k8s_zombie_cleaner = None
         self._log = PrefixLoggerAdapter("scheduler", self.log)
+
+    @property
+    def dbnd_airflow_executor(self) -> "AirflowTaskExecutor":
+        # loopback to Databand executor
+        return get_run_executor().task_executor
+
+    def get_ti_state_manager(self):
+        return self.dbnd_airflow_executor.get_ti_state_manager()
 
     @property
     def _optimize(self):
@@ -425,6 +408,10 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         :rtype: list
         """
 
+        self.dbnd_airflow_executor.handle_process_dag_task_instanced_iteration(
+            ti_status=ti_status
+        )
+
         executed_run_dates = []
 
         # values() returns a view so we copy to maintain a full list of the TIs to run
@@ -434,16 +421,8 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         while (len(ti_status.to_run) > 0 or len(ti_status.running) > 0) and len(
             ti_status.deadlocked
         ) == 0:
-            if is_killed():
-                raise errors.task_execution.databand_context_killed(
-                    "SingleDagRunJob scheduling main loop"
-                )
             self.log.debug("*** Clearing out not_ready list ***")
             ti_status.not_ready.clear()
-
-            self.ti_state_manager.refresh_task_instances_state(
-                all_ti, self.dag.dag_id, self.execution_date, session=session
-            )
 
             # we need to execute the tasks bottom to top
             # or leaf to root, as otherwise tasks might be
@@ -626,7 +605,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                     ti_status.not_ready.add(key)
 
             # sync the attempt with the retries
-            self.sync_task_run_attempts_retries(ti_status)
+            airflow_to_databand_sync.sync_task_run_attempts_retries(ti_status)
 
             # execute the tasks in the queue
             self.heartbeat()
@@ -647,19 +626,12 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 ti_status.deadlocked.update(ti_status.to_run.values())
                 ti_status.to_run.clear()
 
-            self.ti_state_manager.refresh_task_instances_state(
+            self.get_ti_state_manager().refresh_task_instances_state(
                 all_ti, self.dag.dag_id, self.execution_date, session=session
             )
 
             # check executor state
             self._manage_executor_state(ti_status.running, waiting_for_executor_result)
-
-            if self._runtime_k8s_zombie_cleaner:
-                # this code exists in airflow original scheduler
-                # clean zombies ( we don't need multiple runs here actually
-                self._runtime_k8s_zombie_cleaner.find_and_clean_dag_zombies(
-                    dag=self.dag, execution_date=self.execution_date
-                )
 
             # update the task counters
             self._update_counters(ti_status, waiting_for_executor_result)
@@ -669,13 +641,14 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             for dag_run in _dag_runs:
                 dag_run.update_state(session=session)
 
-                self._update_databand_task_run_states(dag_run)
-
                 if is_task_instance_finished(dag_run.state):
                     ti_status.finished_runs += 1
                     ti_status.active_runs.remove(dag_run)
                     executed_run_dates.append(dag_run.execution_date)
 
+            self.dbnd_airflow_executor.handle_process_dag_task_instanced_iteration(
+                ti_status
+            )
             self._log_progress(ti_status)
 
             if self.fail_fast and ti_status.failed:
@@ -690,100 +663,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
 
         # return updated status
         return executed_run_dates
-
-    def sync_task_run_attempts_retries(self, ti_status):
-        databand_run = get_databand_run()
-        for dag_run in ti_status.active_runs:
-            for ti in dag_run.get_task_instances():
-                task_run = databand_run.get_task_run_by_af_id(
-                    ti.task_id
-                )  # type: TaskRun
-                # looking for retry tasks
-
-                af_task_try_number = get_af_task_try_number(ti)
-                if task_run and task_run.attempt_number != af_task_try_number:
-                    self.log.info(
-                        "Found a new attempt for task %60s (%s -> %s) in Airflow DB(might come from Pod/Scheduler). Submitting to Databand.",
-                        ti.task_id,
-                        task_run.attempt_number,
-                        af_task_try_number,
-                    )
-                    # update in memory object with new attempt number
-                    from dbnd_run.task_ctrl.task_run_executor import TaskRunExecutor
-
-                    task_run.set_task_run_attempt(af_task_try_number)
-                    task_run.task_run_executor = TaskRunExecutor(
-                        task_run,
-                        run_executor=task_run.task_run_executor.run_executor,
-                        task_engine=task_run.task_run_executor.task_engine,
-                    )
-
-                    # sync the tracker with the new task_run_attempt
-                    databand_run.tracker.tracking_store.add_task_runs(
-                        run=databand_run, task_runs=[task_run]
-                    )
-                    report_airflow_task_instance(
-                        ti.dag_id, ti.execution_date, [task_run]
-                    )
-
-    def _update_databand_task_run_states(self, run):
-        """
-        Sync states between DBND and Airflow
-        we need to sync state into Tracker,
-        if we use "remote" executors (parallel/k8s) we need to copy state into
-        current process (scheduler)
-        """
-
-        # this is the only state we want to propogate into Databand
-        # all other state changes are managed by databand itself by it's own state machine
-        run_executor = get_run_executor()
-        databand_run = run_executor.run
-
-        task_runs = []
-
-        # sync all states
-
-        # These tasks need special treatment because Airflow doesn't manage sub-pipelines
-        #   for this, we need to process failures in child tasks first
-        #   and decide if the parent sub-pipeline has failed
-        upstream_failed_tasks: typing.List[TaskInstance] = []
-
-        for ti in run.get_task_instances():
-            task_run = databand_run.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
-            if not task_run:
-                continue
-
-            # UPSTREAM FAILED tasks are not going to "run" , so no code will update their state
-            if (
-                ti.state == State.UPSTREAM_FAILED
-                and task_run.task_run_state != TaskRunState.UPSTREAM_FAILED
-            ):
-                upstream_failed_tasks.append(ti)
-
-            # update only in memory state
-            if (
-                ti.state == State.SUCCESS
-                and task_run.task_run_state != TaskRunState.SUCCESS
-            ):
-                task_run.set_task_run_state(TaskRunState.SUCCESS, track=False)
-            if (
-                ti.state == State.FAILED
-                and task_run.task_run_state != TaskRunState.FAILED
-            ):
-                task_run.set_task_run_state(TaskRunState.FAILED, track=False)
-
-        # process them at the last step, when we have knowledge about the child tasks
-        for ti in upstream_failed_tasks:
-            task_run: TaskRun = databand_run.get_task_run_by_af_id(ti.task_id)
-
-            state = run_executor.get_upstream_failed_task_run_state(task_run)
-            logger.info("Setting %s to %s", task_run.task.task_id, state)
-            task_run.set_task_run_state(state, track=False)
-            task_runs.append(task_run)
-
-        # optimization to write all updates in batch
-        if task_runs:
-            databand_run.tracker.set_task_run_states(task_runs)
 
     @provide_session
     def _collect_errors(self, ti_status, session=None):
@@ -848,7 +727,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
         Initializes all components required to run a dag for a specified date range and
         calls helper method to execute the tasks.
         """
-        self._clean_zombie_dagruns_if_required()
 
         ti_status = BackfillJob._DagRunTaskStatus()
 
@@ -914,6 +792,7 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # to be run again before exiting
             if hasattr(executor, "commands_to_run"):
                 executor.commands_to_run = []
+
             try:
                 executor.end()
             except Exception:
@@ -921,9 +800,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             session.commit()
             try:
                 if dag_run and dag_run.state == State.RUNNING:
-                    # use clean SQL session
-                    fix_zombie_dagrun_task_instances(dag_run)
-
                     dag_run.state = State.FAILED
                     session.merge(dag_run)
                     session.commit()
@@ -931,14 +807,6 @@ class SingleDagRunJob(BaseJob, SingletonContext):
                 logger.exception("Failed to clean dag_run task instances")
 
         self.log.info("Run is completed. Exiting.")
-
-    def _clean_zombie_dagruns_if_required(self):
-        if self.airflow_config.clean_zombies_during_backfill:
-            from dbnd_run.airflow.scheduler.dagrun_zombies_clean_job import (
-                DagRunZombiesCleanerJob,
-            )
-
-            DagRunZombiesCleanerJob().run()
 
     def _workaround_db_disconnection_in_forks(self):
         if AIRFLOW_VERSION_2:
@@ -961,56 +829,3 @@ class SingleDagRunJob(BaseJob, SingletonContext):
             # self.executor.terminate()
             return
         self.terminating = True
-
-
-def report_airflow_task_instance(
-    dag_id, execution_date, task_runs, airflow_config=None
-):
-    # type: (str, datetime, List[TaskRun], Optional[AirflowConfig]) ->None
-    """
-    report the relevant airflow task instances to the given task runs
-    """
-    from dbnd.api.tracking_api import AirflowTaskInfo
-
-    af_instances = []
-    for task_run in task_runs:
-        if not task_run.is_reused:
-            # we build airflow infos only for not reused tasks
-            af_instance = AirflowTaskInfo(
-                execution_date=execution_date,
-                dag_id=dag_id,
-                task_id=task_run.task_af_id,
-                task_run_attempt_uid=task_run.task_run_attempt_uid,
-            )
-            af_instances.append(af_instance)
-
-    if airflow_config is None:
-        airflow_config = AirflowConfig.from_databand_context()
-
-    if af_instances and airflow_config.webserver_url:
-        first_task_run = task_runs[0]
-        first_task_run.tracker.tracking_store.save_airflow_task_infos(
-            airflow_task_infos=af_instances,
-            source=UpdateSource.dbnd,
-            base_url=airflow_config.webserver_url,
-        )
-
-
-def get_af_task_try_number(af_task_instance):
-    """
-    Return the expected try_number from airflow's TaskInstance
-
-    Airflow's TaskInstance have two attributes - `_try_number` and `try_number` here is the change in flow for those two:
-    State                                   _try_number     try_number      expected
-    ================================================================================
-    pre-run (scheduled/submitted/queued)    0               1               1
-    running                                 1               1               1
-    finished (success/fail/...)             1               2               1
-    pre-rerun (scheduled/submitted/queued)  1               2               2
-    rerunning                               2               2               2
-    finished (success/fail/...)             2               3               2
-    """
-    if is_task_instance_finished(af_task_instance.state):
-        return af_task_instance.try_number - 1
-
-    return af_task_instance.try_number
