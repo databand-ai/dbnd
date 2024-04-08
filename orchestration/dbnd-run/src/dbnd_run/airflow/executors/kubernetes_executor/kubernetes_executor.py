@@ -33,7 +33,7 @@ from urllib3.exceptions import HTTPError
 
 from dbnd._core.current import try_get_databand_run
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 from dbnd_run.airflow.compat import AIRFLOW_VERSION_1, AIRFLOW_VERSION_2
 from dbnd_run.airflow.compat.kubernetes_executor import KubernetesExecutor
 from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_scheduler import (
@@ -62,17 +62,16 @@ class DbndKubernetesExecutor(KubernetesExecutor):
     Enables multiinstance run of KubernetesExecutor
     """
 
-    def __init__(self, kube_dbnd=None):
-        # type: (DbndKubernetesExecutor, DbndKubernetesClient) -> None
+    def __init__(self, kubernetes_engine_config: "KubernetesEngineConfig"):
         from os import environ
 
         # This env variable is required for airflow's kubernetes configuration validation
         environ["AIRFLOW__KUBERNETES__DAGS_IN_IMAGE"] = "True"
         super(DbndKubernetesExecutor, self).__init__()
 
-        self.kube_dbnd = kube_dbnd
+        self.kubernetes_engine_config = kubernetes_engine_config
         _update_airflow_kube_config(
-            airflow_kube_config=self.kube_config, engine_config=kube_dbnd.engine_config
+            airflow_kube_config=self.kube_config, engine_config=kubernetes_engine_config
         )
 
         self._log = PrefixLoggerAdapter("k8s-executor", self.log)
@@ -101,17 +100,18 @@ class DbndKubernetesExecutor(KubernetesExecutor):
         self.task_queue = self._manager.Queue()
         self.result_queue = self._manager.Queue()
 
-        self.kube_client = self.kube_dbnd.kube_client
+        kube_dbnd = self.kubernetes_engine_config.build_kube_dbnd()
+        self.kube_client = kube_dbnd.kube_client
         self.kube_scheduler = DbndKubernetesScheduler(
             self.kube_config,
             self.task_queue,
             self.result_queue,
             self.kube_client,
             self.worker_uuid,
-            kube_dbnd=self.kube_dbnd,
+            kube_dbnd=kube_dbnd,
         )
 
-        if self.kube_dbnd.engine_config.debug:
+        if self.kubernetes_engine_config.debug:
             self.log.setLevel(logging.DEBUG)
             self.kube_scheduler.log.setLevel(logging.DEBUG)
 

@@ -32,7 +32,6 @@ from airflow.utils.timezone import utcnow
 
 from dbnd._core.constants import TaskRunState
 from dbnd._core.current import try_get_databand_run
-from dbnd._core.log import dbnd_log_exception
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.task_run.task_run_error import TaskRunError
 from dbnd_docker.kubernetes.dns1123_clean_names import create_pod_id
@@ -66,6 +65,7 @@ from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_watcher import (
     DbndKubernetesJobWatcher,
     WatcherPodEvent,
 )
+from dbnd_run.current import get_run_executor
 from dbnd_run.errors.executor_k8s import (
     KubernetesImageNotFoundError,
     KubernetesPodConfigFailure,
@@ -240,22 +240,10 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         return None
 
     def _make_kube_watcher_dbnd(self):
-
-        try:
-            if self.kube_dbnd.engine_config.fix_pickle:
-                # fixing an issue of POpen
-                # k8s config and some DAtaband tasks are unpicable
-                from multiprocessing import reduction
-
-                from dbnd._core.utils.seven import cloudpickle
-
-                reduction.ForkingPickler = cloudpickle.Pickler
-        except Exception:
-            dbnd_log_exception(
-                "failed to set pickler (kubernetes.fix_pickle_for_watcher)"
-            )
-
-        watcher = DbndKubernetesJobWatcher(**get_job_watcher_kwargs(self))
+        driver_dump = get_run_executor().driver_dump
+        watcher = DbndKubernetesJobWatcher(
+            driver_dump=driver_dump, **get_job_watcher_kwargs(self)
+        )
         watcher.start()
 
         return watcher
@@ -446,18 +434,18 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         """Process the task event sent by watcher."""
         pod_event = WatcherPodEvent.from_watcher_task(task)
         pod_name = pod_event.pod_id
-        self.log.debug(
-            "Attempting to process pod; pod_name: %s; state: %s; labels: %s",
-            pod_event.pod_id,
-            pod_event.state,
-            pod_event.labels,
-        )
 
         submitted_pod = self.submitted_pods.get(pod_name)
         if submitted_pod is None:
             # this is deleted pod - on delete watcher will send event
             # 1. delete by scheduler - we skip here
             # 2. external delete -> we continue to process the event
+            self.log.debug(
+                "Attempting to process deleted pod; pod_name: %s; state: %s; labels: %s",
+                pod_event.pod_id,
+                pod_event.state,
+                pod_event.labels,
+            )
             return
 
         # DBND-AIRFLOW we have it precached, we don't need to go to DB
@@ -478,8 +466,6 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             pod_event.labels,
         )
 
-        # we are not looking for key
-        result = PodResult.from_pod(submitted_pod, pod_event)
         if submitted_pod.processed:
             # we already processed this kind of event, as in this process we have failed status already
             self.log.info(
@@ -489,6 +475,8 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             )
             return
 
+        # we are not looking for key
+        result = PodResult.from_pod(submitted_pod, pod_event)
         if result.state == State.RUNNING:
             # we should get here only once -> when pod starts to run
 
@@ -497,24 +485,30 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
             return
 
         try:
-            if result.state is None:
+
+            ti_state = get_airflow_task_instance(task_run=submitted_pod.task_run)
+            if ti_state._try_number != submitted_pod.try_number:
+                self.log.warning(
+                    "Skipping pod processing for %s ,as already processed, databand info might be incomplete",
+                    submitted_pod.pod_name,
+                )
+                submitted_pod.processed = True
+            elif result.state is None:
                 # simple case, pod has success - will be proceed by airflow main scheduler (Job)
                 # task can be failed or passed. Airflow exit with 0 if task has failed regular way.
                 self._process_pod_success(submitted_pod)
-                self.result_queue.put(result.as_tuple())
             elif result.state == State.FAILED:
                 # Pod crash, it was deleted, killed, evicted.. we need to give it extra treatment
                 self._process_pod_failed(submitted_pod)
-                self.result_queue.put(result.as_tuple())
             else:
                 self.log.debug(
-                    "finishing job %s - %s (%s)",
+                    "finishing job - no process  %s - %s (%s)",
                     result.key,
                     result.state,
                     result.pod_id,
                 )
-                self.result_queue.put(result.as_tuple())
         finally:
+            self.result_queue.put(result.as_tuple())
             submitted_pod.processed = True
 
     def _process_pod_running(self, submitted_pod):
@@ -525,8 +519,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
         # if it's not None, we already got Running phase event
         if submitted_pod.node_name:
             self.log.info(
-                "%s: Zombie bug: Seeing another pod Running event again. "
-                "Probably something happening with pod or its node: %s",
+                "%s: Seeing another pod Running event again for pod %s",
                 submitted_pod.task_run,
                 submitted_pod.pod_name,
             )
@@ -555,7 +548,7 @@ class DbndKubernetesScheduler(AirflowKubernetesScheduler):
 
         if submitted_pod.processed:
             self.log.info(
-                "%s Skipping pod 'success' event from %s: already processed", pod_name
+                "%s Skipping pod 'success' event: already processed", pod_name
             )
             return
 

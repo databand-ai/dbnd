@@ -35,21 +35,21 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
     otherwise, they will not be submitted (as they are still at executior.running tasks
     """
 
-    def __init__(self, k8s_executor):
+    def __init__(self, k8s_executor: "DbndKubernetesExecutor"):
         super(ClearKubernetesRuntimeZombiesForDagRun, self).__init__()
 
         self._last_zombie_query_time = None
-        self.k8s_executor = k8s_executor  # type: DbndKubernetesExecutor
+        self.k8s_executor = k8s_executor
 
         # time configurations
         self.zombie_threshold_secs = (
-            k8s_executor.kube_dbnd.engine_config.zombie_threshold_secs
+            k8s_executor.kubernetes_engine_config.zombie_threshold_secs
         )
         self.zombie_query_interval_secs = (
-            k8s_executor.kube_dbnd.engine_config.zombie_query_interval_secs
+            k8s_executor.kubernetes_engine_config.zombie_query_interval_secs
         )
         self._pending_zombies_timeout = (
-            k8s_executor.kube_dbnd.engine_config.pending_zombies_timeout
+            k8s_executor.kubernetes_engine_config.pending_zombies_timeout
         )
 
         self._log = PrefixLoggerAdapter("clear-zombies", self.log)

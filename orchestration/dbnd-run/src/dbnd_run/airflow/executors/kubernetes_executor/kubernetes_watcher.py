@@ -19,10 +19,10 @@ from airflow.utils.state import State
 from kubernetes import client
 from kubernetes.client import Configuration
 
+from dbnd import dbnd_bootstrap
 from dbnd._core.current import is_verbose
 from dbnd._core.errors.base import DatabandSigTermError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
-from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 from dbnd_run.airflow.compat import AIRFLOW_ABOVE_9, AIRFLOW_ABOVE_10, AIRFLOW_VERSION_2
 
 
@@ -33,6 +33,7 @@ else:
 
 if typing.TYPE_CHECKING:
     from dbnd_docker.kubernetes.kube_dbnd_client import DbndKubernetesClient
+    from dbnd_docker.kubernetes.kubernetes_engine_config import KubernetesEngineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +86,10 @@ class WatcherPodEvent(object):
 class DbndKubernetesJobWatcher(KubernetesJobWatcher):
     """"""
 
-    def __init__(self, kubernetes_engine_config: "KubernetesEngineConfig", **kwargs):
+    def __init__(self, driver_dump, **kwargs):
         super().__init__(**kwargs)
-        self.kubernetes_engine_config = kubernetes_engine_config
+        self.driver_dump = driver_dump
+        self.kubernetes_engine_config: KubernetesEngineConfig = None
 
     def get_kube_dbnd(self) -> "DbndKubernetesClient":
         return self.kubernetes_engine_config.build_kube_dbnd()
@@ -116,6 +118,16 @@ class DbndKubernetesJobWatcher(KubernetesJobWatcher):
             self.resource_version,
             os.getpid(),
         )
+
+        from dbnd_run.run_executor.run_executor import RunExecutor
+
+        dbnd_bootstrap(enable_dbnd_run=True)
+        run_executor = RunExecutor.load_run(
+            self.driver_dump, disable_tracking_api=False
+        )
+        self.kubernetes_engine_config = run_executor.remote_engine
+
+        self.log.info("Dbnd Watcher has loaded engine config.")
         # we want a new refreshed client!
         kube_client = self.kubernetes_engine_config.get_kube_client()
         try:
