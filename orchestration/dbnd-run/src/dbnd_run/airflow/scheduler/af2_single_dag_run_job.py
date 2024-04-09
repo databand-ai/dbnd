@@ -5,7 +5,7 @@ import typing
 from airflow import DAG
 from airflow.jobs.backfill_job import BackfillJob
 from airflow.timetables.base import DagRunInfo
-from airflow.utils.session import provide_session
+from airflow.utils.db import provide_session
 from sqlalchemy.orm.session import Session
 
 

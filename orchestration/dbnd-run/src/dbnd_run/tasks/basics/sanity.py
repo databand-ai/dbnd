@@ -55,3 +55,35 @@ def dbnd_simple_parallel_pipeline(tasks_num=2):
         str(i): dbnd_simple_task(task_name=f"dbnd_simple_task_{i}")
         for i in range(tasks_num)
     }
+
+
+@task
+def dbnd_sub_run():
+    logger.info("STARTING THE RUN")
+    from dbnd import get_databand_context
+
+    databand_context = get_databand_context()
+    databand_context.run_settings.run.submit_driver = False
+    databand_context.run_settings.run.is_archived = True
+    from dbnd._core.utils.timezone import utcnow
+
+    databand_context.run_settings.run.execution_date = utcnow()
+
+    result = dbnd_simple_task.dbnd_run(
+        task_name="dbnd_sub_simple_run", task_version=str(utcnow())
+    )
+
+    logger.info("FINISHED THE RUN")
+
+    return result.root_task.result.load(str)
+
+
+@pipeline
+def dbnd_pipeline_with_sub(tasks_num=2):
+    tasks = {}
+    # tasks = {
+    #     str(i): dbnd_simple_task(task_name=f"dbnd_simple_task_{i}")
+    #     for i in range(tasks_num)
+    # }
+    tasks["sub_run"] = dbnd_sub_run()
+    return tasks

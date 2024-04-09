@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 from typing import List
 
 from airflow.models import TaskInstance
-from airflow.utils.session import provide_session
+from airflow.utils.db import provide_session
 
 
 class AirflowTaskInstanceStateManager(object):

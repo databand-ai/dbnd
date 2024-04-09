@@ -20,7 +20,11 @@ from dbnd._core.errors import DatabandError
 from dbnd._core.log.logging_utils import PrefixLoggerAdapter
 from dbnd._core.utils.basics.pickle_non_pickable import ready_for_pickle
 from dbnd_run import errors
-from dbnd_run.airflow.compat import AIRFLOW_VERSION_2, AIRFLOW_VERSION_AFTER_2_2
+from dbnd_run.airflow.compat import (
+    AIRFLOW_VERSION_1,
+    AIRFLOW_VERSION_2,
+    AIRFLOW_VERSION_AFTER_2_2,
+)
 from dbnd_run.airflow.compat.airflow_multi_version_shim import (
     LocalExecutor,
     SequentialExecutor,
@@ -501,7 +505,7 @@ class AirflowTaskExecutor(RunExecutorEngine):
                 self._runtime_k8s_zombie_cleaner.zombie_threshold_secs,
             )
 
-        if self.airflow_config.use_legacy_single_dag_run_job:
+        if self.airflow_config.use_legacy_single_dag_run_job or AIRFLOW_VERSION_1:
             from dbnd_run.airflow.scheduler.af1_single_dag_run_job import (
                 SingleDagRunJob,
             )
@@ -530,7 +534,7 @@ class AirflowTaskExecutor(RunExecutorEngine):
         else:
             if not AIRFLOW_VERSION_2:
                 raise Exception(
-                    "Plese change dbnd configuration to airflow.use_legacy_single_dag_run_job=True"
+                    "Please change dbnd configuration to airflow.use_legacy_single_dag_run_job=True"
                 )
             from dbnd_run.airflow.scheduler.af2_single_dag_run_job import (
                 SingleDagRunJob,

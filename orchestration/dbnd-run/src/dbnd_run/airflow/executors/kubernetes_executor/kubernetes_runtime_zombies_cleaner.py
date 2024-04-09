@@ -1,6 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import datetime
+import logging
 import typing
 
 from typing import List
@@ -25,6 +26,8 @@ if typing.TYPE_CHECKING:
     from dbnd_run.airflow.executors.kubernetes_executor.kubernetes_executor import (
         DbndKubernetesExecutor,
     )
+
+logger = logging.getLogger(__name__)
 
 
 class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
@@ -57,22 +60,27 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
     @provide_session
     def find_and_clean_dag_zombies(self, dag, execution_date, session):
         # type: (DAG, datetime.datetime, Session) -> None
-        now = timezone.utcnow()
-        if (
-            self._last_zombie_query_time
-            and (now - self._last_zombie_query_time).total_seconds()
-            < self.zombie_query_interval_secs
-        ):
-            return
+        try:
+            now = timezone.utcnow()
+            if (
+                self._last_zombie_query_time
+                and (now - self._last_zombie_query_time).total_seconds()
+                < self.zombie_query_interval_secs
+            ):
+                return
 
-        self._last_zombie_query_time = timezone.utcnow()
-        self.log.debug("Checking on possible zombie tasks")
-        zombies = self._find_task_instance_zombies(dag, execution_date, session=session)
-        if not zombies:
-            return
+            self._last_zombie_query_time = timezone.utcnow()
+            self.log.debug("Checking on possible zombie tasks")
+            zombies = self._find_task_instance_zombies(
+                dag, execution_date, session=session
+            )
+            if not zombies:
+                return
 
-        self.log.info("Found %s zombie tasks.", len(zombies))
-        self._kill_zombies(dag, zombies=zombies, session=session)
+            self.log.info("Found %s zombie tasks.", len(zombies))
+            self._kill_zombies(dag, zombies=zombies, session=session)
+        except Exception:
+            logger.exception("Failed to run pod zombie cleaner.")
 
     def _kill_zombies(self, dag, zombies, session):
         """
@@ -177,7 +185,9 @@ class ClearKubernetesRuntimeZombiesForDagRun(LoggingMixin):
                 not pod_state.is_started_running
                 and (now - pod_state.submitted_at) >= self._pending_zombies_timeout
             ):
-                pod_status = self.k8s_executor.kube_dbnd.get_pod_status(pod_name)
+                pod_status = self.k8s_executor.kube_scheduler.kube_dbnd.get_pod_status(
+                    pod_name
+                )
                 if pod_status is None:
                     # the pod doesn't exit anymore so its a zombie pending
                     af_ti = get_airflow_task_instance(
