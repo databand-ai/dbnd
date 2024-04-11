@@ -16,6 +16,7 @@ import dbnd
 
 from dbnd._core.utils.basics.environ_utils import env
 from dbnd.providers.dbt.dbt_core import (
+    DEFAULT_DBT_CORE_PROJECT_NAME,
     DbtCoreAssets,
     _extract_environment,
     _extract_jinja_values,
@@ -99,7 +100,7 @@ class TestExtractFromRunCommand(TestDBTCoreExtractMetaData):
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt run"
-        assert result_metadata["job"]["name"] == "run"
+        assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
 
 
 class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
@@ -110,18 +111,50 @@ class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt test"
-        assert result_metadata["job"]["name"] == "test"
+        assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
 
 
 class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
     ASSETS_JSON = "dbt_build_command_assets.json"
 
-    def test_extract_metadata(self, command_assets):
+    def test_extract_metadata_no_project_name(self, command_assets):
+        # Arrange
+        expected_job_id = command_assets.manifest["metadata"]["project_id"]
+        # Act
         result_metadata = command_assets.extract_metadata()
+        # Assert
         self.validate_result_metadata(result_metadata)
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt build"
-        assert result_metadata["job"]["name"] == "build"
+        assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
+        assert result_metadata["job_id"] == expected_job_id
+
+    def test_extract_metadata_with_project_name(self, command_assets):
+        # Arrange
+        expected_job_name = "my_awesome_dbt_project"
+        command_assets.manifest["metadata"]["project_name"] = expected_job_name
+        expected_job_id = command_assets.manifest["metadata"]["project_id"]
+        # Act
+        result_metadata = command_assets.extract_metadata()
+        # Assert
+        self.validate_result_metadata(result_metadata)
+        assert result_metadata["status_humanized"] == "pass"
+        assert result_metadata["run_steps"][0]["name"] == "dbt build"
+        assert result_metadata["job"]["name"] == expected_job_name
+        assert result_metadata["job_id"] == expected_job_id
+
+    def test_extract_metadata_no_project_id_nor_project_name(self, command_assets):
+        # Arrange
+        expected_job_id = command_assets.runs_info["metadata"]["invocation_id"]
+        del command_assets.manifest["metadata"]["project_id"]
+        # Act
+        result_metadata = command_assets.extract_metadata()
+        # Assert
+        self.validate_result_metadata(result_metadata)
+        assert result_metadata["status_humanized"] == "pass"
+        assert result_metadata["run_steps"][0]["name"] == "dbt build"
+        assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
+        assert result_metadata["job_id"] == expected_job_id
 
 
 @pytest.mark.parametrize(

@@ -81,6 +81,9 @@ def _load_dbt_core_assets(dbt_project_path: str) -> "DbtCoreAssets":
     return assets
 
 
+DEFAULT_DBT_CORE_PROJECT_NAME = "dbt_core_project"
+
+
 @attr.s(auto_attribs=True)
 class DbtCoreAssets:
     runs_info: dict
@@ -102,13 +105,33 @@ class DbtCoreAssets:
             "environment": environment,
             "run_steps": [dbt_step_meta_data],
             "id": dbt_step_meta_data["run_results"]["metadata"]["invocation_id"],
-            "job": {"name": dbt_step_meta_data["run_results"]["args"]["which"]},
-            "job_id": dbt_step_meta_data["run_results"]["metadata"]["invocation_id"],
+            "job": {"name": self.job_name},
+            "job_id": self.job_id,
             "started_at": dbt_step_meta_data["started_at"],
             "created_at": dbt_step_meta_data["created_at"],
             "is_complete": True,
         }
         return data
+
+    @property
+    def dbt_invocation_id(self) -> str:
+        return self.runs_info["metadata"]["invocation_id"]
+
+    @property
+    def dbt_core_project_name(self) -> Optional[str]:
+        return self.manifest["metadata"].get("project_name")
+
+    @property
+    def dbt_core_project_id(self) -> Optional[str]:
+        return self.manifest["metadata"].get("project_id")
+
+    @property
+    def job_id(self) -> str:
+        return self.dbt_core_project_id or self.dbt_invocation_id
+
+    @property
+    def job_name(self) -> str:
+        return self.dbt_core_project_name or DEFAULT_DBT_CORE_PROJECT_NAME
 
 
 def _env_var(var: str, default: Optional[str] = None) -> str:
