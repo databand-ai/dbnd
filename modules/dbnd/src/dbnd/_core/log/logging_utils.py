@@ -90,7 +90,7 @@ def raw_log_formatting():
 
 
 class StreamLogWriter(object):
-    encoding = False
+    encoding: None = None
 
     """
     Allows to redirect stdout and stderr to logger
