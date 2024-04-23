@@ -17,18 +17,29 @@ logger = logging.getLogger(__name__)
 
 
 class DbtCloudApiClient:
-    administrative_api_url = "https://cloud.getdbt.com/api/v2/accounts/"
-    metadata_api_url = "https://metadata.cloud.getdbt.com/graphql"
+    ADMINISTRATIVE_API_SUFFIX = "api/v2/accounts/"
+    DEFAULT_API_NETLOC = "cloud.getdbt.com"
+    DEFAULT_METADATA_API_URL = "https://metadata.cloud.getdbt.com/graphql/"
 
     def __init__(
         self,
         account_id: int,
         dbt_cloud_api_token: str,
+        dbt_api_url: str,
         max_retries=3,
         supress_exceptions=True,
     ):
         self.account_id = account_id
         self.api_token = dbt_cloud_api_token
+        self.administrative_api_url = urllib.parse.urljoin(
+            dbt_api_url, self.ADMINISTRATIVE_API_SUFFIX
+        )
+        if urllib.parse.urlparse(dbt_api_url).netloc == self.DEFAULT_API_NETLOC:
+            self.metadata_api_url = self.DEFAULT_METADATA_API_URL
+        else:
+            self.metadata_api_url = urllib.parse.urljoin(
+                dbt_api_url.replace(".", ".metadata.", 1), "/graphql/"
+            )
         self._supress_exceptions = supress_exceptions
         self.session = Session()
         self.session.headers = {

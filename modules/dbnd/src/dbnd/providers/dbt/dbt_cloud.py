@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def collect_data_from_dbt_cloud(
-    dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id
+    dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id, dbt_api_url
 ):
     """
     Collect metadata for a single run from dbt cloud.
@@ -21,6 +21,7 @@ def collect_data_from_dbt_cloud(
         dbt_cloud_account_id: dbt cloud account id in order to  identify with dbt cloud API
         dbt_cloud_api_token: Api token in order to authenticate dbt cloud API
         dbt_job_run_id: run id of the dbt run that we want to report it's metadata.
+        dbt_api_url: user's dbt URL
 
         @task
         def prepare_data():
@@ -28,10 +29,11 @@ def collect_data_from_dbt_cloud(
             dbt_cloud_account_id=my_dbt_cloud_account_id,
             dbt_cloud_api_token="my_dbt_cloud_api_token",
             dbt_job_run_id=12345
+            dbt_api_url="https://ab123.us1.dbt.com
             )
     """
     if not dbt_job_run_id:
-        logger.warning("Can't collect run  Data from dbt cloud,missing run id")
+        logger.warning("Can't collect run  Data from dbt cloud, missing run id")
         return
 
     if not dbt_cloud_api_token or not dbt_cloud_account_id:
@@ -51,7 +53,9 @@ def collect_data_from_dbt_cloud(
 
     try:
         dbt_cloud_client = DbtCloudApiClient(
-            account_id=dbt_cloud_account_id, dbt_cloud_api_token=dbt_cloud_api_token
+            account_id=dbt_cloud_account_id,
+            dbt_cloud_api_token=dbt_cloud_api_token,
+            dbt_api_url=dbt_api_url,
         )
 
         dbt_run_meta_data = get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id)

@@ -13,16 +13,44 @@ from dbnd.providers.dbt.dbt_cloud_api_client import DbtCloudApiClient
 class TestDbtCloudApiClient:
     DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"  # pragma: allowlist secret
     DBT_CLOUD_ACCOUNT_ID = 5445
+    DBT_DEFAULT_URL = "https://cloud.getdbt.com"
 
     def setUp(self):
         self.send_request_mock = MagicMock()
 
-    def test_get_run(self):
+    def test_get_run_with_default_url(self):
         self.setUp()
         run_id = 1234
+        dbt_administrative_api_url = "https://cloud.getdbt.com/api/v2/accounts/"
+        dbt_metadata_api_url = "https://metadata.cloud.getdbt.com/graphql/"
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
+        assert dbt_cloud_client.administrative_api_url == dbt_administrative_api_url
+        assert dbt_cloud_client.metadata_api_url == dbt_metadata_api_url
+        dbt_cloud_client.send_request = self.send_request_mock
+        self.send_request_mock.return_value = {"run_id": run_id}
+        expected_endpoint = f"{dbt_cloud_client.administrative_api_url}{self.DBT_CLOUD_ACCOUNT_ID}/runs/{run_id}"
+        expected_params = {"include_related": '["run_steps", "job"]'}
+        dbt_cloud_client.get_run(run_id)
+        self.send_request_mock.assert_called()
+        self.send_request_mock.assert_called_with(
+            endpoint=expected_endpoint, data=expected_params
+        )
+
+    def test_get_run_with_custom_url(self):
+        self.setUp()
+        run_id = 5678
+        dbt_api_url = "https://ab123.us1.dbt.com"
+        dbt_administrative_api_url = "https://ab123.us1.dbt.com/api/v2/accounts/"
+        dbt_metadata_api_url = "https://ab123.metadata.us1.dbt.com/graphql/"
+
+        dbt_cloud_client = DbtCloudApiClient(
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, dbt_api_url
+        )
+        assert dbt_cloud_client.administrative_api_url == dbt_administrative_api_url
+        assert dbt_cloud_client.metadata_api_url == dbt_metadata_api_url
+
         dbt_cloud_client.send_request = self.send_request_mock
         self.send_request_mock.return_value = {"run_id": run_id}
         expected_endpoint = f"{dbt_cloud_client.administrative_api_url}{self.DBT_CLOUD_ACCOUNT_ID}/runs/{run_id}"
@@ -37,7 +65,7 @@ class TestDbtCloudApiClient:
         self.setUp()
         run_id = 1234
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
         dbt_cloud_client.send_request = self.send_request_mock
         self.send_request_mock.return_value = {"run_id": run_id}
@@ -49,16 +77,16 @@ class TestDbtCloudApiClient:
             endpoint=expected_endpoint, data=expected_params
         )
 
-    def test_query_dbt_run_results(self):
+    def test_models_query_dbt_run_results(self):
         self.setUp()
         run_id = 1234
         job_id = 5566
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
         dbt_cloud_client.send_request = self.send_request_mock
         expected_query = (
-            "{\nmodels(runId: %s,jobId: %s){\nuniqueId,\nexecutionTime,\nstatus\n}\n}"
+            "{\nmodels(runId: %d,jobId: %d){\nuniqueId,\nexecutionTime,\nstatus\n}\n}"
             % (run_id, job_id)
         )
         dbt_cloud_client.query_dbt_run_results(job_id, run_id)
@@ -69,15 +97,15 @@ class TestDbtCloudApiClient:
             data={"query": expected_query},
         )
 
-    def test_query_dbt_run_results(self):
+    def test_tests_query_dbt_run_results(self):
         self.setUp()
         run_id = 1234
         job_id = 5566
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
         dbt_cloud_client.send_request = self.send_request_mock
-        expected_query = "{\ntests(runId: %s,jobId: %s){\nuniqueId,\nstatus\n}\n}" % (
+        expected_query = "{\ntests(runId: %d,jobId: %d){\nuniqueId,\nstatus\n}\n}" % (
             run_id,
             job_id,
         )
@@ -93,7 +121,7 @@ class TestDbtCloudApiClient:
         self.setUp()
         run_id = 1234
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
         session_mock = MagicMock()
         session_mock.side_effect = ConnectionError
@@ -129,7 +157,7 @@ class TestDbtCloudApiClient:
         self.setUp()
         run_id = 1234
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
         server_error_response = Response()
         server_error_response.status_code = status_code
@@ -147,7 +175,7 @@ class TestDbtCloudApiClient:
     def test_dbt_partner_in_header(self):
         self.setUp()
         dbt_cloud_client = DbtCloudApiClient(
-            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY
+            self.DBT_CLOUD_ACCOUNT_ID, self.DBT_CLOUD_API_KEY, self.DBT_DEFAULT_URL
         )
 
         assert "Authorization" in dbt_cloud_client.session.headers

@@ -11,6 +11,7 @@ from dbnd.providers.dbt.dbt_cloud import collect_data_from_dbt_cloud
 @patch("dbnd.providers.dbt.dbt_cloud.DbtCloudApiClient")
 class TestCollectDataFromDbtCloud:
     DBT_CLOUD_API_KEY = "my_dbt_cloud_api_key"  # pragma: allowlist secret
+    DBT_DEFAULT_API_URL = "https://cloud.getdbt.com"
     DBT_CLOUD_ACCOUNT_ID = 5445
     DBT_CLOUD_RUN_ID = 1234
 
@@ -23,6 +24,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id="dummy_account_id",
             dbt_cloud_api_token="dummy_api_token",
             dbt_job_run_id="dummy_run_id",
+            dbt_api_url="dummy_url",
         )
 
         dbt_cloud_api_client_mock.assert_not_called()
@@ -37,6 +39,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_called_with(
@@ -54,6 +57,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id="",
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_not_called()
@@ -70,6 +74,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_called_with(
@@ -108,6 +113,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_called_with(
@@ -142,6 +148,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_called_with(
@@ -163,6 +170,7 @@ class TestCollectDataFromDbtCloud:
             dbt_cloud_account_id=self.DBT_CLOUD_ACCOUNT_ID,
             dbt_cloud_api_token=self.DBT_CLOUD_API_KEY,
             dbt_job_run_id=self.DBT_CLOUD_RUN_ID,
+            dbt_api_url=self.DBT_DEFAULT_API_URL,
         )
 
         dbt_cloud_api_mocked_instance.get_run.assert_called_with(
