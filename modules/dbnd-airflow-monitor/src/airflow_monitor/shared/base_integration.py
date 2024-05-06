@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import ClassVar, List, Optional, Type
 
 import airflow_monitor
@@ -54,6 +54,7 @@ class BaseIntegration(ABC):
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
         return None
 
+    @abstractmethod
     def get_components(self) -> List[BaseComponent]:
         raise NotImplementedError
 
