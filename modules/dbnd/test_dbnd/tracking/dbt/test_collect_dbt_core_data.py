@@ -101,6 +101,10 @@ class TestExtractFromRunCommand(TestDBTCoreExtractMetaData):
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt run"
         assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
+        assert (
+            result_metadata["finished_at"]
+            == command_assets.runs_info["metadata"]["generated_at"]
+        )
 
 
 class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
@@ -112,6 +116,10 @@ class TestExtractFromTestCommand(TestDBTCoreExtractMetaData):
         assert result_metadata["status_humanized"] == "pass"
         assert result_metadata["run_steps"][0]["name"] == "dbt test"
         assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
+        assert (
+            result_metadata["finished_at"]
+            == command_assets.runs_info["metadata"]["generated_at"]
+        )
 
 
 class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
@@ -128,6 +136,10 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
         assert result_metadata["run_steps"][0]["name"] == "dbt build"
         assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
         assert result_metadata["job_id"] == expected_job_id
+        assert (
+            result_metadata["finished_at"]
+            == command_assets.runs_info["metadata"]["generated_at"]
+        )
 
     def test_extract_metadata_with_project_name(self, command_assets):
         # Arrange
@@ -142,6 +154,10 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
         assert result_metadata["run_steps"][0]["name"] == "dbt build"
         assert result_metadata["job"]["name"] == expected_job_name
         assert result_metadata["job_id"] == expected_job_id
+        assert (
+            result_metadata["finished_at"]
+            == command_assets.runs_info["metadata"]["generated_at"]
+        )
 
     def test_extract_metadata_no_project_id_nor_project_name(self, command_assets):
         # Arrange
@@ -155,6 +171,10 @@ class TestExtractFromBuildCommand(TestDBTCoreExtractMetaData):
         assert result_metadata["run_steps"][0]["name"] == "dbt build"
         assert result_metadata["job"]["name"] == DEFAULT_DBT_CORE_PROJECT_NAME
         assert result_metadata["job_id"] == expected_job_id
+        assert (
+            result_metadata["finished_at"]
+            == command_assets.runs_info["metadata"]["generated_at"]
+        )
 
 
 @pytest.mark.parametrize(

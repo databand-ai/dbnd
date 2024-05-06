@@ -107,8 +107,9 @@ class DbtCoreAssets:
             "id": dbt_step_meta_data["run_results"]["metadata"]["invocation_id"],
             "job": {"name": self.job_name},
             "job_id": self.job_id,
-            "started_at": dbt_step_meta_data["started_at"],
-            "created_at": dbt_step_meta_data["created_at"],
+            "started_at": dbt_step_meta_data.get("started_at"),
+            "created_at": dbt_step_meta_data.get("created_at"),
+            "finished_at": dbt_step_meta_data.get("finished_at"),
             "is_complete": True,
         }
         return data
