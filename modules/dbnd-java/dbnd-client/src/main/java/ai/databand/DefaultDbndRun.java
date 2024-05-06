@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand;
@@ -65,7 +65,7 @@ import java.util.UUID;
 @SuppressWarnings("unchecked")
 public class DefaultDbndRun implements DbndRun {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultDbndRun.class);
+    private static final DbndAppLog LOG = new DbndAppLog(LoggerFactory.getLogger(DefaultDbndRun.class));
 
     private final DbndClient dbnd;
     private final List<TaskRun> taskRuns;
@@ -125,7 +125,7 @@ public class DefaultDbndRun implements DbndRun {
         } else {
             this.jobName = annotationValue == null || annotationValue.isEmpty() ? method.getName() : annotationValue;
         }
-        config.jobName().ifPresent(name -> this.jobName = name);
+        config.jobName().ifPresent(name -> this.jobName = name); // FIXME name is never assigned properly?
         TaskRunsInfo rootRun = buildRootRun(method, args);
         RootRun root = config.azkabanContext().isPresent() ? config.azkabanContext().get().root() : null;
         this.rootRunUid = dbnd.initRun(jobName, runId, user, config.runName(), rootRun, airflowContext, root, source, trackingSource, null);

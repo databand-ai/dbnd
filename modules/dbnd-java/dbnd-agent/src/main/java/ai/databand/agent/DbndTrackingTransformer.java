@@ -1,9 +1,10 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.agent;
 
+import ai.databand.DbndAppLog;
 import ai.databand.config.DbndAgentConfig;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -16,11 +17,12 @@ import javassist.bytecode.DuplicateMemberException;
 import javassist.bytecode.MethodInfo;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
+import java.lang.management.ManagementFactory;
 import java.security.ProtectionDomain;
-import java.util.Optional;
+import java.util.LinkedList;
+import java.util.List;
 
 public class DbndTrackingTransformer implements ClassFileTransformer {
 
@@ -39,16 +41,17 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                             byte[] classfileBuffer) {
         ClassPool cp = ClassPool.getDefault();
         cp.appendClassPath(new LoaderClassPath(loader));
-        Optional<CtClass> ctOpt = classInScope(cp, className, classfileBuffer);
 
-        if (!ctOpt.isPresent()) {
-            return null;
-        }
+        try(InputStream is = new ByteArrayInputStream(classfileBuffer)) {
+            CtClass ct = cp.makeClass(is);
+            String jvmName = ManagementFactory.getRuntimeMXBean().getName();
 
-        try {
-            CtClass ct = ctOpt.get();
-            System.out.printf("Instrumenting class %s with dbnd wrapper%n", className);
-            CtMethod[] declaredMethods = ct.getDeclaredMethods();
+            List<CtMethod> annotatedMethods = getAnnotatedMethods(cp, ct, className, classfileBuffer);
+            if (annotatedMethods.isEmpty()) {
+                //DbndAppLog.printfvln("No valid @Task annotated methods detected for the class '%s' in JVM '%s' - skipped databand tracking for this class", className, jvmName);
+
+                return null;
+            }
 
             // add $dbnd variable
             try {
@@ -57,27 +60,19 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 // do nothing
             }
 
-            for (CtMethod method : declaredMethods) {
+            for (CtMethod method : annotatedMethods) {
                 // wrap methods annotated by @Task
                 MethodInfo methodInfo = method.getMethodInfo();
-                AnnotationsAttribute attInfo = (AnnotationsAttribute) methodInfo.getAttribute(AnnotationsAttribute.visibleTag);
-                if (attInfo == null) {
-                    continue;
-                }
-                if (attInfo.getAnnotation(TASK_ANNOTATION) == null) {
-                    continue;
-                }
-
                 CtClass tr = cp.get("java.lang.Throwable");
 
-                if (config.isVerbose()) {
-                    System.out.printf("Instrumenting method %s%n", methodInfo.getName());
-                }
+                DbndAppLog.printfvln("Databand tracking of @Task annotated method '%s.%s()'", className, methodInfo.getName());
 
                 method.insertBefore("{ $dbnd.beforeTask(\"" + ct.getName() + "\", \"" + method.getLongName() + "\", $args); }");
                 method.insertAfter("{ $dbnd.afterTask(\"" + method.getLongName() + "\", (Object) ($w) $_); }");
                 method.addCatch("{ $dbnd.errorTask(\"" + method.getLongName() + "\", $e); throw $e; }", tr);
             }
+
+            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand has succesfully detected and has started tracking of %d @Task annotated methods out of %d total methods declared directly inside the class '%s'", annotatedMethods.size(), ct.getDeclaredMethods().length, className);
 
             return ct.toBytecode();
         } catch (RuntimeException e) {
@@ -85,7 +80,7 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 return null;
             }
         } catch (Throwable e) {
-            System.err.println("Class instrumentation failed");
+            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Databand failed to add runtime tracking to class %s", className);
             e.printStackTrace();
             return null;
         }
@@ -93,29 +88,25 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
         return classfileBuffer;
     }
 
-    protected Optional<CtClass> classInScope(ClassPool cp, String className, byte[] classfileBuffer) {
-        try (InputStream is = new ByteArrayInputStream(classfileBuffer)) {
-            CtClass ct = cp.makeClass(is);
-            CtMethod[] declaredMethods = ct.getDeclaredMethods();
-            for (CtMethod method : declaredMethods) {
-                MethodInfo methodInfo = method.getMethodInfo();
-                AnnotationsAttribute attInfo = (AnnotationsAttribute) methodInfo.getAttribute(AnnotationsAttribute.visibleTag);
-                if (attInfo == null) {
-                    continue;
-                }
-                if (attInfo.getAnnotation(TASK_ANNOTATION) != null) {
-                    // check if scala object
-                    if (!isScalaObject(cp, className)) {
-                        return Optional.empty();
-                    }
-                    return Optional.of(ct);
-                }
+    protected List<CtMethod> getAnnotatedMethods(ClassPool cp, CtClass ct, String className, byte[] classfileBuffer) {
+        List<CtMethod> annotatedMethods = new LinkedList<CtMethod>();
+        CtMethod[] declaredMethods = ct.getDeclaredMethods();
+        for (CtMethod method : declaredMethods) {
+            MethodInfo methodInfo = method.getMethodInfo();
+            AnnotationsAttribute attInfo = (AnnotationsAttribute) methodInfo.getAttribute(AnnotationsAttribute.visibleTag);
+            if (attInfo == null) {
+                continue;
             }
-
-        } catch (IOException e) {
-            return Optional.empty();
+            if (attInfo.getAnnotation(TASK_ANNOTATION) != null) {
+                // check if scala object
+                if (!isScalaObject(cp, className)) {
+                    return new LinkedList<CtMethod>();
+                }
+                annotatedMethods.add(method);
+            }
         }
-        return Optional.empty();
+
+        return annotatedMethods;
     }
 
     protected boolean isScalaObject(ClassPool cp, String className) {

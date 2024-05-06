@@ -1,9 +1,10 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.spark;
 
+import ai.databand.DbndAppLog;
 import ai.databand.DbndWrapper;
 import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.schema.ColumnStats;
@@ -26,6 +27,7 @@ import org.apache.spark.sql.util.QueryExecutionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -41,7 +43,7 @@ import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 
 public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DbndSparkQueryExecutionListener.class);
+    private static final DbndAppLog LOG = new DbndAppLog(LoggerFactory.getLogger(DbndSparkQueryExecutionListener.class));
 
     private final DbndWrapper dbnd;
     private final DatasetOperationPreview operationPreview;
@@ -59,6 +61,16 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             return;
         }
         isHiveEnabled = true;
+
+        Runtime.getRuntime();
+        String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        String msg = String.format("Succesfully loaded Databand QueryExecutionListener into JVM '%s' . Databand tracking of selected Spark events is now enabled.", jvmName);
+        LOG.info(msg);
+        DbndAppLog.printfln(org.slf4j.event.Level.INFO, msg);
+
+        String hiveMsg = String.format("Hive tracking enabled: %b", isHiveEnabled);
+        LOG.verbose(hiveMsg);
+        DbndAppLog.printfvln(hiveMsg);
     }
 
     public DbndSparkQueryExecutionListener() {
@@ -69,19 +81,23 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
         // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
         // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
-        if (dbnd.config().isVerbose()) {
-            LOG.info("Processing event from function \"{}\". Executed plan: {}", funcName, qe.executedPlan());
-        }
+        LOG.verbose("Processing event from function \"{}()\". Executed plan: {}, hash: {}", funcName, qe.executedPlan(), qe.hashCode());
+
         boolean isProcessed = false;
         SparkPlan executedPlan = qe.executedPlan();
         if (isAdaptivePlan(executedPlan)) {
             executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
+
+            LOG.verbose("Extracted final plan from adaptive plan. Final executed plan: {}, hash: {}", executedPlan, executedPlan.hashCode());
         }
         if (executedPlan instanceof DataWritingCommandExec) {
+            LOG.verbose("ExecutedPlan is instanceof DataWritingCommandExec, hash: {}", executedPlan);
+
             // when write is combined with reads, we should submit reads too
             isProcessed = submitReadOps(executedPlan);
             DataWritingCommandExec writePlan = (DataWritingCommandExec) executedPlan;
             if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
+                LOG.verbose("write is combined with reads");
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
 
                 String path = exctractPath(cmd.outputPath().toString());
@@ -92,6 +108,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
             if (isHiveEnabled) {
                 if (writePlan.cmd() instanceof InsertIntoHiveTable) {
+                    LOG.verbose("ExecutePlan is instanceof InsertIntoHiveTable, hash: {}", writePlan.hashCode());
                     try {
                         InsertIntoHiveTable cmd = (InsertIntoHiveTable) writePlan.cmd();
 
@@ -107,22 +124,26 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
         }
         if (executedPlan instanceof WholeStageCodegenExec) {
+            LOG.verbose("ExecutePlan is instanceof WholeStageCodegenExec, hash: {}", executedPlan);
             if (isDbndPlan(qe)) {
-                LOG.warn("dbnd sdk Execution plan will not be reported");
+                LOG.warn("Explicit Databand SDK DataFrame tracking will not be reported by JVM");
                 return;
             }
             isProcessed = submitReadOps(executedPlan);
         }
-        if (dbnd.config().isVerbose() && !isProcessed) {
-            LOG.info("Spark event was not processed because query execution plan {} is not supported", executedPlan.getClass().getName());
+        if (!isProcessed) {
+            LOG.verbose("Spark event was not processed because query execution plan {} is not supported, hash: {}", executedPlan.getClass().getName(), executedPlan.hashCode());
         }
     }
 
     protected boolean submitReadOps(SparkPlan executedPlan) {
         boolean isProcessed = false;
         List<SparkPlan> allChildren = getAllChildren(executedPlan);
+        LOG.verbose("{} children plans detected.", allChildren.size());
+
         for (SparkPlan next : allChildren) {
             if (next instanceof FileSourceScanExec) {
+                LOG.verbose("FileSourceScanExec plan type detected, hash: {}", next.hashCode());
                 FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                 StructType schema = fileSourceScan.schema();
@@ -140,6 +161,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
             if (isHiveEnabled) {
                 if (next instanceof HiveTableScanExec) {
+                    LOG.verbose("HiveTableScanExec plan type detected, hash: {}", next.hashCode());
                     try {
                         HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 

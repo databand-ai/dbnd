@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.agent;
@@ -14,6 +14,8 @@ import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
+import ai.databand.DbndAppLog;
+
 public class ActiveJobTransformer implements ClassFileTransformer {
 
     @Override
@@ -26,7 +28,7 @@ public class ActiveJobTransformer implements ClassFileTransformer {
             return classfileBuffer;
         }
         try (InputStream is = new ByteArrayInputStream(classfileBuffer)) {
-            System.out.printf("Instrumenting class %s%n", className);
+            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking of the Spark class 'ActiveJob'");
             ClassPool cp = ClassPool.getDefault();
             cp.appendClassPath(new LoaderClassPath(loader));
             CtClass ct = cp.makeClass(is);
@@ -38,7 +40,7 @@ public class ActiveJobTransformer implements ClassFileTransformer {
             }
             return ct.toBytecode();
         } catch (Throwable e) {
-            System.err.println("Spark ActiveJob class instrumentation failed. I/O tracking won't be available.");
+            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Databand tracking failed to modify the 'ActiveJob' class.");
             e.printStackTrace();
             return null;
         }

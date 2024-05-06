@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand;
@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class DbndWrapper {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(DbndWrapper.class);
+    private static final DbndAppLog LOG = new DbndAppLog(LoggerFactory.getLogger(DbndWrapper.class));
 
     private DbndClient dbnd;
     private DbndConfig config;
@@ -118,12 +118,10 @@ public class DbndWrapper {
             return;
         }
         // log4j system is not initialized properly at this point, so we're using stdout directly
-        System.out.println("Running Databand!");
-        System.out.printf("TRACKER URL: %s%n", config.databandUrl());
-        if (config.isVerbose()) {
-            System.out.printf("CMD: %s%n", config.cmd());
-            System.out.println("Parsed Databand properties: " + config);
-        }
+        DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Enabled Databand pipeline tracking and pushing results to the URL: %s", config.databandUrl());
+        DbndAppLog.printfvln("Used CMD: %s", config.cmd());
+        DbndAppLog.printfvln("Parsed Databand properties: %s", config);
+
         getOrCreateRun(method, args);
         pipelineInitialized = true;
     }
@@ -383,9 +381,8 @@ public class DbndWrapper {
             // don't init run from the scratch, reuse values
             run = config.isTrackingEnabled() ? new DefaultDbndRun(dbnd, config) : new NoopDbndRun();
             if (!config.isTrackingEnabled()) {
-                System.out.println("Tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
+                DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
             }
-            System.out.println("Reusing existing task");
             DatabandTaskContext dbndCtx = config.databandTaskContext().get();
             TaskRun driverTask = new TaskRun();
             driverTask.setRunUid(dbndCtx.getRootRunUid());
@@ -393,6 +390,7 @@ public class DbndWrapper {
             driverTask.setTaskRunAttemptUid(dbndCtx.getTaskRunAttemptUid());
             config.airflowContext().ifPresent(ctx -> driverTask.setName(ctx.getTaskId()));
             run.setDriverTask(driverTask);
+            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Reusing existing databand task '%s', taskUid: '%s' ", driverTask.getName(), driverTask.getTaskRunUid());
         } else {
             try {
                 StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -419,7 +417,7 @@ public class DbndWrapper {
                     }
                 }
             } catch (ClassNotFoundException e) {
-                System.out.printf("Class not found: %s%n", e.getMessage());
+                DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Class not found: %s", e.getMessage());
                 // do nothing
             }
         }
@@ -447,16 +445,16 @@ public class DbndWrapper {
     private void initRun(Method method, Object[] args) {
         run = config.isTrackingEnabled() ? new DefaultDbndRun(dbnd, config) : new NoopDbndRun();
         if (!config.isTrackingEnabled()) {
-            System.out.println("Tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
+            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
             return;
         }
         try {
             run.init(method, args);
             // log4j isn't initialized at this point
-            System.out.printf("Running pipeline '%s'%n", run.getTaskName(method));
+            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Running pipeline '%s'", run.getTaskName(method));
         } catch (Exception e) {
             run = new NoopDbndRun();
-            System.out.println("Unable to init run:");
+            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Unable to init databand tracking:");
             e.printStackTrace();
         }
     }

@@ -1,14 +1,16 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.agent;
 
+import ai.databand.DbndAppLog;
 import ai.databand.config.DbndAgentConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
+import java.lang.management.ManagementFactory;
 import java.util.Properties;
 
 public class DbndAgent {
@@ -21,7 +23,10 @@ public class DbndAgent {
             // shouldn't occur
             e.printStackTrace();
         }
-        System.out.printf("Starting Databand v%s!%n", props.getProperty("version"));
+
+        Runtime.getRuntime();
+        String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Succesfully loaded Databand Agent v%s into JVM process '%s'. No Databand tracking is enabled at this moment.", props.getProperty("version"), jvmName);
         // this is workaround for spark-submit case
         // for some reason CallSite is not loaded during instrumentation phase, so we have to load it before
         try {
