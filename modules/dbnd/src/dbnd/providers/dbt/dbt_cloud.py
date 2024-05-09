@@ -10,6 +10,8 @@ from dbnd.providers.dbt.dbt_cloud_api_client import DbtCloudApiClient
 
 logger = logging.getLogger(__name__)
 
+DBT_CLOUD_SOURCE = "dbt_cloud"
+
 
 def collect_data_from_dbt_cloud(
     dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id, dbt_api_url
@@ -61,7 +63,7 @@ def collect_data_from_dbt_cloud(
         dbt_run_meta_data = get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id)
         if not dbt_run_meta_data:
             return
-
+        dbt_run_meta_data["reported_from"] = DBT_CLOUD_SOURCE
         tracker.log_dbt_metadata(dbt_metadata=dbt_run_meta_data)
     except Exception as e:
         logger.warning(
