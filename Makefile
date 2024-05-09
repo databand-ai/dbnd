@@ -111,7 +111,7 @@ pre-commit: ## Run pre-commit checks.
 
 
 ##@ Distribution
-.PHONY: dist dist-python dist-java clean clean-python
+.PHONY: dist dist-python dist-java clean clean-python clean-java
 
 dist:  ## Cleanup and build packages for all python modules (java packages are excluded).
 	make clean-python
@@ -177,13 +177,15 @@ clean: ## Remove all build, test, coverage and Python artifacts.
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
+	@make clean-java
+
 	@echo "Removing test and coverage artifacts..."
 	find . -name ".tox" -type d -exec rm -r "{}" \;
 	find . -name ".pytest_cache" -type d -exec rm -r "{}" \;
 	find . -name ".coverage" -type d -exec rm -r "{}" \;
 	find . -name "htmlcov" -type d -exec rm -r "{}" \;
 
-clean-python:  ## Remove bulid artifacts.
+clean-python:  ## Remove python build artifacts.
 	@echo "Removing build artifacts..."
 	pwd
 	rm -rf modules/*/build
@@ -193,6 +195,9 @@ clean-python:  ## Remove bulid artifacts.
 	find . -name "eggs" -type d -exec rm -r "{}" \;
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
+
+clean-java:  ## Remove java build artifacts.
+	(cd modules/dbnd-java/ && ./gradlew clean)
 
 ##@ Development
 .PHONY: uninstall-dev

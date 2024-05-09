@@ -78,6 +78,8 @@ configure(subprojects.findAll { fatJarProjects.contains(it.name) }) {
 
     task fatJar(dependsOn: shadowJar)
     fatJar.finalizedBy shadowJarLatest
+
+    test.dependsOn fatJar
 }
 
 /**
