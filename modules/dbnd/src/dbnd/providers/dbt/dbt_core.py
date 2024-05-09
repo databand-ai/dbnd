@@ -23,6 +23,7 @@ T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
+DBT_CORE_SOURCE = "dbt_core"
 
 ################
 #              #
@@ -56,6 +57,7 @@ def collect_data_from_dbt_core(dbt_project_path: str):
         data = assets.extract_metadata()
 
         phase = "report"
+        data["reported_from"] = DBT_CORE_SOURCE
         tracker.log_dbt_metadata(dbt_metadata=data)
     except Exception as e:
         logger.warning(

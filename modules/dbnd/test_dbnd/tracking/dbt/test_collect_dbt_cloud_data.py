@@ -82,7 +82,11 @@ class TestCollectDataFromDbtCloud:
         )
         dbt_cloud_api_mocked_instance.get_run_results_artifact.assert_not_called()
         get_tracker_mock.return_value.log_dbt_metadata.assert_called_with(
-            dbt_metadata={"dummy_data": True, "environment": ANY}
+            dbt_metadata={
+                "dummy_data": True,
+                "environment": ANY,
+                "reported_from": "dbt_cloud",
+            }
         )
 
     def test_happy_path_with_run_steps(
@@ -107,6 +111,7 @@ class TestCollectDataFromDbtCloud:
         expected_dbt_metadata_report = {
             "run_steps": expected_steps_with_results,
             "environment": env,
+            "reported_from": "dbt_cloud",
         }
 
         collect_data_from_dbt_cloud(
@@ -127,7 +132,7 @@ class TestCollectDataFromDbtCloud:
             dbt_metadata=expected_dbt_metadata_report
         )
 
-    def test_run_steo_with_no_artifacts(
+    def test_run_step_with_no_artifacts(
         self, dbt_cloud_api_client_mock, get_tracker_mock
     ):
         dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
@@ -142,6 +147,7 @@ class TestCollectDataFromDbtCloud:
         expected_dbt_metadata_report = {
             "run_steps": expected_steps_with_results,
             "environment": env,
+            "reported_from": "dbt_cloud",
         }
 
         collect_data_from_dbt_cloud(
