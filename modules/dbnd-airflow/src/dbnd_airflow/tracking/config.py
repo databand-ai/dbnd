@@ -7,18 +7,6 @@ from dbnd._core.task import Config
 class AirflowTrackingConfig(Config):
     _conf__task_family = "airflow_tracking"
 
-    spark_submit_dbnd_java_agent = parameter(
-        default=None,
-        description="Set the DBND Java agent `jar` which will be "
-        "used to track a Java application, located on the local machine",
-    )[str]
-
-    databricks_dbnd_java_agent = parameter(
-        default=None,
-        description="Set the DBND Java agent `jar` which will be "
-        "used to track a Java application, located on remote machine.",
-    )[str]
-
     track_airflow_execute_result = parameter(
         default=False,
         description="Enable saving the results of tracked Airflow operators.",
