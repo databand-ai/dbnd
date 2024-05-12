@@ -40,7 +40,7 @@ def sync_task_run_attempts_retries(ti_status):
             af_task_try_number = _get_af_task_try_number(ti)
             if task_run and task_run.attempt_number != af_task_try_number:
                 logger.info(
-                    "Found a new attempt for task %60s (%s -> %s) in Airflow DB(might come from Pod/Scheduler). Submitting to Databand.",
+                    "Found a new attempt for task %60s (dbnd=%s - af=%s) in Airflow DB(might come from Pod/Scheduler). Submitting to Databand.",
                     ti.task_id,
                     task_run.attempt_number,
                     af_task_try_number,

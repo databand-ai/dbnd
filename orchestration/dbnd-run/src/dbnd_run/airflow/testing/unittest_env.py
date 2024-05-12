@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 def subprocess_airflow(args):
     """Forward arguments to airflow command line"""
 
+    from airflow import settings
     from airflow.configuration import conf
     from sqlalchemy.engine.url import make_url
 
     # let's make sure that we user correct connection string
-    airflow_sql_conn = conf.get("core", "SQL_ALCHEMY_CONN")
+    airflow_sql_conn = settings.SQL_ALCHEMY_CONN
     env = os.environ.copy()
     env["AIRFLOW__CORE__SQL_ALCHEMY_CONN"] = airflow_sql_conn
     env["AIRFLOW__CORE__FERNET_KEY"] = conf.get("core", "FERNET_KEY")

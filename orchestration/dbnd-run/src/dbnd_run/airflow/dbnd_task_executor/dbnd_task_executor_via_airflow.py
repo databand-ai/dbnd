@@ -230,7 +230,7 @@ class AirflowTaskExecutor(RunExecutorEngine):
 
         not_exist_help_msg = (
             "Check that sql_alchemy_conn in airflow.cfg or environment variable "
-            + "AIRFLOW__CORE__SQL_ALCHEMY_CONN is set correctly."
+            + "SQL_ALCHEMY_CONN is set correctly."
         )
         not_initialised_help_mdg = "Make sure that you run the command: airflow initdb"
 

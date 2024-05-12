@@ -95,6 +95,6 @@ def airflow_sql_conn_url():
 
 
 def airlow_sql_alchemy_conn():
-    from airflow.configuration import conf as airflow_conf
+    from airflow import settings
 
-    return airflow_conf.get("core", "sql_alchemy_conn")
+    return settings.SQL_ALCHEMY_CONN
