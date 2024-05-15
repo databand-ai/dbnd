@@ -87,7 +87,7 @@ class AssetToState(ABC):
             )
         try:
             asset_state = AssetState(state)
-        except:
+        except Exception:
             raise Exception("asset state is unrecognized, will be skipped")
         return AssetToState(
             asset_id=asset_id,
@@ -162,7 +162,7 @@ class ThirdPartyInfo:
 T = TypeVar("T")
 
 
-class Adapter(ABC, Generic[T]):
+class MonitorAdapter(ABC, Generic[T]):
     """
     Abstract base class for integration adapters.
     Subclasses should implement the methods to interact with a specific integration.

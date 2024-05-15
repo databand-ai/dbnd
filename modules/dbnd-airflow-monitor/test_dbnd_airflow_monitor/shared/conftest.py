@@ -9,10 +9,10 @@ import pytest
 from attr import evolve
 
 from airflow_monitor.shared.adapter.adapter import (
-    Adapter,
     Assets,
     AssetState,
     AssetToState,
+    MonitorAdapter,
 )
 from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
@@ -23,7 +23,7 @@ from dbnd._vendor.tenacity import retry, stop_after_attempt
 INTEGRATION_UID = uuid4()
 
 
-class MockAdapter(Adapter):
+class MockAdapter(MonitorAdapter):
     def __init__(self):
         super().__init__()
         self.cursor: int = 0

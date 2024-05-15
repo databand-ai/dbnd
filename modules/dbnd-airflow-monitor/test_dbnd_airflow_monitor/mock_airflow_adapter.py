@@ -2,12 +2,16 @@
 
 from typing import Optional, Tuple
 
-from airflow_monitor.shared.adapter.adapter import Adapter, Assets, ThirdPartyInfo
+from airflow_monitor.shared.adapter.adapter import (
+    Assets,
+    MonitorAdapter,
+    ThirdPartyInfo,
+)
 
 
-class MockAirflowAdapter(Adapter):
+class MockAirflowAdapter(MonitorAdapter):
     def __init__(self):
-        super(MockAirflowAdapter, self).__init__()
+        super().__init__()
         self.metadata = None
         self.error_list = []
 

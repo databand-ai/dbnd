@@ -7,10 +7,10 @@ from typing import Any, Collection, List, Tuple
 import attr
 
 from airflow_monitor.shared.adapter.adapter import (
-    Adapter,
     Assets,
     AssetState,
     AssetToState,
+    MonitorAdapter,
     update_assets_retry_state,
 )
 from airflow_monitor.shared.base_component import BaseComponent
@@ -95,7 +95,7 @@ class GenericSyncer(BaseComponent):
 
     tracking_service: BaseTrackingService
     config: BaseIntegrationConfig
-    adapter: Adapter
+    adapter: MonitorAdapter
     syncer_instance_id: str
 
     def __init__(
@@ -103,7 +103,7 @@ class GenericSyncer(BaseComponent):
         config: BaseIntegrationConfig,
         tracking_service: BaseTrackingService,
         reporting_service: ReportingService,
-        adapter: Adapter,
+        adapter: MonitorAdapter,
         syncer_instance_id: str,
     ):
         super(GenericSyncer, self).__init__(
