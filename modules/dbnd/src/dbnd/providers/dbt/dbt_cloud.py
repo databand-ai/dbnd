@@ -11,10 +11,14 @@ from dbnd.providers.dbt.dbt_cloud_api_client import DbtCloudApiClient
 logger = logging.getLogger(__name__)
 
 DBT_CLOUD_SOURCE = "dbt_cloud"
+DEFAULT_API_URL = "https://cloud.getdbt.com"
 
 
 def collect_data_from_dbt_cloud(
-    dbt_cloud_account_id, dbt_cloud_api_token, dbt_job_run_id, dbt_api_url
+    dbt_cloud_account_id,
+    dbt_cloud_api_token,
+    dbt_job_run_id,
+    dbt_api_url=DEFAULT_API_URL,
 ):
     """
     Collect metadata for a single run from dbt cloud.
