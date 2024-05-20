@@ -12,7 +12,7 @@ def format_datetime(datetime_obj: datetime, date_format: str) -> str:
 
 @staticmethod
 def parse_datetime(date_str: str, date_format: str) -> datetime:
-    return datetime.strptime(date_str, date_format)
+    return datetime.strptime(date_str, date_format).replace(tzinfo=timezone.utc)
 
 
 @staticmethod
