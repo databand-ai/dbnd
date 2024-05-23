@@ -766,10 +766,6 @@ public class DefaultDbndRun implements DbndRun {
                 return;
             }
             TaskRun currentTask = stack.peek();
-            // TODO: filter out unrelated messages
-            if (DbndClient.class.getName().equals(event.getLoggerName())) {
-                return;
-            }
             if (currentTask == null) {
                 driverTask.appendLog(formattedEvent);
             } else {

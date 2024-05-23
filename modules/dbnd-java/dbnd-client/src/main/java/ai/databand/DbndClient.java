@@ -452,7 +452,7 @@ public class DbndClient {
     protected Optional<Object> safeExecuteVoid(Call<Void> call) {
         try {
             if(config.isVerbose()) {
-                LOG.info("Executing HTTP request to the Databand tracker, URL of the request: %s", call.request().url());
+                LOG.info("v Executing HTTP request to the Databand tracker, URL of the request: {}", call.request().url());
             }
 
             Response<Void> res = call.execute();

@@ -64,13 +64,11 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
         Runtime.getRuntime();
         String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-        String msg = String.format("Succesfully loaded Databand QueryExecutionListener into JVM '%s' . Databand tracking of selected Spark events is now enabled.", jvmName);
-        LOG.info(msg);
-        DbndAppLog.printfln(org.slf4j.event.Level.INFO, msg);
+        LOG.info("Succesfully constructed Databand QueryExecutionListener instance in JVM '{}' . Selected Spark events with dataset operations will be submitted to the Databand service.", jvmName);
 
-        String hiveMsg = String.format("Hive tracking enabled: %b", isHiveEnabled);
-        LOG.verbose(hiveMsg);
-        DbndAppLog.printfvln(hiveMsg);
+        if(!isHiveEnabled) {
+            LOG.verbose("Hive tracking is disabled");
+        }
     }
 
     public DbndSparkQueryExecutionListener() {
@@ -79,25 +77,26 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
     @Override
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
-        // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
-        // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
-        LOG.verbose("Processing event from function \"{}()\". Executed plan: {}, hash: {}", funcName, qe.executedPlan(), qe.hashCode());
-
         boolean isProcessed = false;
         SparkPlan executedPlan = qe.executedPlan();
+
+        LOG.verbose("[{}] Processing event from function \"{}()\" and execution plan class: {}. Executed plan: {}", executedPlan.hashCode(), funcName, executedPlan.getClass().getName(), executedPlan);
+
+        // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
+        // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
         if (isAdaptivePlan(executedPlan)) {
             executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
 
-            LOG.verbose("Extracted final plan from adaptive plan. Final executed plan: {}, hash: {}", executedPlan, executedPlan.hashCode());
+            LOG.verbose("[{}] Extracted final plan from adaptive plan. Final executed plan: {}", executedPlan.hashCode(), executedPlan);
         }
         if (executedPlan instanceof DataWritingCommandExec) {
-            LOG.verbose("ExecutedPlan is instanceof DataWritingCommandExec, hash: {}", executedPlan);
+            LOG.verbose("[{}] ExecutedPlan is instanceof DataWritingCommandExec", executedPlan.hashCode());
 
             // when write is combined with reads, we should submit reads too
             isProcessed = submitReadOps(executedPlan);
             DataWritingCommandExec writePlan = (DataWritingCommandExec) executedPlan;
             if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
-                LOG.verbose("write is combined with reads");
+                LOG.verbose("[{}] write is combined with reads", writePlan.hashCode());
                 InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
 
                 String path = exctractPath(cmd.outputPath().toString());
@@ -108,7 +107,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
             if (isHiveEnabled) {
                 if (writePlan.cmd() instanceof InsertIntoHiveTable) {
-                    LOG.verbose("ExecutePlan is instanceof InsertIntoHiveTable, hash: {}", writePlan.hashCode());
+                    LOG.verbose("[{}] ExecutePlan is instanceof InsertIntoHiveTable", writePlan.hashCode());
                     try {
                         InsertIntoHiveTable cmd = (InsertIntoHiveTable) writePlan.cmd();
 
@@ -118,32 +117,34 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows);
                         isProcessed = true;
                     } catch (Exception e) {
-                        LOG.error("Unable to extract dataset information from InsertIntoHiveTable", e);
+                        LOG.error("[{}] Unable to extract dataset information from InsertIntoHiveTable - {}", writePlan.hashCode(), e);
                     }
                 }
             }
         }
         if (executedPlan instanceof WholeStageCodegenExec) {
-            LOG.verbose("ExecutePlan is instanceof WholeStageCodegenExec, hash: {}", executedPlan);
+            LOG.verbose("[{}] ExecutePlan is instanceof WholeStageCodegenExec", executedPlan.hashCode());
             if (isDbndPlan(qe)) {
-                LOG.warn("Explicit Databand SDK DataFrame tracking will not be reported by JVM");
+                LOG.warn("[{}] Explicit Databand SDK DataFrame tracking will not be reported by JVM", executedPlan.hashCode());
                 return;
             }
             isProcessed = submitReadOps(executedPlan);
         }
         if (!isProcessed) {
-            LOG.verbose("Spark event was not processed because query execution plan {} is not supported, hash: {}", executedPlan.getClass().getName(), executedPlan.hashCode());
+            LOG.verbose("[{}] Spark event was not processed because execution plan class {} is not supported", executedPlan.hashCode(), executedPlan.getClass().getName());
+        } else {
+            LOG.verbose("[{}] Spark event was processed succesfully, execution plan class: {}", executedPlan.hashCode(), executedPlan.getClass().getName());
         }
     }
 
     protected boolean submitReadOps(SparkPlan executedPlan) {
         boolean isProcessed = false;
         List<SparkPlan> allChildren = getAllChildren(executedPlan);
-        LOG.verbose("{} children plans detected.", allChildren.size());
+        LOG.verbose("[{}] {} children plans detected.", executedPlan.hashCode(), allChildren.size());
 
         for (SparkPlan next : allChildren) {
             if (next instanceof FileSourceScanExec) {
-                LOG.verbose("FileSourceScanExec plan type detected, hash: {}", next.hashCode());
+                LOG.verbose("[{}][{}] FileSourceScanExec plan type detected", executedPlan.hashCode(), next.hashCode());
                 FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                 StructType schema = fileSourceScan.schema();
@@ -161,7 +162,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
             if (isHiveEnabled) {
                 if (next instanceof HiveTableScanExec) {
-                    LOG.verbose("HiveTableScanExec plan type detected, hash: {}", next.hashCode());
+                    LOG.verbose("[{}][{}] HiveTableScanExec plan type detected", executedPlan.hashCode(), next.hashCode());
                     try {
                         HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
@@ -175,7 +176,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         log(path, DatasetOperationType.READ, hiveTableScan.relation().schema(), rows);
                         isProcessed = true;
                     } catch (Exception e) {
-                        LOG.error("Unable to extract dataset information from HiveTableScanExec", e);
+                        LOG.error("[{}] Unable to extract dataset information from HiveTableScanExec - {}", executedPlan.hashCode(), e);
                     }
                 }
             }
@@ -234,7 +235,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             SparkPlan value = (SparkPlan) field.get(adaptivePlan);
             return Optional.of(value);
         } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
-            LOG.error("Unable to extract final plan from the adaptive one using reflection. Dataset operation won't be logged.", e);
+            LOG.error("[{}] Unable to extract final plan from the adaptive one using reflection. Dataset operation won't be logged - {}.", adaptivePlan.hashCode(), e);
             return Optional.empty();
         }
     }
@@ -315,7 +316,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             return Optional.of(value);
         } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException |
                  InvocationTargetException e) {
-            LOG.error("Unable to extract child plan from the shuffle query using reflection. Dataset operation won't be logged.", e);
+            LOG.error("[{}] Unable to extract child plan from the shuffle query using reflection. Dataset operation won't be logged - {}.", shuffleQuery.hashCode(), e);
             return Optional.empty();
         }
     }

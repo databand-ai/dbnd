@@ -79,14 +79,14 @@ public class DbndWrapper {
         dbndAppender.setLayout(new PatternLayout(pattern));
         dbndAppender.setThreshold(Level.INFO);
         dbndAppender.activateOptions();
-
-        Logger.getLogger("org.apache.spark").addAppender(dbndAppender);
-        Logger.getLogger("org.spark_project").addAppender(dbndAppender);
-        Logger.getLogger("ai.databand").addAppender(dbndAppender);
+        dbndAppender.addAppenders("org.apache.spark", "org.spark_project", "ai.databand");
     }
 
     protected void initClient() {
         config = new DbndConfig();
+        if(config.isVerbose()) {
+            LOG.info("v Parsed Databand properties: {}", config);
+        }
         try {
             dbnd = new DbndClient(config);
         } catch (Exception e) {
@@ -117,10 +117,7 @@ public class DbndWrapper {
             pipelineInitialized = false;
             return;
         }
-        // log4j system is not initialized properly at this point, so we're using stdout directly
-        DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Enabled Databand pipeline tracking and pushing results to the URL: %s", config.databandUrl());
-        DbndAppLog.printfvln("Used CMD: %s", config.cmd());
-        DbndAppLog.printfvln("Parsed Databand properties: %s", config);
+        LOG.verbose("Enabled Databand pipeline tracking for class '{}', method '{}' and pushing results to the URL: {}", className, methodName, config.databandUrl());
 
         getOrCreateRun(method, args);
         pipelineInitialized = true;
@@ -301,7 +298,7 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats, operationSource);
-        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
+        LOG.info("Dataset Operation [path: '{}'], [type: {}], [status: {}] logged", path, type, status);
         if (isSparkShutdown) {
             // If spark is in the shutdown sequence, pyspark tracking is already completed.
             // This call ensures Spark Listener will send `stop` signal.
@@ -445,17 +442,15 @@ public class DbndWrapper {
     private void initRun(Method method, Object[] args) {
         run = config.isTrackingEnabled() ? new DefaultDbndRun(dbnd, config) : new NoopDbndRun();
         if (!config.isTrackingEnabled()) {
-            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
+            LOG.info("Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
             return;
         }
         try {
             run.init(method, args);
-            // log4j isn't initialized at this point
-            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Running pipeline '%s'", run.getTaskName(method));
+            LOG.info("Started tracking Spark event with dataset operation for method '{}' under the pipeline '{}' in Databand URL: {}", method.getName(), run.getTaskName(method), config.databandUrl());
         } catch (Exception e) {
             run = new NoopDbndRun();
-            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Unable to init databand tracking:");
-            e.printStackTrace();
+            LOG.error("Unable to init databand tracking: {}", e);
         }
     }
 
