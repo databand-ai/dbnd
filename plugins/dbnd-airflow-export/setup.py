@@ -18,9 +18,5 @@ setuptools.setup(
     package_dir={"": "src"},
     # we are not requiring airflow, as this plugin should be installed into existing airflow deployment
     install_requires=["dbnd==" + version, "dbnd-airflow==" + version],
-    entry_points={
-        "airflow.plugins": [
-            "dbnd_airflow_export = dbnd_airflow.export_plugin.dbnd_airflow_export_plugin:DataExportAirflowPlugin"
-        ]
-    },
+    entry_points={},
 )
