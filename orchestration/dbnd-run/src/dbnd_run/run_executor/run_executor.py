@@ -735,6 +735,11 @@ class RunExecutor(SingletonContext):
                     # In case one of its children fail,task run state is force updated from upstream failed to failed
                     #   because upstream_failed means task dependency is not met, while actually inner task has errors
                     state = TaskRunState.FAILED
+        if state == TaskRunState.FAILED:
+            logger.info(
+                "Task %s set to Failed as one of it's child tasks has been Failed.",
+                task_run,
+            )
 
         return state
 

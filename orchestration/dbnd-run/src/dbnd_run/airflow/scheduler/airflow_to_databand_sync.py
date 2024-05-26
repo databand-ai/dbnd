@@ -33,12 +33,15 @@ SCHEDULED_OR_RUNNABLE = RUNNABLE_STATES.union({State.SCHEDULED})
 def sync_task_run_attempts_retries(ti_status):
     databand_run = get_databand_run()
     for dag_run in ti_status.active_runs:
+        # there is only one dag run, however, it's easier to iterate this way
         for ti in dag_run.get_task_instances():
             task_run = databand_run.get_task_run_by_af_id(ti.task_id)  # type: TaskRun
+            if not task_run:
+                continue
             # looking for retry tasks
-
             af_task_try_number = _get_af_task_try_number(ti)
-            if task_run and task_run.attempt_number != af_task_try_number:
+
+            if task_run.attempt_number < af_task_try_number:
                 logger.info(
                     "Found a new attempt for task %60s (dbnd=%s - af=%s) in Airflow DB(might come from Pod/Scheduler). Submitting to Databand.",
                     ti.task_id,
@@ -60,6 +63,13 @@ def sync_task_run_attempts_retries(ti_status):
                     run=databand_run, task_runs=[task_run]
                 )
                 report_airflow_task_instance(ti.dag_id, ti.execution_date, [task_run])
+            elif task_run.attempt_number > af_task_try_number:
+                logger.info(
+                    "Found a task run in Airflow DB with AF attempt lower than DBND for task %60s (dbnd=%s - af=%s), skipping",
+                    ti.task_id,
+                    task_run.attempt_number,
+                    af_task_try_number,
+                )
 
 
 def update_databand_task_run_states(dagrun):
