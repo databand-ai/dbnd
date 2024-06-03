@@ -35,7 +35,7 @@ class TestPandasHistograms(BaseHistogramTests):
         assert histogram[0] == [20]
         assert histogram[1] == [None]
 
-        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        col_stats = value_meta._get_column_stats_by_col_name("test_column_0")
         assert col_stats.records_count == 20
         assert col_stats.non_null_count == 0
         assert col_stats.null_count == 20

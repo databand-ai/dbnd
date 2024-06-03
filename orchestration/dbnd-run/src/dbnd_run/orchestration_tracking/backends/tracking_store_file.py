@@ -91,7 +91,7 @@ class FileTrackingStore(TrackingStore):
                     "schema": data_schema,
                     "preview": value_meta.value_preview,
                     "shape": value_meta.data_dimensions,
-                    "stats": value_meta.get_stats_dict_from_columns_stats(),
+                    "stats": value_meta._get_stats_dict_from_columns_stats(),
                     "histograms": value_meta.histograms,
                 },
             }

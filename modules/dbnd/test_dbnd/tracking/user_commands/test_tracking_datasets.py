@@ -6,8 +6,10 @@ from more_itertools import one
 
 from dbnd import dataset_op_logger, log_dataset_op, task
 from dbnd._core.constants import DbndDatasetOperationType, DbndTargetOperationStatus
+from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
 from dbnd.testing.helpers_mocks import set_tracking_context
 from targets import target
+from targets.value_meta import ValueMeta
 from test_dbnd.tracking.tracking_helpers import get_log_datasets, get_log_metrics
 
 
@@ -29,7 +31,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
         assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
-        assert log_dataset_arg.value_preview == ""
+        assert log_dataset_arg.value_preview is None
         assert log_dataset_arg.data_dimensions == [987, 4]
         assert log_dataset_arg.data_schema is None
 
@@ -48,7 +50,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
         assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
-        assert log_dataset_arg.value_preview == ""
+        assert log_dataset_arg.value_preview is None
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
         assert log_dataset_arg.task_run_name == "taskWithLogDatasets"
@@ -80,6 +82,60 @@ class TestTrackingDatasets(object):
             "size.bytes",
             "type",
         }
+
+    def test_log_dataset_with_wrapper_custom_meta(
+        self, mock_channel_tracker, pandas_data_frame
+    ):
+        @task()
+        def task_with_log_dataset_wrapper_custom_meta():
+            with dataset_op_logger(
+                op_path=target("/path/to/value.csv"), op_type="read", with_preview=True
+            ) as logger:
+                columns = [
+                    ColumnStatsArgs(
+                        column_name="test1", column_type="type_test", std_value=5.77
+                    ),
+                    ColumnStatsArgs(
+                        column_name="test2", column_type="type_test", mean_value=13.0
+                    ),
+                ]
+
+                meta = ValueMeta.basic(columns, records_count=2)
+
+                logger.set_metadata(meta)
+                logger.set(data=pandas_data_frame)
+
+        task_with_log_dataset_wrapper_custom_meta()
+
+        log_dataset_arg = one(get_log_datasets(mock_channel_tracker))
+        assert log_dataset_arg.operation_path == "/path/to/value.csv"
+        assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
+        assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
+        assert log_dataset_arg.value_preview is None
+        assert log_dataset_arg.data_dimensions == [2, 2]
+        expected_data_schema = {
+            "columns": ["test1", "test2"],
+            "dtypes": None,
+            "shape": [2, 2],
+            "size.bytes": None,
+            "type": None,
+        }
+        expected_columns_stats = [
+            {
+                "column_name": "test1",
+                "column_type": "type_test",
+                "records_count": 2,
+                "std_value": 5.77,
+            },
+            {
+                "column_name": "test2",
+                "column_type": "type_test",
+                "mean_value": 13.0,
+                "records_count": 2,
+            },
+        ]
+        assert log_dataset_arg.data_schema == expected_data_schema
+        assert log_dataset_arg.columns_stats == expected_columns_stats
 
     def test_log_dataset_override_row_count(
         self, mock_channel_tracker, pandas_data_frame
@@ -180,7 +236,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_path == "location://path/to/value.csv"
         assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.NOK.value
-        assert log_dataset_arg.value_preview == ""
+        assert log_dataset_arg.value_preview is None
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
 
@@ -199,7 +255,7 @@ class TestTrackingDatasets(object):
         assert log_dataset_arg.operation_path == "/path/to/value.csv"
         assert log_dataset_arg.operation_type == DbndDatasetOperationType.read.value
         assert log_dataset_arg.operation_status == DbndTargetOperationStatus.OK.value
-        assert log_dataset_arg.value_preview == ""
+        assert log_dataset_arg.value_preview is None
         assert log_dataset_arg.data_dimensions is None
         assert log_dataset_arg.data_schema is None
 

@@ -14,7 +14,7 @@ from dbnd._core.utils import seven
 from dbnd._core.utils.dbnd_modules import is_module_enabled
 from dbnd._core.utils.one_time_logger import get_one_time_logger
 from targets import Target
-from targets.value_meta import ValueMetaConf
+from targets.value_meta import ValueMeta, ValueMetaConf
 
 
 LOG_DATASET_OP_OP_SOURCE = "python_manual_logging"
@@ -316,6 +316,7 @@ def log_dataset_op(
     row_count: Optional[int] = None,
     column_count: Optional[int] = None,
     operation_source: str = LOG_DATASET_OP_OP_SOURCE,
+    meta_data: Optional[ValueMeta] = None,
 ):
     """
     Logs dataset operation and meta data to dbnd.
@@ -368,6 +369,7 @@ def log_dataset_op(
         row_count=row_count,
         column_count=column_count,
         operation_source=operation_source,
+        meta_data=meta_data,
     )
     _report_operation(operation_report)
 

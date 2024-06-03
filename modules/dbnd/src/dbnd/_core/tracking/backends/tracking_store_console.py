@@ -178,7 +178,7 @@ class ConsoleStore(TrackingStore):
 
             # not will exists, but when it does - we need to add the stats as a table to the console
             if value_meta.columns_stats:
-                column_stats = value_meta.get_column_stats_by_col_name(column_name)
+                column_stats = value_meta._get_column_stats_by_col_name(column_name)
                 if column_stats:
                     stats_table = two_columns_table(
                         column_stats.as_dict(), is_describe_stat

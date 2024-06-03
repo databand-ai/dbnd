@@ -58,7 +58,7 @@ class BaseHistogramTests(object):
         assert len(histogram[1]) == 21
         assert sum(histogram[0]) == 8
 
-        col_stats = value_meta.get_column_stats_by_col_name(column_name)
+        col_stats = value_meta._get_column_stats_by_col_name(column_name)
         assert col_stats.records_count == 10
         assert col_stats.non_null_count == 8
         assert col_stats.distinct_count == 4
@@ -87,7 +87,7 @@ class BaseHistogramTests(object):
         assert histogram[0] == [30, 20, 10]
         assert histogram[1] == [True, False, None]
 
-        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        col_stats = value_meta._get_column_stats_by_col_name("test_column_0")
         assert col_stats.records_count == 60
         assert col_stats.column_type in ["bool", "boolean"]
 
@@ -109,7 +109,7 @@ class BaseHistogramTests(object):
         assert histogram[0] == [30, 20, 15, 5]
         assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
 
-        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        col_stats = value_meta._get_column_stats_by_col_name("test_column_0")
         assert col_stats.records_count == 70
         assert col_stats.non_null_count == 65
         assert col_stats.null_count == 5
@@ -135,7 +135,7 @@ class BaseHistogramTests(object):
         assert histogram[0][-2] == 52 and histogram[1][-2] == "str-52"
         assert histogram[0][-1] == sum(range(1, 52)) and histogram[1][-1] == "_others"
 
-        col_stats = value_meta.get_column_stats_by_col_name("test_column_0")
+        col_stats = value_meta._get_column_stats_by_col_name("test_column_0")
         assert col_stats.records_count == 5050 == sum(histogram[0])
         assert col_stats.non_null_count == 5050
         assert col_stats.null_count == 0

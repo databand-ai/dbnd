@@ -266,7 +266,7 @@ class TrackingStoreThroughChannel(TrackingStore):
         return resp
 
     def log_histograms(self, task_run, key, value_meta, timestamp):
-        value_meta_metrics = value_meta.build_metrics_for_key(key)
+        value_meta_metrics = value_meta._build_metrics_for_key(key)
         if value_meta_metrics["histograms"]:
             self.log_metrics(
                 task_run=task_run, metrics=value_meta_metrics["histograms"]

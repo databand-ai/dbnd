@@ -9,15 +9,47 @@ from dbnd._vendor._marshmallow.decorators import pre_load
 from dbnd._vendor.marshmallow import fields, post_load
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.s(auto_attribs=True)
 class DataSchemaArgs:
-    type: Optional[str] = None
-    columns_names: Optional[List[str]] = None
-    columns_types: Optional[Dict[str, str]] = None
-    shape: Optional[Tuple[Optional[int], Optional[int]]] = attr.ib(
-        default=None, converter=lambda field: tuple(field) if field else None
+    type: Optional[str] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
     )
-    byte_size: Optional[int] = None
+    columns_names: Optional[List[str]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.instance_of(str),
+                iterable_validator=attr.validators.instance_of(list),
+            )
+        ),
+    )
+    columns_types: Optional[Dict[str, str]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(
+            attr.validators.deep_mapping(
+                key_validator=attr.validators.instance_of(str),
+                value_validator=attr.validators.instance_of(str),
+                mapping_validator=attr.validators.instance_of(dict),
+            )
+        ),
+    )
+    shape: Optional[Tuple[Optional[int], Optional[int]]] = attr.ib(
+        default=None,
+        converter=lambda field: tuple(field) if field else None,
+        validator=attr.validators.optional(
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.optional(
+                    attr.validators.instance_of(int)
+                ),
+                iterable_validator=attr.validators.instance_of(tuple),
+            )
+        ),
+    )
+    byte_size: Optional[int] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(int)),
+    )
 
     @shape.validator
     def validate_shape(self, _, val):

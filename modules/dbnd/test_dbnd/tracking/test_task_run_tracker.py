@@ -28,6 +28,6 @@ class TestTaskRunTracker:
         get_value_meta.side_effect = Exception("Fake error")
         tracker = TaskRunTracker(Mock(), {})
         actual = tracker._calc_meta_data(Mock(), Mock())
-        expected = ValueMeta("")
+        expected = ValueMeta()
         assert actual == expected
         log_exception.assert_called()

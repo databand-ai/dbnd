@@ -203,7 +203,7 @@ class TaskRunTracker(TaskRunCtrl):
 
     def log_value_metrics(self, key, meta_conf, value_meta, ts=None):
         ts = ts or utcnow()
-        metrics = value_meta.build_metrics_for_key(key, meta_conf)
+        metrics = value_meta._build_metrics_for_key(key, meta_conf)
         if metrics["user"]:
             self._log_metrics(metrics["user"])
 
@@ -216,7 +216,11 @@ class TaskRunTracker(TaskRunCtrl):
 
     def log_dataset(self, op_report):
         # type: (DatasetOperationReport) -> None
-        data_meta = self._calc_meta_data(op_report.data, op_report.meta_conf)
+
+        if op_report.meta_data:
+            data_meta = op_report.meta_data
+        else:
+            data_meta = self._calc_meta_data(op_report.data, op_report.meta_conf)
 
         records, columns = data_meta.data_dimensions or (None, None)
         # if the row count or column count exist,
@@ -265,7 +269,7 @@ class TaskRunTracker(TaskRunCtrl):
                 )
 
         if data_meta is None:
-            data_meta = ValueMeta("")
+            data_meta = ValueMeta()
 
         return data_meta
 
@@ -332,6 +336,8 @@ class DatasetOperationReport(object):
     row_count = attr.ib(default=None)
     column_count = attr.ib(default=None)
 
+    meta_data: Optional[ValueMeta] = attr.ib(default=None)
+
     operation_source: Optional[str] = attr.ib(default=None)
 
     def set(self, **kwargs):
@@ -347,6 +353,9 @@ class DatasetOperationReport(object):
 
     def set_data(self, data):
         self.set(data=data)
+
+    def set_metadata(self, metadata):
+        self.set(meta_data=metadata)
 
     def set_error(self, error):
         # type: (str) -> None

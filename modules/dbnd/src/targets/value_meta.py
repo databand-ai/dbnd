@@ -23,21 +23,66 @@ _DEFAULT_VALUE_PREVIEW_MAX_LEN = 10000
 
 @attr.s(slots=True)
 class ValueMeta(object):
-    value_preview = attr.ib()  # type: str
-    data_dimensions = attr.ib(
-        default=None
-    )  # type: Optional[Tuple[Optional[int], Optional[int]]]
-    query = attr.ib(default=None)  # type: Optional[str]
-    data_schema = attr.ib(
+    value_preview: Optional[str] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    data_dimensions: Optional[Tuple[Optional[int], Optional[int]]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.optional(
+                    attr.validators.instance_of(int)
+                ),
+                iterable_validator=attr.validators.instance_of(tuple),
+            )
+        ),
+    )
+    query: Optional[str] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    data_schema: Optional[Union["DataSchemaArgs", dict]] = attr.ib(
         default=None, converter=load_data_schema
-    )  # type: Optional[DataSchemaArgs]
-    data_hash = attr.ib(default=None)  # type: Optional[str]
-    columns_stats = attr.ib(default=attr.Factory(list))  # type: List[ColumnStatsArgs]
-    histograms = attr.ib(default=None)  # type: Optional[Dict[str, Tuple]]
-    histogram_system_metrics = attr.ib(default=None)  # type: Optional[Dict]
-    op_source = attr.ib(default=None)  # type: Optional[str]
+    )
+    data_hash: Optional[str] = attr.ib(default=None)
+    columns_stats: List["ColumnStatsArgs"] = attr.ib(default=attr.Factory(list))
+    histograms: Optional[Dict[str, Tuple]] = attr.ib(default=None)
+    histogram_system_metrics: Optional[Dict] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(dict)),
+    )
+    op_source: Optional[str] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
 
-    def build_metrics_for_key(self, key, meta_conf=None):
+    @classmethod
+    def basic(cls, columns_list: List[ColumnStatsArgs], records_count: int):
+        if len(columns_list) < 1:
+            return None
+
+        all_columns_count = len(columns_list)
+        data_shape = (records_count, all_columns_count)
+
+        for col in columns_list:
+            col.records_count = records_count
+
+        schema = DataSchemaArgs(
+            columns_names=[col.column_name for col in columns_list], shape=data_shape
+        )
+
+        return ValueMeta(
+            data_schema=schema, columns_stats=columns_list, data_dimensions=data_shape
+        )
+
+    def add_column_stats(self, column_data) -> None:
+        column_stats_args = ColumnStatsArgs(**column_data)
+        if self.data_schema and column_data["column_name"]:
+            self.data_schema.columns_names.append(column_data["column_name"])
+        self.columns_stats.append(column_stats_args)
+
+    def _build_metrics_for_key(self, key, meta_conf=None):
         # type: (str, Optional[ValueMetaConf]) -> Dict[str, List[Metric]]
         ts = utcnow()
         dataframe_metric_value = {}
@@ -47,16 +92,16 @@ class ValueMeta(object):
             dataframe_metric_value["data_dimensions"] = self.data_dimensions
             for dim, size in enumerate(self.data_dimensions):
                 key_name = f"{key}.shape{dim}"
-                self.append_metric(data_metrics, key_name, metric_source, size, ts)
+                self._append_metric(data_metrics, key_name, metric_source, size, ts)
                 name = "rows" if dim == 0 else "columns"
                 key_name = f"{key}.{name}"
-                self.append_metric(data_metrics, key_name, metric_source, size, ts)
+                self._append_metric(data_metrics, key_name, metric_source, size, ts)
 
         if meta_conf and meta_conf.log_schema:
             data_schema = self.data_schema.as_dict() if self.data_schema else None
             dataframe_metric_value["schema"] = data_schema
             key_name = f"{key}.schema"
-            self.append_metric(
+            self._append_metric(
                 data_metrics, key_name, metric_source, None, ts, data_schema
             )
 
@@ -64,14 +109,14 @@ class ValueMeta(object):
             dataframe_metric_value["value_preview"] = self.value_preview
             dataframe_metric_value["type"] = "dataframe_metric"
             key_name = str(key)
-            self.append_metric(
+            self._append_metric(
                 data_metrics, key_name, metric_source, None, ts, dataframe_metric_value
             )
 
         metric_source = MetricSource.histograms
         if self.histogram_system_metrics:
             key_name = f"{key}.histogram_system_metrics"
-            self.append_metric(
+            self._append_metric(
                 hist_metrics,
                 key_name,
                 metric_source,
@@ -82,29 +127,31 @@ class ValueMeta(object):
 
         if self.histograms:
             key_name = f"{key}.histograms"
-            self.append_metric(
+            self._append_metric(
                 hist_metrics, key_name, metric_source, None, ts, self.histograms
             )
 
         if self.columns_stats:
             # We dump_op_column_stats to old stats_dict for backward compatibility support
-            stats_dict = self.get_stats_dict_from_columns_stats()
+            stats_dict = self._get_stats_dict_from_columns_stats()
             key_name = f"{key}.stats"
-            self.append_metric(
+            self._append_metric(
                 hist_metrics, key_name, metric_source, None, ts, stats_dict
             )
             for col_name, stats in stats_dict.items():
                 for stat, value in stats.items():
                     key_name = f"{key}.{col_name}.{stat}"
-                    self.append_metric(hist_metrics, key_name, metric_source, value, ts)
+                    self._append_metric(
+                        hist_metrics, key_name, metric_source, value, ts
+                    )
         return {"user": data_metrics, "histograms": hist_metrics}
 
-    def get_column_stats_by_col_name(
+    def _get_column_stats_by_col_name(
         self, column_name: str
     ) -> Optional[ColumnStatsArgs]:
         return get_column_stats_by_col_name(self.columns_stats, column_name)
 
-    def get_stats_dict_from_columns_stats(self) -> Optional[dict]:
+    def _get_stats_dict_from_columns_stats(self) -> Optional[dict]:
         # Returns legacy stats dict for backward compatability support
         return dict(
             ChainMap(
@@ -115,7 +162,7 @@ class ValueMeta(object):
             )
         )
 
-    def append_metric(
+    def _append_metric(
         self, data_metrics, key_name, metric_source, value, ts, value_json=None
     ):
         data_metrics.append(

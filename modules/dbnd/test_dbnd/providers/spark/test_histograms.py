@@ -56,7 +56,7 @@ class TestSparkHistograms(BaseHistogramTests):
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
 
         assert value_meta.histograms == {}
-        col_stats = value_meta.get_column_stats_by_col_name("null_column")
+        col_stats = value_meta._get_column_stats_by_col_name("null_column")
         assert col_stats.column_type == "integer"
 
     def test_null_str_column(self, spark_session, meta_conf):
@@ -68,5 +68,5 @@ class TestSparkHistograms(BaseHistogramTests):
         value_meta = SparkDataFrameValueType().get_value_meta(null_df, meta_conf)
 
         assert value_meta.histograms["null_column"] == ([20], [None])
-        col_stats = value_meta.get_column_stats_by_col_name("null_column")
+        col_stats = value_meta._get_column_stats_by_col_name("null_column")
         assert col_stats.column_type == "string"

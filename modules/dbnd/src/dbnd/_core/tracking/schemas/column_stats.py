@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union
 
 import attr
 
@@ -22,31 +22,63 @@ def get_column_stats_by_col_name(
 
 @attr.s(auto_attribs=True)
 class ColumnStatsArgs:
-    column_name: str = attr.ib()
-    column_type: str = attr.ib()
+    column_name: str = attr.ib(validator=attr.validators.instance_of(str))
+    column_type: str = attr.ib(validator=attr.validators.instance_of(str))
 
-    records_count: int = attr.ib()
-    distinct_count: Optional[int] = attr.ib(default=None)
-    null_count: Optional[int] = attr.ib(default=None)
+    records_count: int = attr.ib(default=0, validator=attr.validators.instance_of(int))
+    distinct_count: Optional[int] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(int)),
+    )
+    null_count: Optional[int] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(int)),
+    )
 
     # Metric for non-numeric column type
-    unique_count: Optional[int] = attr.ib(default=None)
+    unique_count: Optional[int] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(int)),
+    )
     # Most frequent value
     most_freq_value: Optional[Any] = attr.ib(default=None)
-    most_freq_value_count: Optional[int] = attr.ib(default=None)
-
+    most_freq_value_count: Optional[int] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(int)),
+    )
     # Metric for numeric column type
-    mean_value: Optional[float] = attr.ib(default=None)
-    min_value: Optional[float] = attr.ib(default=None)
-    max_value: Optional[float] = attr.ib(default=None)
-    std_value: Optional[float] = attr.ib(default=None)
+    mean_value: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
+    min_value: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
+    max_value: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
+    std_value: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
     # Percentiles
-    quartile_1: Optional[float] = attr.ib(default=None)
-    quartile_2: Optional[float] = attr.ib(default=None)
-    quartile_3: Optional[float] = attr.ib(default=None)
+    quartile_1: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
+    quartile_2: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
+    quartile_3: Optional[Union[int, float]] = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+    )
 
     non_null_count: Optional[int] = attr.ib()
-    null_percent: Optional[float] = attr.ib()
+    null_percent: Optional[Union[int, float]] = attr.ib()
 
     @non_null_count.default
     def _non_null_count(self) -> Optional[int]:
