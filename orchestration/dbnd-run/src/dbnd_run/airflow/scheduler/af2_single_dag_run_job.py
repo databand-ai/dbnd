@@ -50,14 +50,31 @@ class SingleDagRunJob(BackfillJob):
         self, dagrun_infos, ti_status, executor, pickle_id, start_date, session=None
     ):
         # we need to provide pickle_id
-        return super()._execute_dagruns(
-            dagrun_infos=dagrun_infos,
-            ti_status=ti_status,
-            executor=executor,
-            pickle_id=self.dag.pickle_id,  # THIS IS INJECTION, we always have pickle ID!
-            start_date=start_date,
-            session=session,
-        )
+        try:
+            super()._execute_dagruns(
+                dagrun_infos=dagrun_infos,
+                ti_status=ti_status,
+                executor=executor,
+                pickle_id=self.dag.pickle_id,  # THIS IS INJECTION, we always have pickle ID!
+                start_date=start_date,
+                session=session,
+            )
+        except KeyError as ex:
+            # Fix the error from try_number racing issue: KeyError TaskInstanceKey(dag_id=.. )
+            # https://github.com/apache/airflow/pull/30669
+            # https://github.com/apache/airflow/issues/13322
+            # It has been fixed in 2.6.2 (may be)
+            # the last fix is still not released.
+            #  File  airflow/jobs/backfill_job.py", line 631, in _process_backfill_task_instances  self._update_counters(ti_status=ti_status, session=session)
+            #  File "airflow/jobs/backfill_job.py", line 182, in _update_counters   ti_status.running.pop(reduced_key)
+            #
+            # we will try to handle it via skipping the error, so in the next iteration the task is going to be
+            # checked and proceed
+            self.log.warning(
+                "KeyError in _update_counters: skipping this iteration, "
+                "the issue should be resolved in the next iteration: %s",
+                ex,
+            )
 
     def _log_progress(self, ti_status):
         self.dbnd_airflow_executor.handle_process_dag_task_instanced_iteration(
