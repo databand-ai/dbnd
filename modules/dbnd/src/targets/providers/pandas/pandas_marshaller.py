@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 PANDAS_CACHE_KEY = "pandas.DataFrame"
 PANDAS_COPY_ON_READ = True
+PANDAS_V1 = int(pd.__version__.split(".")[0]) < 2
 
 PANDAS_COMPRESSION_LIB = {
     FileCompressions.gzip: "gzip",
@@ -202,9 +203,11 @@ class DataFrameToCsv(_PandasMarshaller):
 
     def _pd_read(self, *args, **kwargs):
         if self.pandas_series:
-            kwargs.setdefault("squeeze", True)
             kwargs.setdefault("header", None)
-        return pd.read_csv(*args, **kwargs)
+            data = pd.read_csv(*args, **kwargs)
+            return data.squeeze()
+        else:
+            return pd.read_csv(*args, **kwargs)
 
     def _pd_to(self, value, *args, **kwargs):
         return value.to_csv(*args, **kwargs)
@@ -363,7 +366,10 @@ class DataFrameDictToHdf5(_PandasMarshaller):
 class DataFrameToTsv(DataFrameToCsv):
     def _pd_read(self, path, *args, **kwargs):
         kwargs.setdefault("delimiter", "\t")
-        kwargs.setdefault("error_bad_lines", False)
+        if PANDAS_V1:
+            kwargs.setdefault("error_bad_lines", False)
+        else:
+            kwargs.setdefault("on_bad_lines", "skip")
         return super(DataFrameToTsv, self)._pd_read(path, *args, **kwargs)
 
     def _pd_to(self, path, *args, **kwargs):

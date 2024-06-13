@@ -150,10 +150,13 @@ def test_pandas_v0_histograms():
 
 def test_pandas_histograms_work_with_NaNs_and_nonseq_index(pandas_data_frame):
     # Arrange
-    pandas_data_frame = (
-        pandas_data_frame.drop(columns="Names")
-        .set_index([pd.Index([90, 30, 50, 70, 10])])  # emulate real world DF indices
-        .append([{"foo": 42}])
+    pandas_data_frame = pd.concat(
+        [
+            pandas_data_frame.drop(columns="Names").set_index(
+                [pd.Index([90, 30, 50, 70, 10])]
+            ),  # emulate real world DF indices
+            pd.DataFrame([{"foo": 42}]),
+        ]
     )
     meta_conf = ValueMetaConf.enabled()
 

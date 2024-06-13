@@ -170,12 +170,12 @@ class PandasHistograms(object):
                 )
                 if column_stats and column_stats.null_count:
                     null_column = pd.Series([column_stats.null_count], index=[None])
-                    counts = counts.append(null_column)
+                    counts = pd.concat([counts, null_column])
                     counts = counts.sort_values(ascending=False)
                 if len(counts) > 50:
                     counts, tail = counts[:49], counts[49:]
                     tail_sum = pd.Series([tail.sum()], index=["_others"])
-                    counts = counts.append(tail_sum)
+                    counts = pd.concat([counts, tail_sum])
                 values = counts.index
             elif is_numeric_dtype(column_type):
                 df_column = df_column.dropna()
