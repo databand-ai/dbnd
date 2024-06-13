@@ -51,7 +51,9 @@ def get_local_tempfile(*path):
     else:
         tempdir = tempfile.gettempdir()
 
-    path = os.path.join(tempdir, "databand-tmp-%09d" % random.randrange(0, 1e10), *path)
+    path = os.path.join(
+        tempdir, "databand-tmp-%09d" % random.randrange(0, int(1e10)), *path
+    )
     base_dir = os.path.dirname(path)
     try:
         if not os.path.exists(base_dir):

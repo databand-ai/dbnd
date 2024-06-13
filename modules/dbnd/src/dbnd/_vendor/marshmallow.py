@@ -21,13 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from distutils.version import LooseVersion
-
-
 try:
     import marshmallow
 
-    version_tuple = tuple(LooseVersion(marshmallow.__version__).version)
+    version_tuple = tuple(map(int, marshmallow.__version__.split(".")))
     if version_tuple != (2, 18, 0):
         raise ImportError
 

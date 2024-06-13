@@ -27,7 +27,7 @@ dbnd_vendors_list = [
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
-    python_requires=">=3.6, <3.12",
+    python_requires=">=3.6, <3.13",
     install_requires=[
         "tzlocal",
         "six",
@@ -37,7 +37,7 @@ setuptools.setup(
         "pytz",  # python time zone for pendulum library
         "pytzdata",  # python time zone for pendulum library
         "requests>=2.18.0",  # API TRACKING
-        "configparser<3.6.0,>=3.5.0",  # same versions as Airflow -- Moved library to _vendor
+        'configparser<3.6.0,>=3.5.0; python_version<"3.10"',  # same versions as Airflow -- Moved library to _vendor
         "pygments>=2.6.1",
         # backward compatible python
         'typing;python_version<"3.7"',  # Standalone pkg is incompatible with 3.7 and not required
@@ -52,8 +52,10 @@ setuptools.setup(
         "tests": [
             "coverage",
             "tox==3.12.1",
-            "pytest==4.5.0",  # 4.6.0 requires pluggy 0.12
-            "pytest-cov==2.9.0",
+            'pytest==4.5.0;python_version<"3.10"',  # 4.6.0 requires pluggy 0.12
+            'pytest-cov==2.9.0;python_version<"3.10"',
+            'pytest==6.2.5;python_version>="3.10"',
+            'pytest-cov==3.0.0;python_version>="3.10"',
             "mock",
             "wheel",  # for fat_wheel tests
         ],

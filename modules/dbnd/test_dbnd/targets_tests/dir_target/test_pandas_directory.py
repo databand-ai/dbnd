@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import logging
 
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from dbnd.testing.orchestration_utils import TargetTestBase
 from targets import target

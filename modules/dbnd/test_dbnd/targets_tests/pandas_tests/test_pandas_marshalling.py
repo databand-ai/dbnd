@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 import pytest
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 from dbnd.testing.orchestration_utils import TargetTestBase
 from targets.providers.pandas.pandas_marshaller import (

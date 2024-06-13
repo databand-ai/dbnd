@@ -35,10 +35,9 @@ from .decorators import (
 )
 from .utils import pprint, missing
 from .exceptions import ValidationError
-from distutils.version import LooseVersion
 
 __version__ = '2.18.0'
-__version_info__ = tuple(LooseVersion(__version__).version)
+__version_info__ = tuple(map(int, __version__.split(".")))
 __author__ = 'Steven Loria'
 __all__ = [
     'Schema',
