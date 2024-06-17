@@ -54,7 +54,7 @@ class IntegrationManagementService:
         integration_configs = response["data"]
 
         if not integration_configs:
-            logger.warning("No integrations found")
+            logger.warning(f"[{monitor_type}] No integrations found")
 
         return integration_configs
 
