@@ -18,9 +18,11 @@ setuptools.setup(
     extras_require={
         "tests": [
             'pandas==1.3.5;python_version<"3.8"',  # M1 is supported
-            'pandas==1.4.0;python_version>="3.8"',
+            'pandas==1.4.0;python_version>="3.8" and python_version<"3.12"',
+            'pandas==2.2.2;python_version>="3.12"',
             'numpy==1.21.6;python_version<"3.8"',  # M1 is supported
-            'numpy==1.22.4;python_version>="3.8"',
+            'numpy==1.22.4;python_version>="3.8" and python_version<"3.12"',
+            'numpy==1.26.4;python_version>="3.12"',
         ]
     },
 )

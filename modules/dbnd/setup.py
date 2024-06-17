@@ -61,13 +61,16 @@ setuptools.setup(
         ],
         "test-pandas": [
             "openpyxl==2.6.4",
-            "numpy<1.23",
-            "pandas<2.0.0,>=0.17.1",  # airflow supports only this version
+            'numpy<1.23;python_version<"3.12"',
+            'pandas<2.0.0,>=0.17.1;python_version<"3.12"',  # airflow supports only this version
+            'pandas>2;python_version>="3.12"',
             'scikit-learn==0.23.2;python_version<"3.8"',
-            'scikit-learn==1.2.0;python_version>="3.8"',
+            'scikit-learn==1.2.0;python_version >= "3.8" and python_version < "3.12"',
+            'scikit-learn==1.5.0;python_version>="3.12"',
             'matplotlib==3.3.0;python_version<"3.8"',
             'matplotlib==3.6.2;python_version>="3.8"',
-            "tables==3.7.0",
+            'tables==3.7.0;python_version<"3.12"',
+            'tables==3.9.2;python_version>="3.12"',
             "feather-format",
             "pyarrow",
         ],
