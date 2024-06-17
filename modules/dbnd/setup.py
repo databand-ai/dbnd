@@ -62,6 +62,7 @@ setuptools.setup(
         "test-pandas": [
             "openpyxl==2.6.4",
             'numpy<1.23;python_version<"3.12"',
+            'numpy<2;python_version>="3.12"',
             'pandas<2.0.0,>=0.17.1;python_version<"3.12"',  # airflow supports only this version
             'pandas>2;python_version>="3.12"',
             'scikit-learn==0.23.2;python_version<"3.8"',
