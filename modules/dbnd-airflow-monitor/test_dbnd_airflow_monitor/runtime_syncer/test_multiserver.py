@@ -16,6 +16,7 @@ from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.multiserver import MultiServerMonitor
+from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.uid_utils import get_uuid
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 from test_dbnd_airflow_monitor.mock_airflow_integration import MockAirflowIntegration
@@ -258,3 +259,43 @@ class TestMultiServer(object):
             MOCK_SERVER_1_CONFIG["uid"]
         ][MockSyncer.SYNCER_TYPE]
         assert newer_last_heartbeat == new_last_heartbeat
+
+    def test_09_run_once_on_integration_enabled_raise_exception(self, multi_server):
+        # Arrange
+        multi_server.get_integrations = MagicMock()
+        integration_with_error = MagicMock(
+            config=_as_dotted_dict(**{"uid": get_uuid()})
+        )
+        integration_with_error.on_integration_enabled.side_effect = Exception("Error")
+        integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        integrations = [integration_with_error, integration]
+        multi_server.get_integrations.return_value = integrations
+        # Act
+        multi_server.run_once()
+
+        # Assert
+        assert len(multi_server.active_integrations) == 2
+
+    def test_10_heartbeat_one_integration_raise_exception(self, multi_server):
+        # Arrange
+        existing_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        missing_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        multi_server.active_integrations = {existing_integration.config.uid: {}}
+        existing_integration_component = MagicMock(spec=BaseComponent)
+        missing_integration_component = MagicMock(spec=BaseComponent)
+        existing_integration.get_components.return_value = [
+            existing_integration_component
+        ]
+        missing_integration.get_components.return_value = [
+            missing_integration_component
+        ]
+
+        # Act
+        multi_server._heartbeat([missing_integration, existing_integration])
+
+        # Assert
+        existing_integration_component.sync_once.assert_called_once()
+        existing_integration_component.refresh_config.assert_called_once()
+
+        missing_integration_component.sync_once.assert_not_called()
+        missing_integration_component.refresh_config.assert_not_called()

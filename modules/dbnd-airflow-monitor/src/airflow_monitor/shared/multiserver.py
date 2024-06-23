@@ -102,8 +102,15 @@ class MultiServerMonitor:
 
     def _stop_disabled_integrations(self, integrations: List[BaseIntegration]):
         for integration in integrations:
-            logger.info("Stopping disabled integration %s", integration.config.uid)
-            integration.on_integration_disabled()
+            integration_uid = integration.config.uid
+            logger.info("Stopping disabled integration %s", integration_uid)
+            try:
+                integration.on_integration_disabled()
+            except Exception:
+                logger.exception(
+                    "Fail executing on_integration_enabled for integration %s",
+                    integration_uid,
+                )
             self.active_integrations.pop(integration.config.uid)
 
     def _start_new_enabled_integrations(self, integrations: List[BaseIntegration]):
@@ -112,7 +119,13 @@ class MultiServerMonitor:
             if integration_uid not in self.active_integrations:
                 logger.info("Started syncing new integration %s", integration_uid)
                 self.active_integrations[integration_uid] = {}
-                integration.on_integration_enabled()
+                try:
+                    integration.on_integration_enabled()
+                except Exception:
+                    logger.exception(
+                        "Fail executing on_integration_enabled for integration %s",
+                        integration_uid,
+                    )
 
     def _component_interval_is_met(
         self, integration_uid: UUID, component: BaseComponent
@@ -143,12 +156,17 @@ class MultiServerMonitor:
                 components_list = integration.get_components()
                 _measure_components_count(integration, components_list)
                 for component in components_list:
-                    if self._component_interval_is_met(integration_uid, component):
-                        component.refresh_config(integration.config)
-                        component.sync_once()
-                        self.active_integrations[integration_uid][
-                            component.identifier
-                        ] = utcnow()
+                    try:
+                        if self._component_interval_is_met(integration_uid, component):
+                            component.refresh_config(integration.config)
+                            component.sync_once()
+                            self.active_integrations[integration_uid][
+                                component.identifier
+                            ] = utcnow()
+                    except Exception:
+                        logger.exception(
+                            "Exception occurred during component execution"
+                        )
 
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)
