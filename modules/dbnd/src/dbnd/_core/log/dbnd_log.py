@@ -1,4 +1,4 @@
-# © Copyright Databand.ai, an IBM Company 2022
+# © Copyright Databand.ai, an IBM Company 2022-2024
 
 import logging
 import sys
@@ -27,15 +27,36 @@ def set_verbose(verbose: bool = True):
     """Enable Verbose output from DBND SDK."""
     global _VERBOSE
     _VERBOSE = verbose
+
+    dbnd_logger = logging.getLogger("dbnd")
+
     if _VERBOSE:
         eprint(DBND_MSG_MARKER + "VERBOSE mode is ON.")
-        dbnd_logger = logging.getLogger("dbnd")
-        if is_verbose() and dbnd_logger.level == logging.WARNING:
-            dbnd_logger.setLevel(logging.INFO)
+        if is_verbose() and not dbnd_logger.isEnabledFor(logging.INFO):
+            dbnd_logger.setLevel(logging.INFO)  # default WARNING --> INFO in verbose
 
 
 # we do it during the import, as there are some code (patches/wrappers) that might use this variable
 set_verbose(environ_enabled(ENV_DBND__VERBOSE))
+
+
+def setup_basic_sdk_logging():
+    if not is_verbose():
+        return  # skip default stderr logger config
+
+    dbnd_logger = logging.getLogger("dbnd")
+    root_logger = logging.getLogger()
+
+    if len(root_logger.handlers) > 0 or len(dbnd_logger.handlers) > 0:
+        return  # python logger is configured, nothing to do
+
+    # ensure something is visible, customer can silence dbnd stderr by configuring logging.NullHandler for databand
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s | <%(processName)s:%(threadName)s> [%(filename)s:%(lineno)d] - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    dbnd_logger.addHandler(handler)
 
 
 def dbnd_log_debug(msg, *args, **kwargs):

@@ -1,5 +1,6 @@
-# © Copyright Databand.ai, an IBM Company 2022
+# © Copyright Databand.ai, an IBM Company 2022-2024
 
+import copy
 import gzip
 import json
 import logging
@@ -110,6 +111,60 @@ class ApiClient(object):
             minutes=self.session_timeout
         )
 
+    def _log_request(self, request_params: dict):
+        """
+        1. No logging for python INFO and above log levels.
+        2. Simplified logging of short REST request for python DEBUG.
+        3. Extensive logging of full REST request for server debug mode with python DEBUG log level.
+        """
+        if self.debug_mode:  # server debug, log full REST request
+            logger.debug("Sending the following request: %s", request_params)
+            return
+
+        if not logger.isEnabledFor(logging.DEBUG):
+            return  # skip, nothing to log
+
+        request_copy = copy.deepcopy(request_params)
+
+        # only size is relevant
+        request_copy["data"] = "<{} bytes>".format(len(request_params["data"]))
+
+        # remove and shortify security-sensitive data
+        request_header_auth = request_copy["headers"].get("Authorization")
+        if request_header_auth:
+            request_copy["headers"]["auth"] = "<{} bytes>".format(
+                len(request_header_auth)
+            )
+            request_copy["headers"].pop("Authorization")
+
+        # shortify frequent headers
+        if request_copy["headers"].get("X-Request-ID"):
+            request_copy["headers"]["rID"] = request_copy["headers"].pop("X-Request-ID")
+        if request_copy["headers"].get("X-Databand-Trace-ID"):
+            request_copy["headers"]["tID"] = request_copy["headers"].pop(
+                "X-Databand-Trace-ID"
+            )
+
+        # minimize default headers
+        for header, value in request_params["headers"].items():
+            if (
+                self.default_headers.get(header) == value and header != "Authorization"
+            ):  # Authorization is already removed from a request_copy
+                request_copy["headers"].pop(header)
+                # "X-Databand-Version" --> "XDdVn"
+                abbreviation = "".join(
+                    [
+                        part[0] + part[-1] if len(part) > 1 else part[0]
+                        for part in header.split("-")
+                    ]
+                )
+                request_copy["headers"]["def"] = (
+                    request_copy["headers"].get("def", "") + " " + abbreviation
+                )
+
+        # SDK debug, log short REST request
+        logger.debug("Sending the following request: %s", request_copy)
+
     def _request(
         self,
         endpoint,
@@ -134,7 +189,8 @@ class ApiClient(object):
             timeout=request_timeout or self.default_request_timeout,
             verify=not self.ignore_ssl_errors,
         )
-        logger.debug("Sending the following request: %s", request_params)
+
+        self._log_request(request_params)
         resp = self._send_request(session, **request_params)
 
         if self.debug_mode:

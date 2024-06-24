@@ -1,4 +1,4 @@
-# © Copyright Databand.ai, an IBM Company 2022
+# © Copyright Databand.ai, an IBM Company 2022-2024
 
 import logging
 import os
@@ -9,6 +9,7 @@ import dbnd._core.context.use_dbnd_run
 
 from dbnd._core.configuration.environ_config import get_dbnd_project_config
 from dbnd._core.context.use_dbnd_run import set_orchestration_mode
+from dbnd._core.log import setup_basic_sdk_logging
 from dbnd._core.log.dbnd_log import dbnd_log_debug, dbnd_log_info, is_verbose
 
 
@@ -19,6 +20,8 @@ _dbnd_bootstrap_status = None
 
 def dbnd_bootstrap(enable_dbnd_run=False):
     """Runs dbnd bootstrapping."""
+    setup_basic_sdk_logging()
+
     global _dbnd_bootstrap_status
     dbnd_log_debug("Bootstrap entrypoint: %s" % _dbnd_bootstrap_status)
     if _dbnd_bootstrap_status is not None:
