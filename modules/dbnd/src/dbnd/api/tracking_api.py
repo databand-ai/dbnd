@@ -53,8 +53,8 @@ AIRFLOW_SOURCE_TYPE = "airflow"
 @attr.s
 class TrackingSource(object):
     name = attr.ib()  # type: str
-    url = attr.ib()  # type: str
-    env = attr.ib()  # type: str
+    url = attr.ib(default=None)  # type: str | None
+    env = attr.ib(default=None)  # type: str | None
 
     source_type = attr.ib(default=AIRFLOW_SOURCE_TYPE)  # type: str
     source_instance_uid = attr.ib(default=None)  # type: Optional[UUID]

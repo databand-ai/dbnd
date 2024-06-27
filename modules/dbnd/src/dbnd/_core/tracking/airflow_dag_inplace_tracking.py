@@ -144,8 +144,8 @@ def build_run_time_airflow_task(
     )
 
     job_name = af_context.dag_id
-    source = UpdateSource.airflow_tracking
-    return root_task, job_name, source, root_run_uid
+    source_type = UpdateSource.airflow_tracking
+    return root_task, job_name, source_type, root_run_uid
 
 
 def should_flatten(flatten_config, operator, attr_name):

@@ -40,6 +40,7 @@ from dbnd._core.utils.airflow_utils import get_project_name_from_airflow_tags
 from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
+from dbnd.api.tracking_api import TrackingSource
 
 
 logger = logging.getLogger(__name__)
@@ -246,20 +247,30 @@ class _DbndScriptTrackingManager(object):
             )
 
         if airflow_context:
-            root_task, job_name, source, run_uid = build_run_time_airflow_task(
+            root_task, job_name, source_type, run_uid = build_run_time_airflow_task(
                 af_context=airflow_context, root_task_name=root_task_name
             )
             try_number = airflow_context.try_number
+            tracking_source = None
         else:
             root_task = _build_inline_root_task(root_task_name)
             job_name = root_task_name
-            source = UpdateSource.generic_tracking
+
+            source_type = UpdateSource.generic_tracking
+
+            source_name_from_config = config.get_config_value(
+                section="run_info", key="source_name"
+            )
+
+            tracking_source = None
+
+            if source_name_from_config:
+                tracking_source = TrackingSource(
+                    name=source_name_from_config.value, source_type=str(source_type)
+                )
+
             run_uid = None
             try_number = 1
-
-        tracking_source = (
-            None  # TODO_CORE build tracking_source -> typeof TrackingSourceSchema
-        )
 
         from dbnd._core.run.databand_run import DatabandRun
 
@@ -269,7 +280,7 @@ class _DbndScriptTrackingManager(object):
                 job_name=job_name,
                 run_uid=run_uid,
                 existing_run=run_uid is not None,
-                source=source,
+                source=source_type,
                 af_context=airflow_context,
                 tracking_source=tracking_source,
                 project_name=project_name,
