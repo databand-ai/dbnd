@@ -20,9 +20,7 @@ variables:
   # Change pip's cache directory to be inside the project directory since we can
   # only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
-  # Specific images according to a python version
-  DOCKER_IMAGE_CI_PYTEST_PY37: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py37-v2
-  DOCKER_IMAGE_CI_PYTEST_PY39: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci.test:py39-v2
+  DOCKER_IMAGE_CI_PYTEST_MULTI: us.gcr.io/dbnd-dev-260010/databand/dbnd-ci-pytest:multi-v1
 
 ### TESTS BASIC
 .template__except_defaults:
@@ -96,14 +94,14 @@ pre_commit:
     KUBERNETES_CPU_LIMIT: 2000m
     KUBERNETES_MEMORY_REQUEST: 230Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     #    - tox -e pre-commit,docs,readme
     - tox -e pre-commit,bumpversion-check
 
 lint:
   <<: *template__python_test_job__cpu_heavy
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - tox -e lint,lint-tracking-airflow
 
@@ -114,13 +112,13 @@ manifest:
     KUBERNETES_CPU_LIMIT: 1
     KUBERNETES_MEMORY_REQUEST: 260Mi
     KUBERNETES_MEMORY_LIMIT: 1Gi
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - make test-manifest
 
 test dbnd py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - cd modules/dbnd
     - tox -e py37
@@ -130,7 +128,7 @@ test dbnd py37:
 
 test dbnd py39:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - cd modules/dbnd
     - tox -e py39
@@ -140,7 +138,7 @@ test dbnd py39:
 
 test dbnd_examples py39:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY39}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - cd examples
     - tox -e py39
@@ -165,7 +163,7 @@ test dbnd_examples py39:
 
 dbnd_airflow 1_10_15_py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - cd modules/dbnd-airflow
     - tox -e py37-airflow_1_10_15
@@ -176,7 +174,7 @@ dbnd_airflow 1_10_15_py37:
 
 dbnd_airflow_monitor 1_10_10_py37:
   <<: *template__python_test_job
-  image: ${DOCKER_IMAGE_CI_PYTEST_PY37}
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
   script:
     - cd modules/dbnd-airflow-monitor
     - tox -e py37-airflow_1_10_10

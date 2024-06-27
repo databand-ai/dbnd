@@ -80,7 +80,7 @@ jmespath==1.0.1
     #   botocore
 lazy-object-proxy==1.4.3
     # via astroid
-lxml==4.9.1
+lxml==4.9.3
     # via redshift-connector
 markupsafe==2.1.1
     # via jinja2
