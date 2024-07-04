@@ -9,7 +9,7 @@ from prometheus_client import Summary
 
 from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.monitoring.newrelic import transaction_scope
+from airflow_monitor.shared.monitoring.apm import transaction_scope
 from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
 from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.trace import new_tracing_id

@@ -17,7 +17,7 @@ from airflow_monitor.shared.integration_management_service import (
 )
 from airflow_monitor.shared.liveness_probe import create_liveness_file
 from airflow_monitor.shared.logger_config import configure_logging
-from airflow_monitor.shared.monitoring.newrelic import transaction_scope
+from airflow_monitor.shared.monitoring.apm import transaction_scope
 from airflow_monitor.shared.monitoring.prometheus_tools import (
     integration_components_count,
     integration_iteration_time,

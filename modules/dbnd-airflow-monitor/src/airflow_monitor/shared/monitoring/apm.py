@@ -2,6 +2,7 @@
 
 import contextlib
 import logging
+import os
 import sys
 
 
@@ -13,6 +14,16 @@ try:
     newrelic_available = True
 except ImportError:
     newrelic_available = False
+
+
+def configure_apm():
+    if os.environ.get("INSTANA_ENABLED", "false").lower() == "true":
+        try:
+            import instana  # noqa: F401 pylint: disable=unused-import
+        except ImportError:
+            pass
+
+    configure_newrelic()
 
 
 def configure_newrelic():
