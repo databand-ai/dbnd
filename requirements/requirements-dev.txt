@@ -152,7 +152,7 @@ pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
 pytzdata==2020.1
     # via dbnd
-pyyaml==6.0
+pyyaml==6.0.1
     # via
     #   dbnd
     #   dbnd-postgres
