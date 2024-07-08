@@ -64,7 +64,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.5.5
     hooks:
       - id: insert-license
         files: dbnd-core/.+/.+\.py$
