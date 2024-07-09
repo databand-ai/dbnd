@@ -49,6 +49,10 @@ class TrackingConfig(Config):
         "(airflow dag_id, script name, etc) ",
     )[str]
 
+    source = parameter(
+        description="Sets the source name for the runes to be launched", default=None
+    )[str]
+
     databand_external_url = parameter(
         default=None,
         description="Set tracker URL to be used for tracking from external systems.",

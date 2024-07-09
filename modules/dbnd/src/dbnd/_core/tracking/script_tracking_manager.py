@@ -259,7 +259,7 @@ class _DbndScriptTrackingManager(object):
             source_type = UpdateSource.generic_tracking
 
             source_name_from_config = config.get_config_value(
-                section="run_info", key="source_name"
+                section="tracking", key="source"
             )
 
             tracking_source = None

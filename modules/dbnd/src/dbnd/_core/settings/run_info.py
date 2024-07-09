@@ -57,10 +57,6 @@ class RunInfoConfig(config.Config):
     user_data = parameter(default=None, description="UserData")[str]
     user = parameter(default=None, description="override user name with the value")[str]
 
-    source_name = parameter(
-        description="Sets the source name for the runes to be launched", default=None
-    )[str]
-
     def build_task_run_info(self):
         task_run_env_uid = get_uuid()
         import dbnd
