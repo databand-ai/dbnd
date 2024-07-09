@@ -41,6 +41,7 @@ from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
 from dbnd.api.tracking_api import TrackingSource
+from dbnd.providers.spark.dbnd_spark_init import safe_get_databricks_notebook_name
 
 
 logger = logging.getLogger(__name__)
@@ -143,6 +144,14 @@ def _calculate_root_task_name_from_env_or_script_path(tracking_config_job_name=N
                     f"Cleaning task name from generated name : {root_task_name}"
                 )
                 return root_task_name
+
+    notebook_name = safe_get_databricks_notebook_name()
+    if notebook_name:
+        root_task_name = notebook_name
+        dbnd_log_debug(
+            f"Calculating root task name from databrick notebook: {root_task_name}"
+        )
+        return root_task_name
 
     if not root_task_name:
         dbnd_log_debug("Can't calculate root task name (job name).")
