@@ -63,6 +63,9 @@ class AirflowIntegrationConfig(BaseIntegrationConfig):
             k: v
             for k, v in monitor_instance_config.items()
             if k in attr.fields_dict(cls)
+            and k != "api_mode"
+            and k != "base_url"
+            and k != "dag_ids"
         }
 
         dag_ids = config["dag_ids"]
