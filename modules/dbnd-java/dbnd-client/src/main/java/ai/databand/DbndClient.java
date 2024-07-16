@@ -461,9 +461,6 @@ public class DbndClient {
             } else {
                 String errorMsg = String.format("HTTP request to the Databand tracker '%s' failed: %s %s", config.databandUrl(), res.code(), res.message());
                 LOG.error(errorMsg);
-                if(call.request().url().encodedPath().contains("tracking/init_run")) {
-                    DbndAppLog.printfln(Level.ERROR, errorMsg); // aditional printing for a first http call
-                }
                 if (res.code() == 401) {
                     LOG.warn("Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is missing or wrong");
                 } else if (res.code() >= 500) {

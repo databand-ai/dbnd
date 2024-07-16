@@ -14,9 +14,12 @@ import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
+import org.slf4j.LoggerFactory;
+
 import ai.databand.DbndAppLog;
 
 public class ActiveJobTransformer implements ClassFileTransformer {
+    private static final DbndAppLog LOG = new DbndAppLog(LoggerFactory.getLogger(ActiveJobTransformer.class));
 
     @Override
     public byte[] transform(ClassLoader loader,
@@ -28,7 +31,7 @@ public class ActiveJobTransformer implements ClassFileTransformer {
             return classfileBuffer;
         }
         try (InputStream is = new ByteArrayInputStream(classfileBuffer)) {
-            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking of the Spark class 'ActiveJob'");
+            LOG.info("Databand tracking of the Spark class 'ActiveJob'");
             ClassPool cp = ClassPool.getDefault();
             cp.appendClassPath(new LoaderClassPath(loader));
             CtClass ct = cp.makeClass(is);
@@ -40,7 +43,7 @@ public class ActiveJobTransformer implements ClassFileTransformer {
             }
             return ct.toBytecode();
         } catch (Throwable e) {
-            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Databand tracking failed to modify the 'ActiveJob' class.");
+            LOG.info("Databand tracking failed to modify the 'ActiveJob' class.");
             e.printStackTrace();
             return null;
         }

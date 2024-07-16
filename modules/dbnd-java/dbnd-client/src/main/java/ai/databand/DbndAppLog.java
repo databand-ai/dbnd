@@ -44,16 +44,6 @@ public class DbndAppLog {
         printf(lvl, msg + "%n", args);
     }
 
-    public static void printfv(final String msg, final Object... args) {
-        if(DbndWrapper.instance().config().isVerbose()) {
-            printf(org.slf4j.event.Level.INFO, "v " + msg, args);
-        }
-    }
-
-    public static void printfvln(final String msg, final Object... args) {
-        printfv(msg + "%n", args);
-    }
-
     public void info(final String msg, final Object... args) {
         LOG.info(DbndAppLog.LOG_PREFIX + msg, args);
     }

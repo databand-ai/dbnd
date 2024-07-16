@@ -24,9 +24,12 @@ import java.security.ProtectionDomain;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.slf4j.LoggerFactory;
+
 public class DbndTrackingTransformer implements ClassFileTransformer {
 
     private static final String TASK_ANNOTATION = "ai.databand.annotations.Task";
+    private static final DbndAppLog LOG = new DbndAppLog(LoggerFactory.getLogger(DbndTrackingTransformer.class));
 
     private final DbndAgentConfig config;
 
@@ -65,14 +68,14 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 MethodInfo methodInfo = method.getMethodInfo();
                 CtClass tr = cp.get("java.lang.Throwable");
 
-                DbndAppLog.printfvln("Databand tracking of @Task annotated method '%s.%s()'", className, methodInfo.getName());
+                LOG.verbose("Databand tracking of @Task annotated method '{}.{}()'", className, methodInfo.getName());
 
                 method.insertBefore("{ $dbnd.beforeTask(\"" + ct.getName() + "\", \"" + method.getLongName() + "\", $args); }");
                 method.insertAfter("{ $dbnd.afterTask(\"" + method.getLongName() + "\", (Object) ($w) $_); }");
                 method.addCatch("{ $dbnd.errorTask(\"" + method.getLongName() + "\", $e); throw $e; }", tr);
             }
 
-            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand has succesfully detected and has started tracking of %d @Task annotated methods out of %d total methods declared directly inside the class '%s'", annotatedMethods.size(), ct.getDeclaredMethods().length, className);
+            LOG.info("Databand has succesfully detected and has started tracking of {} @Task annotated methods out of {} total methods declared directly inside the class '{}'", annotatedMethods.size(), ct.getDeclaredMethods().length, className);
 
             return ct.toBytecode();
         } catch (RuntimeException e) {
@@ -80,7 +83,7 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
                 return null;
             }
         } catch (Throwable e) {
-            DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Databand failed to add runtime tracking to class %s", className);
+            LOG.error("Databand failed to add runtime tracking to class {}", className);
             e.printStackTrace();
             return null;
         }

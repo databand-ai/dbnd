@@ -16,7 +16,6 @@ import ai.databand.schema.TaskRun;
 import javassist.ClassPool;
 import javassist.Loader;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.scheduler.SparkListenerEvent;
@@ -378,7 +377,7 @@ public class DbndWrapper {
             // don't init run from the scratch, reuse values
             run = config.isTrackingEnabled() ? new DefaultDbndRun(dbnd, config) : new NoopDbndRun();
             if (!config.isTrackingEnabled()) {
-                DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
+                LOG.info("Databand tracking is not enabled. Set DBND__TRACKING variable to True if you want to enable it.");
             }
             DatabandTaskContext dbndCtx = config.databandTaskContext().get();
             TaskRun driverTask = new TaskRun();
@@ -387,7 +386,7 @@ public class DbndWrapper {
             driverTask.setTaskRunAttemptUid(dbndCtx.getTaskRunAttemptUid());
             config.airflowContext().ifPresent(ctx -> driverTask.setName(ctx.getTaskId()));
             run.setDriverTask(driverTask);
-            DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Reusing existing databand task '%s', taskUid: '%s' ", driverTask.getName(), driverTask.getTaskRunUid());
+            LOG.info("Reusing existing databand task '{}', taskUid: '{}' ", driverTask.getName(), driverTask.getTaskRunUid());
         } else {
             try {
                 StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -414,7 +413,7 @@ public class DbndWrapper {
                     }
                 }
             } catch (ClassNotFoundException e) {
-                DbndAppLog.printfln(org.slf4j.event.Level.ERROR, "Class not found: %s", e.getMessage());
+                LOG.error("Class not found: {}", e.getMessage());
                 // do nothing
             }
         }
