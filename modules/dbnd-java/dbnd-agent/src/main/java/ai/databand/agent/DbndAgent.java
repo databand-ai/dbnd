@@ -24,7 +24,6 @@ public class DbndAgent {
             e.printStackTrace();
         }
 
-        Runtime.getRuntime();
         String jvmName = ManagementFactory.getRuntimeMXBean().getName();
         DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Succesfully loaded Databand Agent v%s into JVM process '%s'. No Databand tracking has started yet.", props.getProperty("version"), jvmName);
         // this is workaround for spark-submit case

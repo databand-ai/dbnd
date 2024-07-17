@@ -85,6 +85,7 @@ public class DbndWrapper {
         config = new DbndConfig();
         if(config.isVerbose()) {
             LOG.info("v Parsed Databand properties: {}", config);
+            LOG.info("v Executing Spark submit: {}", config.cmd());;
         }
         try {
             dbnd = new DbndClient(config);
