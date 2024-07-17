@@ -4,14 +4,17 @@
 
 package ai.databand.spark;
 
+import ai.databand.DbndWrapper;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.WholeStageCodegenExec;
+import org.apache.spark.sql.execution.command.DataWritingCommandExec;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import scala.collection.immutable.Seq;
 
@@ -36,7 +39,6 @@ public class DbndSparkQueryExecutionListenerTest {
     private LogicalPlan dbndAliasPlanMock = Mockito.mock(LogicalPlan.class);
     private WholeStageCodegenExec wholeStageCodegenExecMock = Mockito.mock(WholeStageCodegenExec.class);
     private DbndSparkQueryExecutionListener dbndSparkQueryExecutionListenerSpy = spy(dbndSparkQueryExecutionListener);
-
     @BeforeAll
     public void setup() {
         spy(dbndSparkQueryExecutionListener);
@@ -64,20 +66,20 @@ public class DbndSparkQueryExecutionListenerTest {
     }
 
     @Test
-    public void testExctactPath() {
+    public void testExtractPath() {
         MatcherAssert.assertThat(
             "Dataset path should be properly extracted",
-            dbndSparkQueryExecutionListener.exctractPath("InMemoryFileIndex(1 paths)[dbfs:/data/daily_data.csv]"),
+            dbndSparkQueryExecutionListener.extractPath("InMemoryFileIndex(1 paths)[dbfs:/data/daily_data.csv]"),
             Matchers.equalTo("dbfs:/data/daily_data.csv")
         );
         MatcherAssert.assertThat(
             "Dataset path should be properly extracted",
-            dbndSparkQueryExecutionListener.exctractPath("InMemoryFileIndex[dbfs:/data/daily_data.csv]"),
+            dbndSparkQueryExecutionListener.extractPath("InMemoryFileIndex[dbfs:/data/daily_data.csv]"),
             Matchers.equalTo("dbfs:/data/daily_data.csv")
         );
         MatcherAssert.assertThat(
             "Dataset path should be properly extracted",
-            dbndSparkQueryExecutionListener.exctractPath("s3:/data/daily_data.csv"),
+            dbndSparkQueryExecutionListener.extractPath("s3:/data/daily_data.csv"),
             Matchers.equalTo("s3:/data/daily_data.csv")
         );
     }

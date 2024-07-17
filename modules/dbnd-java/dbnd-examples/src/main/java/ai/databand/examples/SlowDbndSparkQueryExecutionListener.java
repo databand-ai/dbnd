@@ -19,12 +19,12 @@ import java.util.concurrent.TimeUnit;
 public class SlowDbndSparkQueryExecutionListener extends DbndSparkQueryExecutionListener {
 
     @Override
-    protected void log(String path, DatasetOperationType operationType, StructType datasetSchema, long rows) {
+    protected void log(String path, DatasetOperationType operationType, StructType datasetSchema, long rows,boolean isPartitioned) {
         try {
             TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        super.log(path, operationType, datasetSchema, rows);
+        super.log(path, operationType, datasetSchema, rows,isPartitioned);
     }
 }

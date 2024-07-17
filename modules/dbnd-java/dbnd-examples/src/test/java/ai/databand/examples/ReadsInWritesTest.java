@@ -38,10 +38,22 @@ public class ReadsInWritesTest {
 
         pipelinesVerify.assertDatasetOperationExists(
             "join_pipeline",
-            "build/resources/main",
+            "build/resources/main/orders.csv",
             DatasetOperationType.READ,
             "SUCCESS",
-            54,
+            50,
+            1,
+            datasetOpsByTask,
+            null,
+            LogDataset.OP_SOURCE_SPARK_QUERY_LISTENER
+        );
+
+        pipelinesVerify.assertDatasetOperationExists(
+            "join_pipeline",
+            "build/resources/main/customers.csv",
+            DatasetOperationType.READ,
+            "SUCCESS",
+            4,
             1,
             datasetOpsByTask,
             null,
