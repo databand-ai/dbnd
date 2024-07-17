@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbnd.providers.spark.dbnd_spark_init import is_databricks_notebook_env
+from dbnd.providers.spark.dbnd_databricks import is_databricks_notebook_env
 
 
 @pytest.fixture

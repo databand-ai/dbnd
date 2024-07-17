@@ -41,7 +41,12 @@ from dbnd._core.utils.timezone import utcnow
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
 from dbnd.api.tracking_api import TrackingSource
-from dbnd.providers.spark.dbnd_spark_init import safe_get_databricks_notebook_name
+from dbnd.providers.spark.dbnd_databricks import (
+    is_databricks_notebook_env,
+    register_on_cell_exit_action,
+    safe_get_databricks_notebook_name,
+    unregister_on_cell_exit_action,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +93,9 @@ def _set_tracking_config_overide(airflow_context=None):
 
 
 def _set_process_exit_handler(handler):
+    if is_databricks_notebook_env():
+        register_on_cell_exit_action(handler)
+
     atexit.register(handler)
 
     # https://docs.python.org/3/library/atexit.html
@@ -338,6 +346,10 @@ class _DbndScriptTrackingManager(object):
         if not self._active:
             return
         self._active = False
+
+        if is_databricks_notebook_env():
+            unregister_on_cell_exit_action(self.stop)
+
         try:
             # Required for scripts tracking which do not set the state to SUCCESS
             if finalize_run:
@@ -365,7 +377,10 @@ class _DbndScriptTrackingManager(object):
                 if root_tr.task_run_state == TaskRunState.DEFERRED:
                     return
 
-            self._close_all_context_managers()
+            # In the notebook databricks stop will be called at the end of each tracked cell,
+            # closing the context manager will prevent tracking in the rest of the notebook
+            if not is_databricks_notebook_env():
+                self._close_all_context_managers()
 
         except Exception:
             _handle_tracking_error("dbnd-tracking-shutdown")
