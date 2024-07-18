@@ -172,10 +172,10 @@ public class DbndClient {
         Call<Void> call = dbnd.initRun(data);
         Optional<Object> res = safeExecuteVoid(call);
         if (res.isPresent()) {
-            LOG.info("[root_run_uid: {}, job_name: {}, run_name: {}] run created", runUid, jobName, runName);
+            LOG.info("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}] run created in databand URL: {}", runUid, jobName, runName, projectName == null ? "default" : projectName, config.databandUrl());
             return runUid;
         } else {
-            LOG.error("[root_run_uid: {}, job_name: {}, run_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName);
+            LOG.error("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName, projectName == null ? "default" : projectName);
         }
 
         throw new RuntimeException("Unable to init run because HTTP request to the tracker failed. " +
@@ -432,13 +432,13 @@ public class DbndClient {
         if (logBody == null) {
             return;
         }
-        LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] submitting task log, log size: {} characters", taskRunUid, taskRunAttemptUid, logBody.length());
+        LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] submitting task execution log (from local logger), total log size: {} characters", taskRunUid, taskRunAttemptUid, logBody.length());
         SaveTaskRunLog body = new SaveTaskRunLog(config, taskRunAttemptUid, logBody);
         Optional<Object> res = safeExecuteVoid(dbnd.saveTaskRunLog(body));
         if (res.isPresent()) {
-            LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] task log submitted", taskRunUid, taskRunAttemptUid);
+            LOG.info("[task_run_uid: {}, task_run_attempt_uid: {}] task execution log submitted", taskRunUid, taskRunAttemptUid);
         } else {
-            LOG.error("[task_run_uid: {}, task_run_attempt_uid: {}] Unable to submit task log", taskRunUid, taskRunAttemptUid);
+            LOG.error("[task_run_uid: {}, task_run_attempt_uid: {}] Unable to submit task execution log", taskRunUid, taskRunAttemptUid);
         }
     }
 

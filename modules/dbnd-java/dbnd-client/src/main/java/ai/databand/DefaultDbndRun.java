@@ -125,10 +125,11 @@ public class DefaultDbndRun implements DbndRun {
         } else {
             this.jobName = annotationValue == null || annotationValue.isEmpty() ? method.getName() : annotationValue;
         }
-        config.jobName().ifPresent(name -> this.jobName = name); // FIXME name is never assigned properly?
+        config.jobName().ifPresent(name -> this.jobName = name);
         TaskRunsInfo rootRun = buildRootRun(method, args);
         RootRun root = config.azkabanContext().isPresent() ? config.azkabanContext().get().root() : null;
-        this.rootRunUid = dbnd.initRun(jobName, runId, user, config.runName(), rootRun, airflowContext, root, source, trackingSource, null);
+        String projectName = config.projectName().orElse(null);
+        this.rootRunUid = dbnd.initRun(jobName, runId, user, config.runName(), rootRun, airflowContext, root, source, trackingSource, projectName);
         dbnd.setRunState(this.rootRunUid, "RUNNING");
     }
 

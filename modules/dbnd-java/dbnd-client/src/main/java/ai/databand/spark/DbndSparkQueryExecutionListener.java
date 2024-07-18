@@ -125,7 +125,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             isProcessed = submitReadOps(executedPlan);
         }
         if (!isProcessed) {
-            LOG.verbose("[{}] Spark event was not processed because execution plan class {} is not supported", executedPlan.hashCode(), executedPlan.getClass().getName());
+            LOG.verbose("[{}] Spark event was not processed because execution plan class {} and all its child plans are not supported", executedPlan.hashCode(), executedPlan.getClass().getName());
         } else {
             LOG.verbose("[{}] Spark event was processed succesfully, execution plan class: {}", executedPlan.hashCode(), executedPlan.getClass().getName());
         }
@@ -138,7 +138,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
         for (SparkPlan next : allChildren) {
             if (next instanceof FileSourceScanExec) {
-                LOG.verbose("[{}][{}] FileSourceScanExec plan type detected", executedPlan.hashCode(), next.hashCode());
+                LOG.verbose("[{}][{}] Supported FileSourceScanExec child plan type detected", executedPlan.hashCode(), next.hashCode());
                 FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                 StructType schema = fileSourceScan.schema();
@@ -153,10 +153,11 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
                 log(path, DatasetOperationType.READ, schema, rows,false);
                 isProcessed = true;
+                continue;
             }
             if (isHiveEnabled) {
                 if (next instanceof HiveTableScanExec) {
-                    LOG.verbose("[{}][{}] HiveTableScanExec plan type detected", executedPlan.hashCode(), next.hashCode());
+                    LOG.verbose("[{}][{}] Supported HiveTableScanExec child plan type detected", executedPlan.hashCode(), next.hashCode());
                     try {
                         HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
@@ -172,8 +173,11 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                     } catch (Exception e) {
                         LOG.error("[{}] Unable to extract dataset information from HiveTableScanExec - {}", executedPlan.hashCode(), e);
                     }
+                    continue;
                 }
             }
+
+            LOG.verbose("[{}] Unsupported children plan: {}", executedPlan.hashCode(), next.getClass().getName());
         }
         return isProcessed;
     }

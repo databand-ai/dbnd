@@ -204,6 +204,10 @@ public class DbndConfig implements PropertiesSource {
         return getValue(DBND__RUN__JOB_NAME);
     }
 
+    public Optional<String> projectName() {
+        return getValue(DBND__TRACKING__PROJECT);
+    }
+
     public Optional<String> csrfToken() {
         return getValue(DBND__CSRF_TOKEN);
     }

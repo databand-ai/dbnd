@@ -447,7 +447,6 @@ public class DbndWrapper {
         }
         try {
             run.init(method, args);
-            LOG.info("Started tracking Spark event with dataset operation for method '{}' under the pipeline '{}' in Databand URL: {}", method.getName(), run.getTaskName(method), config.databandUrl());
         } catch (Exception e) {
             run = new NoopDbndRun();
             LOG.error("Unable to init databand tracking: {}", e);
