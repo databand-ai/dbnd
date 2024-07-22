@@ -151,6 +151,7 @@ class TestMultiServer(object):
         assert not count_logged_exceptions(caplog)
 
     def test_05_test_error_cleanup(self, multi_server, caplog):
+
         mock_airflow_integration = MockAirflowIntegration(
             AirflowIntegrationConfig(**MOCK_SERVER_4_CONFIG)
         )
@@ -159,6 +160,7 @@ class TestMultiServer(object):
         )
         mock_airflow_integration.mock_reporting_service.error = "some_error"
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
         # should start mock_server, should do 1 iteration
         assert len(multi_server.active_integrations) == 1
 
@@ -167,6 +169,8 @@ class TestMultiServer(object):
 
         mock_airflow_integration.mock_data_fetcher.alive = False
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
+
         # still alive
         assert len(multi_server.active_integrations) == 1
         assert mock_airflow_integration.mock_reporting_service.error is not None
@@ -176,6 +180,8 @@ class TestMultiServer(object):
         )
 
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
+
         assert mock_airflow_integration.mock_reporting_service.error is not None
         new_error_lines = mock_airflow_integration.mock_reporting_service.error.split(
             "\n"
@@ -185,6 +191,8 @@ class TestMultiServer(object):
 
         mock_airflow_integration.mock_data_fetcher.alive = True
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
+
         assert len(multi_server.active_integrations) == 1
         assert not mock_airflow_integration.mock_reporting_service.error
 

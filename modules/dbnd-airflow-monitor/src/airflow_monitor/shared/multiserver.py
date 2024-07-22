@@ -3,6 +3,7 @@
 import logging
 
 from datetime import timedelta
+from functools import partial
 from time import sleep
 from typing import Callable, Iterable, List, Tuple, Type, TypeVar
 from uuid import UUID
@@ -11,6 +12,7 @@ from prometheus_client import Summary
 
 from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.shared.base_integration import BaseIntegration
+from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
 from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
 from airflow_monitor.shared.integration_management_service import (
     IntegrationManagementService,
@@ -24,6 +26,7 @@ from airflow_monitor.shared.monitoring.prometheus_tools import (
     monitor_integrations_count,
     monitor_iteration_time,
 )
+from airflow_monitor.shared.scheduler import Scheduler
 from dbnd._core.utils.timezone import utcnow
 
 
@@ -87,6 +90,7 @@ class MultiServerMonitor:
         )
 
         self.integration_management_service = integration_management_service
+        self.task_scheduler = Scheduler()
 
     def _should_stop(self):
         if (
@@ -151,22 +155,53 @@ class MultiServerMonitor:
                 integration_uid,
                 self.iteration,
             )
+
             with _measure_integration_iteration_time(integration):
                 # create new syncers with new config every heartbeat
                 components_list = integration.get_components()
                 _measure_components_count(integration, components_list)
                 for component in components_list:
+
                     try:
+
                         if self._component_interval_is_met(integration_uid, component):
-                            component.refresh_config(integration.config)
-                            component.sync_once()
-                            self.active_integrations[integration_uid][
-                                component.identifier
-                            ] = utcnow()
+                            is_task_scheduled = self.try_schedule_component(
+                                component, integration.config
+                            )
+                            if is_task_scheduled:
+                                self.active_integrations[integration.config.uid][
+                                    component.identifier
+                                ] = utcnow()
+
                     except Exception:
                         logger.exception(
                             "Exception occurred during component execution"
                         )
+
+    def try_schedule_component(
+        self, component: BaseComponent, integration_config: BaseIntegrationConfig
+    ) -> bool:
+        task = partial(
+            self.sync_component,
+            component=component,
+            integration_config=integration_config,
+        )
+        task_resource_group = str(integration_config.uid)
+        is_task_scheduled = self.task_scheduler.try_schedule_task(
+            task=task,
+            task_id=f"{component.identifier}-{task_resource_group}",
+            group=task_resource_group,
+        )
+        return is_task_scheduled
+
+    def sync_component(
+        self, component: BaseComponent, integration_config: BaseIntegrationConfig
+    ):
+        try:
+            component.refresh_config(integration_config)
+            component.sync_once()
+        except Exception:
+            logger.exception("Exception occurred during component execution")
 
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)
@@ -183,6 +218,7 @@ class MultiServerMonitor:
                 logger.exception("Unknown exception during iteration", exc_info=True)
 
             if self._should_stop():
+                self.task_scheduler.wait_all_tasks()
                 self._stop_disabled_integrations(self.current_integrations)
                 break
 
