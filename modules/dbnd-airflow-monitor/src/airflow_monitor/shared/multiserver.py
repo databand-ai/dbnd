@@ -189,7 +189,7 @@ class MultiServerMonitor:
         task_resource_group = str(integration_config.uid)
         is_task_scheduled = self.task_scheduler.try_schedule_task(
             task=task,
-            task_id=f"{component.identifier}-{task_resource_group}",
+            task_id=f"{component.identifier};{task_resource_group}",
             group=task_resource_group,
         )
         return is_task_scheduled

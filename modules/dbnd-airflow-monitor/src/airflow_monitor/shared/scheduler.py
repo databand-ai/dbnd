@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2024
 import logging
+import threading
 import time
 
 from collections import defaultdict
@@ -19,17 +20,16 @@ class Scheduler:
 
     def try_schedule_task(self, task: Callable, task_id: str, group: str = "") -> bool:
         if self.is_task_running(task_id):
-            logger.info(
-                "tried scheduling a task that is already running scheduling aborted, task id: %s",
-                task_id,
-            )
             return False
+
         logger.info(
             "Scheduling a new task, task id: %s \n there are currently %s tasks running",
             task_id,
             len(self.running_tasks),
         )
-        future = self.group_pools[group].submit(task)
+        future = self.group_pools[group].submit(
+            self.task_wrapper, task=task, task_id=task_id
+        )
         self.running_tasks.add(task_id)
         future.add_done_callback(lambda _: self.handel_finished_task(task_id))
         return True
@@ -48,3 +48,11 @@ class Scheduler:
     def wait_all_tasks(self):
         while self.running_tasks:
             time.sleep(1)
+
+    def task_wrapper(self, task: Callable, task_id: str):
+        old_thread_name = threading.current_thread().name
+        threading.current_thread().name = task_id
+        try:
+            task()
+        finally:
+            threading.current_thread().name = old_thread_name
