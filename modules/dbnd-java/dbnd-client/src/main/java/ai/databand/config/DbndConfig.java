@@ -42,8 +42,8 @@ public class DbndConfig implements PropertiesSource {
     private final String runName;
     private final Map<String, String> props;
 
-    private static final int PREVIEW_HEAD_TAIL_DEFAULT = 32 * 1024;
-
+    //Not collecting any logs by default
+    private static final int PREVIEW_HEAD_TAIL_DEFAULT = 0;
     /**
      * Default override order, from higher priority to lowest:
      * 1. Spark config
@@ -234,6 +234,10 @@ public class DbndConfig implements PropertiesSource {
 
     public int previewTailBytes() {
         return getInteger(DBND__LOG__PREVIEW_TAIL_BYTES, PREVIEW_HEAD_TAIL_DEFAULT);
+    }
+
+    public boolean isSendingLogs() {
+        return previewHeadBytes() > 0 || previewTailBytes() > 0;
     }
 
     protected Integer getInteger(String key, Integer defaultValue) {

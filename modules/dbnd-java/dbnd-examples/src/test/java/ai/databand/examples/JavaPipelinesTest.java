@@ -20,6 +20,8 @@ class JavaPipelinesTest {
             .builder()
             .appName("DBND Spark Java Pipeline")
             .config("spark.sql.shuffle.partitions", 1)
+            .config("spark.env.DBND__LOG__PREVIEW_HEAD_BYTES",32 * 1024)
+            .config("spark.env.DBND__LOG__PREVIEW_TAIL_BYTES",32 * 1024)
             .master("local[*]")
             .getOrCreate();
 

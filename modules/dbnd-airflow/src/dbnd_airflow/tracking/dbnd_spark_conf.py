@@ -77,6 +77,24 @@ def _normalize_python_script_name(raw_script_path: str) -> typing.Optional[str]:
         return None
 
 
+def generate_spark_properties(
+    domain: str, additional_properties: Dict[str, Any] = None
+):
+    res = {
+        f"{domain}.DBND__TRACKING": "True",
+        f"{domain}.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
+    }
+    #
+    res.update(
+        {f"{domain}.{key}": val for key, val in (additional_properties or {}).items()}
+    )
+
+    if is_verbose():
+        res.update({f"{domain}.DBND__VERBOSE": True})
+
+    return res
+
+
 def get_dbnd_context_spark_conf(
     tracking_info: Dict[str, str], spark_conf: Dict[str, str] = None
 ) -> Dict[str, str]:
@@ -85,36 +103,20 @@ def get_dbnd_context_spark_conf(
     and enriches it with properties required for proper tracking in client and cluster modes
     """
 
-    #     if try_get_current_task_run():
-    #         tracking_info = get_tracking_information(context, try_get_current_task_run())
-
     dbnd_spark_conf = {
         "spark.env." + key: value for key, value in tracking_info.items()
     }
+    # Spark properties to explicitly enable tracking
+    dbnd_spark_conf.update(generate_spark_properties("spark.env"))
+    # Spark properties to explicitly enable tracking in cluster mode
     dbnd_spark_conf.update(
-        {
-            # Spark properties to explicitly enable tracking
-            "spark.env.DBND__TRACKING": "True",
-            # Spark properties to explicitly enable tracking in cluster mode
-            "spark.yarn.appMasterEnv.DBND__TRACKING": "True",
-            # might be missing in server mode
-            "spark.yarn.appMasterEnv.SPARK_ENV_LOADED": "1",
-            "spark.yarn.appMasterEnv.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
-            "spark.yarn.appMasterEnv.DBND_HOME": "/tmp/dbnd",
-            # Spark properties to explicitly enable tracking in K8S mode
-            "spark.kubernetes.driverEnv.DBND__TRACKING": "True",
-            "spark.kubernetes.driverEnv.DBND__ENABLE__SPARK_CONTEXT_ENV": "True",
-        }
-    )
-
-    if is_verbose():
-        dbnd_spark_conf.update(
-            {
-                "spark.env.DBND__VERBOSE": "True",
-                "spark.yarn.appMasterEnv.DBND__VERBOSE": "True",
-                "spark.kubernetes.driverEnv.DBND__VERBOSE": "True",
-            }
+        generate_spark_properties(
+            "spark.yarn.appMasterEnv",
+            {"SPARK_ENV_LOADED": "1", "DBND_HOME": "/tmp/dbnd"},
         )
+    )
+    # Spark properties to explicitly enable tracking in cluster mode
+    dbnd_spark_conf.update(generate_spark_properties("spark.kubernetes.driverEnv"))
 
     dbnd_spark_conf.update(TrackingSparkConfig.from_databand_context().spark_conf())
 

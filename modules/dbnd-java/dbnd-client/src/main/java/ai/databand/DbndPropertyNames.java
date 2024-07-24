@@ -102,7 +102,6 @@ public abstract class DbndPropertyNames {
     public static final String AIRFLOW_CTX_EXECUTION_DATE = "AIRFLOW_CTX_EXECUTION_DATE";
     public static final String AIRFLOW_CTX_TASK_ID = "AIRFLOW_CTX_TASK_ID";
     public static final String AIRFLOW_CTX_TRY_NUMBER = "AIRFLOW_CTX_TRY_NUMBER";
-
     /**
      * Databand context env variables.
      */

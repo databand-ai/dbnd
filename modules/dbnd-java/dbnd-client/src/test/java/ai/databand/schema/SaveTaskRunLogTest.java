@@ -34,6 +34,18 @@ class SaveTaskRunLogTest {
 
         assertThat("Log should be full when it's less than limits", log.getLogBody(), Matchers.equalTo(EMPTY_LOG_MSG));
     }
+    @Test
+    public void testHeadTailDefaultZero() {
+        Map<String, String> props = new HashMap<>(1);
+
+        DbndConfig config = new DbndConfig(new SimpleProps(props));
+
+        String logBody = "This is 20 bytes log";
+
+        SaveTaskRunLog log = new SaveTaskRunLog(config, "1", logBody);
+
+        assertThat("Log should be full when it's less than limits", log.getLogBody(), Matchers.equalTo(EMPTY_LOG_MSG));
+    }
 
     @Test
     public void testTruncateLessThanLimits() {
@@ -70,17 +82,6 @@ class SaveTaskRunLogTest {
         assertThat("Log should be full when it's less than limits", log.getLogBody(), Matchers.equalTo(truncated));
     }
 
-    @Test
-    public void testDefaultTruncateOff() {
-        Map<String, String> props = new HashMap<>(1);
 
-        DbndConfig config = new DbndConfig(new SimpleProps(props));
-
-        String logBody = "This is a bit more verbose log, it consists of 55 bytes";
-
-        SaveTaskRunLog log = new SaveTaskRunLog(config, "1", logBody);
-
-        assertThat("Only 32 bytes should be written", log.getLogBody(), Matchers.equalTo(logBody));
-    }
 
 }

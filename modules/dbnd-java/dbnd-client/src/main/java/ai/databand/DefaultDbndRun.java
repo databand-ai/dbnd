@@ -762,6 +762,9 @@ public class DefaultDbndRun implements DbndRun {
 
     @Override
     public void saveLog(LoggingEvent event, String formattedEvent) {
+        if (!config.isSendingLogs()) {
+            return;
+        }
         try {
             if (driverTask == null) {
                 return;
