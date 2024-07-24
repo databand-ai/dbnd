@@ -244,6 +244,7 @@ class TestMultiServer(object):
             return_value=[mock_airflow_integration]
         )
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
         # Should start mock_server, should do 1 iteration
         assert len(multi_server.active_integrations) == 1
         assert len(multi_server.active_integrations[MOCK_SERVER_1_CONFIG["uid"]]) == 1
@@ -253,6 +254,7 @@ class TestMultiServer(object):
         assert last_heartbeat is not None
 
         multi_server.run_once()
+        multi_server.task_scheduler.wait_all_tasks()
 
         new_last_heartbeat = multi_server.active_integrations[
             MOCK_SERVER_1_CONFIG["uid"]
