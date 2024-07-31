@@ -9,6 +9,7 @@ import re
 SECRET_NAMES = [
     "secret",
     "password",
+    "passwd",
     "private[_-]key",
     "access[_-]key",
     "aws[_-]key",
