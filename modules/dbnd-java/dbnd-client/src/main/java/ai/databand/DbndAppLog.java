@@ -37,7 +37,7 @@ public class DbndAppLog {
         final PrintStream outOrErr = lvl == org.slf4j.event.Level.ERROR ? System.err : System.out;
 
         final String logInfos = String.format("%s %s %s: %sstdout: ", timeStamp, lvl, stClassName, LOG_PREFIX);
-        outOrErr.printf(logInfos + msg, args);
+        outOrErr.printf(logInfos + String.format(msg, args));
     }
 
     public static void printfln(final org.slf4j.event.Level lvl, final String msg, final Object... args) {

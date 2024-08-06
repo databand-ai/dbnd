@@ -449,34 +449,36 @@ public class DbndClient {
      * @param logToStdout set to true if logging to stdout is required, e.g. when log system isn't initialized
      * @return execute result wrapped in Optional
      */
-    protected Optional<Object> safeExecuteVoid(Call<Void> call) {
+    protected Optional<Object> safeExecuteVoid(Call<Void> call){
         try {
             if(config.isVerbose()) {
                 LOG.info("v Executing HTTP request to the Databand tracker, URL of the request: {}", call.request().url());
             }
-
             Response<Void> res = call.execute();
             if (res.isSuccessful()) {
                 return Optional.of(new Object());
             } else {
-                String errorMsg = String.format("HTTP request to the Databand tracker '%s' failed: %s %s", config.databandUrl(), res.code(), res.message());
+                String errorBody = res.errorBody().string();
+                String errorMsg = String.format("HTTP request to the Databand tracker '%s' failed: %s %s -\n %s", config.databandUrl(), res.code(), res.message(), errorBody);
                 LOG.error(errorMsg);
-                if (res.code() == 401) {
+                if (res.code() == 400) {
                     LOG.warn("Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is missing or wrong");
+                } else if (res.code() == 401) {
+                    LOG.warn("Not Authorized. Check DBND__CORE__DATABAND_ACCESS_TOKEN variable. Looks like token is expired");
                 } else if (res.code() >= 500) {
-                    LOG.warn("Check if Databand server is running at %s", config.databandUrl());
+                    LOG.warn("There is an internal error at Databand Service. Please open a support ticket.");
                 } else {
-                    LOG.warn("Make sure Databand tracker is up and running at the %s", config.databandUrl());
+                    LOG.warn("Make sure Databand tracker is up and running at the {}", config.databandUrl());
                 }
                 return Optional.empty();
             }
         } catch (ConnectException ex) {
-            LOG.error("Could not connect to the tracking server at %s. " +
+            LOG.error("Could not connect to the tracking server at {}. " +
                 "Check that server is available and Databand tracker is up and running.\n" +
-                "Exception: %s", config.databandUrl(), ex.getMessage());
+                "Exception: {}", config.databandUrl(), ex.getMessage());
             return Optional.empty();
         } catch (IOException e) {
-            LOG.error("HTTP request to the tracking server at %s failed.\nException: %s", config.databandUrl(), e.getMessage());
+            LOG.error("HTTP request to the tracking server at {} failed.\nException: {}", config.databandUrl(), e.getMessage());
             return Optional.empty();
         }
     }
