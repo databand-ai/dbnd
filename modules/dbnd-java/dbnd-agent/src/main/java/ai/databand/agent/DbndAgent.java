@@ -25,7 +25,7 @@ public class DbndAgent {
         }
 
         String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-        DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Succesfully loaded Databand Agent v%s into JVM process '%s'. No Databand tracking has started yet.", props.getProperty("version"), jvmName);
+        DbndAppLog.printfln(org.slf4j.event.Level.INFO, "Successfully injected dbnd-agent (%s) on jvm process %s", props.getProperty("version"), jvmName);
         // this is workaround for spark-submit case
         // for some reason CallSite is not loaded during instrumentation phase, so we have to load it before
         try {

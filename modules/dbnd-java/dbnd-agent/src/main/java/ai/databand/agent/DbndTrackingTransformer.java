@@ -51,8 +51,6 @@ public class DbndTrackingTransformer implements ClassFileTransformer {
 
             List<CtMethod> annotatedMethods = getAnnotatedMethods(cp, ct, className, classfileBuffer);
             if (annotatedMethods.isEmpty()) {
-                //DbndAppLog.printfvln("No valid @Task annotated methods detected for the class '%s' in JVM '%s' - skipped databand tracking for this class", className, jvmName);
-
                 return null;
             }
 

@@ -31,13 +31,14 @@ import ai.databand.schema.TaskRunsInfo;
 import ai.databand.schema.TrackingSource;
 import ai.databand.schema.UpdateTaskRunAttempts;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
+import java.net.URLEncoder;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Collection;
@@ -47,6 +48,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * DBND tracking API client.
@@ -171,11 +174,16 @@ public class DbndClient {
 
         Call<Void> call = dbnd.initRun(data);
         Optional<Object> res = safeExecuteVoid(call);
+        String projectNameOrDefault = projectName == null? "default":projectName;
         if (res.isPresent()) {
-            LOG.info("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}] run created in databand URL: {}", runUid, jobName, runName, projectName == null ? "default" : projectName, config.databandUrl());
+            LOG.info("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}]", runUid, jobName, runName,projectNameOrDefault);
+            String runLink = getDbndRunLink(jobName,runUid);
+            if (!runLink.isEmpty()) {
+                LOG.info("Dbnd Started tracking, Run can be view at: {}", runLink);
+            }
             return runUid;
         } else {
-            LOG.error("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName, projectName == null ? "default" : projectName);
+            LOG.error("[root_run_uid: {}, pipeline_name: {}, run_name: {}, project_name: {}] init_run HTTP request to tracker failed", runUid, jobName, runName, projectNameOrDefault);
         }
 
         throw new RuntimeException("Unable to init run because HTTP request to the tracker failed. " +
@@ -482,7 +490,21 @@ public class DbndClient {
             return Optional.empty();
         }
     }
+    private String getDbndRunLink(String jobName, String rootRunUid){
 
+        StringBuilder res = new StringBuilder(config.databandUrl());
+        res.append("/app/jobs");
+        try {
+            res.append("/" + URLEncoder.encode(jobName,UTF_8.toString()));
+            res.append("/" + URLEncoder.encode(rootRunUid,UTF_8.toString()));
+            return res.toString();
+        } catch (UnsupportedEncodingException e) {
+            // This error might happen in case custom job name can't be encoded as a uri
+            // This may occur in case user has different encoding than UTF-8 and use char that is not valid in UTF-8
+            // We catch the exception to prevent error propagation, and return an empty string
+            return "";
+        }
+    }
     /**
      * API client.
      *
