@@ -6,14 +6,18 @@ package ai.databand.spark;
 
 import ai.databand.DbndAppLog;
 import ai.databand.DbndWrapper;
+import ai.databand.config.DbndConfig;
 import ai.databand.parameters.DatasetOperationPreview;
 import ai.databand.schema.ColumnStats;
 import ai.databand.schema.DatasetOperationStatus;
 import ai.databand.schema.DatasetOperationType;
 import ai.databand.schema.LogDataset;
 import ai.databand.schema.Pair;
+
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.catalyst.plans.QueryPlan;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.execution.CollectLimitExec;
 import org.apache.spark.sql.execution.FileSourceScanExec;
 import org.apache.spark.sql.execution.QueryExecution;
 import org.apache.spark.sql.execution.SparkPlan;
@@ -61,8 +65,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
         }
         isHiveEnabled = true;
 
-        String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-        LOG.info("Succesfully constructed Databand QueryExecutionListener instance in JVM '{}' . Selected Spark events with dataset operations will be submitted to the Databand service.", jvmName);
+        LOG.jvmInfo("Succesfully constructed Databand QueryExecutionListener instance. Selected Spark events with dataset operations will be submitted to the Databand service.");
     }
 
     public DbndSparkQueryExecutionListener() {

@@ -7,6 +7,7 @@ package ai.databand;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.lang.management.ManagementFactory;
 
 public class DbndAppLog {
 
@@ -46,6 +47,10 @@ public class DbndAppLog {
 
     public void info(final String msg, final Object... args) {
         LOG.info(DbndAppLog.LOG_PREFIX + msg, args);
+    }
+
+    public void jvmInfo(final String msg, final Object... args) {
+        LOG.info(DbndAppLog.LOG_PREFIX + "[" + ManagementFactory.getRuntimeMXBean().getName() + "] " + msg, args);
     }
 
     public void warn(final String msg, final Object... args) {

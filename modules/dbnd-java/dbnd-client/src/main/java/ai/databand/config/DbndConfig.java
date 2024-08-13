@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.config;
@@ -41,9 +41,11 @@ public class DbndConfig implements PropertiesSource {
     private final String cmd;
     private final String runName;
     private final Map<String, String> props;
+    private String sparkJobType, sparkNotebookPath, sparkNotebookName;
 
     //Not collecting any logs by default
     private static final int PREVIEW_HEAD_TAIL_DEFAULT = 0;
+
     /**
      * Default override order, from higher priority to lowest:
      * 1. Spark config
@@ -67,6 +69,9 @@ public class DbndConfig implements PropertiesSource {
     public DbndConfig(PropertiesSource props, String cmd) {
         this.cmd = cmd;
         this.props = props.values();
+        this.sparkJobType = null;
+        this.sparkNotebookPath = null;
+        this.sparkNotebookName = null;
 
         afCtx = buildAirflowCtxFromEnv(this.props);
         azkbnCtx = buildAzkabanCtxFromEnv(this.props);
@@ -253,9 +258,53 @@ public class DbndConfig implements PropertiesSource {
         }
     }
 
+    public void setSparkProperties(Properties sparkProps) {
+        try {
+            // some Spark properties might change between Spark job runs, but we are only interested in global Spark properties which remains the same
+            if(sparkJobType != null) {
+                return; // all global Spark settings are already propagated
+            }
+            sparkJobType = "NotDetected";
+
+            setDatabricksProperties(sparkProps);
+
+            if(isVerbose()) {
+                LOG.info("v propagated Spark properties, job = '{}', path = '{}', name = '{}'", sparkJobType, sparkNotebookPath, sparkNotebookName);
+            }
+        } catch(Exception e) {
+            LOG.error("Unable to extract job name and path from spark properties", e);
+        }
+    }
+
+    private void setDatabricksProperties(Properties sparkProps) {
+        String jobType = sparkProps.getProperty("spark.databricks.job.type");
+        if(jobType == null) {
+            return; // not a Databricks Spark
+        }
+
+        sparkJobType = jobType;
+        if(jobType.equals("notebook") || jobType.equals("python")) {
+            // e.g. /Users/my.user@ibm.com/my_notebook_name  or  dbfs:/FileStore/job-jars/mysuser/myscript.py
+            sparkNotebookPath = sparkProps.getProperty("spark.databricks.notebook.path");
+            // it should not be null for "notebook"/"python" job type
+            if(sparkNotebookPath == null) {
+                LOG.warn("Not able to detect Notebook/Python name. Spark application name \"spark.app.name\" will be used instead.");
+                return;
+            }
+
+            sparkNotebookName = sparkNotebookPath.substring(sparkNotebookPath.lastIndexOf('/') + 1);
+        }
+    }
+
     public String sparkAppName() {
         // todo: detect we're running inside spark
         try {
+            if(sparkNotebookName != null && !sparkNotebookName.isEmpty()) {
+                // Use Databricks notebook name if available
+                // Spark.app.name is always set to "Databricks Shell" for Python/Notebook tasks on Databricks
+                return sparkNotebookName;
+            }
+
             SparkSession session = SparkSession.active();
             SparkContext ctx = session.sparkContext();
             return ctx.getConf().get("spark.app.name");
