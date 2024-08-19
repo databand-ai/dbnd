@@ -80,12 +80,6 @@ class CoreConfig(Config):
 
     tracker_version = parameter[str]
 
-    debug_webserver = parameter(
-        description="Enable collecting the webserver's logs for each api-call on the local machine. "
-        "This requires that the web-server supports and allows this.",
-        default=False,
-    )[bool]
-
     tracker_raise_on_error = parameter(
         default=True, description="Enable raising an error when failed to track data."
     )[bool]
@@ -174,7 +168,6 @@ class CoreConfig(Config):
         return ApiClient(
             self.databand_url,
             credentials=credentials,
-            debug_server=self.debug_webserver,
             session_timeout=self.client_session_timeout,
             default_max_retry=self.client_max_retry,
             default_retry_sleep=self.client_retry_sleep,

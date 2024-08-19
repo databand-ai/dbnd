@@ -16,17 +16,14 @@ import requests
 from six.moves.urllib_parse import urljoin
 
 from dbnd import __version__
-from dbnd._core.current import try_get_databand_run
 from dbnd._core.errors.base import (
     DatabandApiError,
     DatabandAuthenticationError,
     DatabandConnectionException,
 )
 from dbnd._core.errors.friendly_error.api import api_connection_refused
-from dbnd._core.log.logging_utils import create_file_handler
 from dbnd._core.utils.http.retry_policy import LinearRetryPolicy
 from dbnd._core.utils.trace import get_tracing_id
-from dbnd._vendor import curlify
 
 
 # we'd like to have all requests with default timeout, just in case it's stuck
@@ -50,7 +47,6 @@ class ApiClient(object):
         self,
         api_base_url: str,
         credentials: Optional[Dict[str, str]] = None,
-        debug_server: bool = False,
         session_timeout: int = 5,
         default_max_retry: int = 1,
         default_retry_sleep: Union[int, float] = 0,
@@ -65,7 +61,6 @@ class ApiClient(object):
         @param api_base_url: databand webserver url to build the request with
         @param credentials: dict of credential to authenticate with the webserver
          can include "token" key or "username"  and "password" keys
-        @param debug_server: flag to debug the webserver - collect logs from webserver and the client's requests
         @param session_timeout: minutes to recreate the requests session
         @param default_max_retry: default value for retries for failed connection
         @param default_retry_sleep: default value for sleep between retries
@@ -96,15 +91,7 @@ class ApiClient(object):
 
         self.ignore_ssl_errors = ignore_ssl_errors
 
-        self.debug_mode = debug_server
         self.default_session_key_error_max_retry = default_session_key_error_max_retry
-        if debug_server:
-            # the header require so the webserver will record logs and sql queries
-            self.default_headers["X-Databand-Debug"] = "True"
-            # log the request curl command here
-            self.requests_logger = build_file_logger("requests", fmt="%(message)s")
-            # log the webserver logs and sql queries here
-            self.webserver_logger = build_file_logger("webserver")
 
     def is_session_expired(self):
         return datetime.now() - self.session_creation_time >= timedelta(
@@ -117,10 +104,6 @@ class ApiClient(object):
         2. Simplified logging of short REST request for python DEBUG.
         3. Extensive logging of full REST request for server debug mode with python DEBUG log level.
         """
-        if self.debug_mode:  # server debug, log full REST request
-            logger.debug("Sending the following request: %s", request_params)
-            return
-
         if not logger.isEnabledFor(logging.DEBUG):
             return  # skip, nothing to log
 
@@ -193,11 +176,6 @@ class ApiClient(object):
         self._log_request(request_params)
         resp = self._send_request(session, **request_params)
 
-        if self.debug_mode:
-            # save the curl of the current request
-            curl_request = curlify.to_curl(resp.request)
-            self.requests_logger.info(curl_request)
-
         if not resp.ok:
             logger.debug("Response is not ok, Raising DatabandApiError")
             if resp.status_code in [HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN]:
@@ -215,12 +193,6 @@ class ApiClient(object):
             except Exception as e:
                 logger.info("Failed to get resp.json(). Exception: {}".format(e))
             else:
-                if self.debug_mode and isinstance(data, dict):
-                    msg = "api_call: {request}\ndebug info:{debug_data}\n".format(
-                        request=resp.request.url, debug_data=data.get("debug")
-                    )
-                    self.webserver_logger.info(msg)
-
                 return data
 
         return
@@ -369,26 +341,3 @@ class ApiClient(object):
 
     def __str__(self):
         return "{}({})".format(self.__class__.__name__, self._api_base_url)
-
-
-def build_file_logger(name, fmt=None):
-    """
-    Create a logger which write only to a file.
-    the file will be located under the run dict.
-    """
-    file_logger = logging.getLogger("{}_{}".format(__name__, name))
-    file_logger.propagate = False
-
-    run = try_get_databand_run()
-    if run:
-        log_file = run.run_local_root.partition("{}.logs".format(name))
-        logger.info(
-            "Api-clients {name} logs writing into {path}".format(
-                name=name, path=log_file
-            )
-        )
-        handler = create_file_handler(str(log_file), fmt=fmt)
-        file_logger.addHandler(handler)
-        file_logger.setLevel(logging.INFO)
-
-    return file_logger
