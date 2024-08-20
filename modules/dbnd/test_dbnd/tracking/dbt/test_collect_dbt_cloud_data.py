@@ -85,6 +85,7 @@ class TestCollectDataFromDbtCloud:
             dbt_metadata={
                 "dummy_data": True,
                 "environment": ANY,
+                "project_name": ANY,
                 "reported_from": "dbt_cloud",
             }
         )
@@ -97,6 +98,7 @@ class TestCollectDataFromDbtCloud:
         run_results_res = {"test": "res"}
         manifest_res = {"manifest": "www"}
         env = {"env": 123}
+        project_name = {"project_name": "test_project_name"}
 
         dbt_cloud_api_mocked_instance.get_run.return_value = {"run_steps": run_steps}
         dbt_cloud_api_mocked_instance.get_run_results_artifact.return_value = (
@@ -104,14 +106,16 @@ class TestCollectDataFromDbtCloud:
         )
         dbt_cloud_api_mocked_instance.get_manifest_artifact.return_value = manifest_res
         dbt_cloud_api_mocked_instance.get_environment.return_value = env
+        dbt_cloud_api_mocked_instance.get_project_name.return_value = project_name
         expected_steps_with_results = [
             {**step, "run_results": run_results_res, "manifest": manifest_res}
             for step in run_steps
         ]
         expected_dbt_metadata_report = {
-            "run_steps": expected_steps_with_results,
             "environment": env,
+            "project_name": project_name,
             "reported_from": "dbt_cloud",
+            "run_steps": expected_steps_with_results,
         }
 
         collect_data_from_dbt_cloud(
@@ -138,15 +142,18 @@ class TestCollectDataFromDbtCloud:
         dbt_cloud_api_mocked_instance = dbt_cloud_api_client_mock.return_value
         run_steps = [{"index": 1}, {"index": 2}, {"index": 3}]
         env = {"env": 123}
+        project_name = {"project_name": "test_project_name"}
 
         dbt_cloud_api_mocked_instance.get_run.return_value = {"run_steps": run_steps}
         dbt_cloud_api_mocked_instance.get_run_results_artifact.return_value = None
         dbt_cloud_api_mocked_instance.get_manifest_artifact.return_value = None
         dbt_cloud_api_mocked_instance.get_environment.return_value = env
+        dbt_cloud_api_mocked_instance.get_project_name.return_value = project_name
         expected_steps_with_results = [{**step} for step in run_steps]
         expected_dbt_metadata_report = {
             "run_steps": expected_steps_with_results,
             "environment": env,
+            "project_name": project_name,
             "reported_from": "dbt_cloud",
         }
 

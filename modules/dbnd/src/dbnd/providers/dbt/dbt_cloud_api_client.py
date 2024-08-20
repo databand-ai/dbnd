@@ -4,6 +4,7 @@ import logging
 import urllib
 
 from http import HTTPStatus
+from typing import Union
 
 from requests import HTTPError, Session
 from requests.adapters import HTTPAdapter
@@ -137,6 +138,18 @@ class DbtCloudApiClient:
         url = self._build_administrative_url(f"{self.account_id}/environments/{env_id}")
         res = self.send_request(endpoint=url)
         return self._safe_get_response_data(res)
+
+    def get_project_name(self, dbt_project_id: int) -> Union[str, None]:
+        if not dbt_project_id:
+            logger.warning("Can't locate project name without provided project id")
+            return None
+
+        path = f"{self.account_id}/projects/{dbt_project_id}"
+        url = self._build_administrative_url(path)
+
+        res = self.send_request(endpoint=url)
+        project = self._safe_get_response_data(res)
+        return project["name"]
 
     def list_environments(self):
         url = self._build_administrative_url(f"{self.account_id}/environments/")

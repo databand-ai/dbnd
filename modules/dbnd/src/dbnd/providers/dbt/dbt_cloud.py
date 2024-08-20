@@ -89,6 +89,12 @@ def get_run_data_from_dbt(dbt_cloud_client, dbt_job_run_id):
     if env:
         dbt_run_meta_data["environment"] = env
 
+    project_id = dbt_run_meta_data.get("project_id")
+    project_name = dbt_cloud_client.get_project_name(project_id)
+
+    if project_name:
+        dbt_run_meta_data["project_name"] = project_name
+
     for step in dbt_run_meta_data.get("run_steps", []):
         step_run_results_artifact = dbt_cloud_client.get_run_results_artifact(
             run_id=dbt_job_run_id, step=step["index"]
