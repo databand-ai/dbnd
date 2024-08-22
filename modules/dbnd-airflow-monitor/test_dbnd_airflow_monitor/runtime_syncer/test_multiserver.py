@@ -302,6 +302,7 @@ class TestMultiServer(object):
 
         # Act
         multi_server._heartbeat([missing_integration, existing_integration])
+        multi_server.task_scheduler.wait_all_tasks()
 
         # Assert
         existing_integration_component.sync_once.assert_called_once()
@@ -309,3 +310,42 @@ class TestMultiServer(object):
 
         missing_integration_component.sync_once.assert_not_called()
         missing_integration_component.refresh_config.assert_not_called()
+
+    def test_11_heartbeat_continue_iteration_after_exception(self, multi_server):
+        # Arrange
+        first_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        first_integration_component = MagicMock(spec=BaseComponent)
+        first_integration.get_components.return_value = [first_integration_component]
+
+        second_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        second_integration_component = MagicMock(spec=BaseComponent)
+        second_integration.get_components.return_value = [second_integration_component]
+        second_integration.get_components.side_effect = Exception()
+
+        third_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
+        third_integration_component = MagicMock(spec=BaseComponent)
+        third_integration.get_components.return_value = [third_integration_component]
+
+        multi_server.active_integrations = {
+            first_integration.config.uid: {},
+            second_integration.config.uid: {},
+            third_integration.config.uid: {},
+        }
+
+        try:
+            # Act
+            multi_server._heartbeat(
+                [first_integration, second_integration, third_integration]
+            )
+            multi_server.task_scheduler.wait_all_tasks()
+        except Exception:
+            pytest.fail("Heartbeat should not raise an exception")
+
+        # Assert
+        first_integration.get_components.assert_called_once()
+        second_integration.get_components.assert_called_once()
+        third_integration.get_components.assert_called_once()
+
+        first_integration_component.sync_once.assert_called_once()
+        second_integration_component.sync_once.assert_not_called()
+        third_integration_component.sync_once.assert_called_once()

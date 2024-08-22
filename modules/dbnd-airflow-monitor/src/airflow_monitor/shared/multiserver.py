@@ -158,7 +158,12 @@ class MultiServerMonitor:
 
             with _measure_integration_iteration_time(integration):
                 # create new syncers with new config every heartbeat
-                components_list = integration.get_components()
+                try:
+                    components_list = integration.get_components()
+                except Exception as exc:
+                    logger.exception(exc)
+                    continue
+
                 _measure_components_count(integration, components_list)
                 for component in components_list:
 
