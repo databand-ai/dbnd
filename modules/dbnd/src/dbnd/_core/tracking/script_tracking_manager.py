@@ -42,6 +42,7 @@ from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
 from dbnd.api.tracking_api import TrackingSource
 from dbnd.providers.spark.dbnd_databricks import (
+    attach_link_to_databrick_notebook,
     is_databricks_notebook_env,
     register_on_cell_exit_action,
     safe_get_databricks_notebook_name,
@@ -332,6 +333,9 @@ class _DbndScriptTrackingManager(object):
             run.root_task_run.task_run_track_execute(capture_log=should_capture_log)
         )
         self._task_run = run.root_task_run
+
+        if is_databricks_notebook_env():
+            attach_link_to_databrick_notebook()
 
         if self._task_run.task_tracker_url:
             logger.info(
