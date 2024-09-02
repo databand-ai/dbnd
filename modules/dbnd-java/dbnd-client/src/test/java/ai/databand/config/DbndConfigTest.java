@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.config;
@@ -193,6 +193,38 @@ class DbndConfigTest {
         sparkProperties.remove("spark.env.DBND__TRACKING__LOG_VALUE_PREVIEW");
         sparkProperties.remove("spark.env.DBND__CORE__DATABAND_URL");
 
+    }
+
+    // Databricks Notebook name is available at runtime using a second Spark Listener
+    @Test
+    public void testDynamicSparkProperties() {
+        // no info about job type nor path
+        DbndConfig conf = new DbndConfig();
+        conf.setSparkProperties(sparkProperties);
+        assertThat("Spark app name should be undefined without Spark", conf.sparkAppName(), Matchers.equalTo("none"));
+
+        // correct job type, but no info about path
+        sparkProperties.put("spark.databricks.job.type", "notebook");
+        conf = new DbndConfig();
+        conf.setSparkProperties(sparkProperties);
+        assertThat("Spark app name should be undefined without Spark", conf.sparkAppName(), Matchers.equalTo("none"));
+
+        // correct job type and correct Notebook path
+        String notebookName = "my_notebook_name";
+        String notebookPath = "/Users/my.user@ibm.com/" + notebookName;
+        sparkProperties.put("spark.databricks.notebook.path", notebookPath);
+        conf = new DbndConfig();
+        conf.setSparkProperties(sparkProperties);
+        assertThat(String.format("Spark app name should be detected and set to \"%s\"", notebookName), conf.sparkAppName(), Matchers.equalTo(notebookName));
+
+        // correct job type and correct python script path
+        String pythonScriptName = "myscript.py";
+        String pythonScriptPath = "/dbfs:/FileStore/job-jars/mysuser/" + pythonScriptName;
+        sparkProperties.put("spark.databricks.notebook.path", pythonScriptPath);
+        sparkProperties.put("spark.databricks.job.type", "python");
+        conf = new DbndConfig();
+        conf.setSparkProperties(sparkProperties);
+        assertThat(String.format("Spark app name should be detected and set to \"%s\"", pythonScriptName), conf.sparkAppName(), Matchers.equalTo(pythonScriptName));
     }
 
     protected void checkDatabandUrl(String reason, Map<String, String> env, Object expectedValue) {
