@@ -187,10 +187,8 @@ class DbndAirflowLogHandler(logging.Handler):
             if self.dbnd_context_manage:
                 if is_dbnd_tracking_active():
                     # Stops and clears the script tracking if exists and the user forgot to stop it.
-                    self.airflow_logger.warning(
-                        "A Databand Context from tracking is still active, did you forget to"
-                        " use 'dbnd_tracking_stop'?\nWe encourage you to use 'dbnd_tracking' "
-                        "context instead of 'dbnd_tracking_start' and 'dbnd_tracking_stop'"
+                    self.airflow_logger.info(
+                        "Stopping Databand Tracking (on logging shutdown)."
                     )
                     dbnd_tracking_stop()
 

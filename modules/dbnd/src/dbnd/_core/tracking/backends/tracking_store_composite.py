@@ -12,7 +12,7 @@ from dbnd._core.errors.base import (
     DatabandWebserverNotReachableError,
 )
 from dbnd._core.errors.errors_utils import log_exception
-from dbnd._core.log import dbnd_log_debug
+from dbnd._core.log import dbnd_log_debug, is_verbose
 from dbnd._core.tracking.backends import TrackingStore, TrackingStoreThroughChannel
 from dbnd._core.tracking.backends.abstract_tracking_store import is_state_call
 
@@ -245,6 +245,9 @@ class CompositeTrackingStore(TrackingStore):
             except Exception as exc:
                 failed = exc
                 logger.exception(f"Error during flush of {name} tracking backend")
+
+        if is_verbose():
+            dbnd_log_debug("All tracking data has been sent from stores.")
 
         if failed and self._raise_on_error:
             raise failed
