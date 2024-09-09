@@ -562,7 +562,7 @@ pyspark==3.4.1
     # via apache-airflow-providers-apache-spark
 pytest==7.4.0
     # via -r requirements/./requirements-dev-tools.in
-python-daemon==2.3.1
+python-daemon==2.3.2
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.3.4-constraints-3.10-FIXED.txt
     #   apache-airflow

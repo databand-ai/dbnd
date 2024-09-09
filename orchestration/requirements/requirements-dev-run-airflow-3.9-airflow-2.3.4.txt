@@ -721,7 +721,7 @@ pyspark==3.3.2
     # via apache-airflow-providers-apache-spark
 pytest==7.2.1
     # via -r requirements/../../requirements/requirements-dev-tools.in
-python-daemon==2.3.1
+python-daemon==2.3.2
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.3.4-constraints-no-providers-3.9-FIXED-DBND-RUN.txt
     #   apache-airflow

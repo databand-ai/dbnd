@@ -135,7 +135,7 @@ pykerberos==1.2.4
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pyspnego==0.6.0
-python-daemon==2.3.1
+python-daemon==2.3.2
 python-dateutil==2.8.2
 python-ldap==3.4.2
 python-nvd3==0.15.0
