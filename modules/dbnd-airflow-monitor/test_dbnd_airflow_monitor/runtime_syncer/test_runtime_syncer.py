@@ -377,3 +377,64 @@ class TestRuntimeSyncer:
         # next iteration should cause auto-restart
         with pytest.raises(SystemExit):
             runtime_syncer.sync_once()
+
+    def test_10_excluded_dag_ids(
+        self, runtime_syncer, mock_data_fetcher, mock_tracking_service
+    ):
+        runtime_syncer.config.excluded_dag_ids = "dag1"
+
+        # both dbnd and airflow are empty
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            is_dbnd_empty=True,
+            case="both dbnd and airflow are empty",
+        )
+
+        # in airflow one dagrun started to run => should do one init
+        airflow_dag_run1 = MockDagRun(
+            id=10, dag_id="dag1", state="RUNNING", is_paused=False
+        )
+        airflow_dag_run2 = MockDagRun(
+            id=11, dag_id="dag2", state="RUNNING", is_paused=False
+        )
+        mock_data_fetcher.dag_runs.append(airflow_dag_run1)
+        mock_data_fetcher.dag_runs.append(airflow_dag_run2)
+
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=1,
+            update=0,
+            case="in airflow one dagrun started to run => should do one init",
+        )
+
+        # in airflow dagrun is running, dbnd knows about it, not updated => nothing
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            case="in airflow dagrun is running, dbnd knows about it, not updated => nothing",
+        )
+
+        # finished in airflow, running in dbnd
+        airflow_dag_run2.state = "FINISHED"
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=1,
+            case="finished in airflow, running in dbnd",
+        )
+
+        # finished both in dbnd and airflow => nothing
+        runtime_syncer.sync_once()
+        expect_changes(
+            runtime_syncer,
+            init=0,
+            update=0,
+            case="finished both in dbnd and airflow => nothing",
+        )

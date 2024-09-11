@@ -57,7 +57,10 @@ class AirflowTrackingService(BaseTrackingService):
         )
 
     def get_all_dag_runs(
-        self, start_time_window: int, dag_ids: str
+        self,
+        start_time_window: int,
+        dag_ids: str,
+        excluded_dag_ids: Optional[str] = None,
     ) -> DbndDagRunsResponse:
         params = {}
         start_time = _min_start_time(start_time_window)
@@ -65,6 +68,8 @@ class AirflowTrackingService(BaseTrackingService):
             params["min_start_time"] = start_time.isoformat()
         if dag_ids:
             params["dag_ids"] = dag_ids
+        if excluded_dag_ids:
+            params["excluded_dag_ids"] = excluded_dag_ids
 
         response = self._make_request(
             "get_all_dag_runs", method="GET", data=None, query=params
@@ -74,7 +79,10 @@ class AirflowTrackingService(BaseTrackingService):
         return dags_to_sync
 
     def get_active_dag_runs(
-        self, start_time_window: int, dag_ids: str
+        self,
+        start_time_window: int,
+        dag_ids: Optional[str] = None,
+        excluded_dag_ids: Optional[str] = None,
     ) -> DbndDagRunsResponse:
         params = {}
         start_time = _min_start_time(start_time_window)
@@ -82,6 +90,8 @@ class AirflowTrackingService(BaseTrackingService):
             params["min_start_time"] = start_time.isoformat()
         if dag_ids:
             params["dag_ids"] = dag_ids
+        if excluded_dag_ids:
+            params["excluded_dag_ids"] = excluded_dag_ids
 
         response = self._make_request(
             "get_running_dag_runs", method="GET", data=None, query=params

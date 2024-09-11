@@ -14,6 +14,7 @@ from dbnd_airflow.compat import AIRFLOW_VERSION_1
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     AIRFLOW_MONITOR_CONFIG_NAME,
     DAG_IDS_FOR_TRACKING_CONFIG_NAME,
+    EXCLUDED_DAG_IDS_FOR_TRACKING_FLAG_CONFIG_NAME,
     get_dbnd_config_dict_from_airflow_connections,
     get_sync_status_and_tracking_dag_ids_from_dbnd_conf,
     set_dbnd_config_from_airflow_connections,
@@ -23,17 +24,11 @@ from dbnd_airflow.tracking.dbnd_airflow_conf import (
 DATABAND_URL = "http://databand_test_webserver"
 
 # Log Messages
-CONN_FAILED_INFO_MSG = "The conn_id `{0}` isn't defined".format(
-    DATABAND_AIRFLOW_CONN_ID
+CONN_FAILED_INFO_MSG = f"The conn_id `{DATABAND_AIRFLOW_CONN_ID}` isn't defined"
+CONN_FAILED_WARNING_MSG = (
+    f"No extra config provided to {DATABAND_AIRFLOW_CONN_ID} connection."
 )
-CONN_FAILED_WARNING_MSG = "No extra config provided to {0} connection.".format(
-    DATABAND_AIRFLOW_CONN_ID
-)
-CONN_FAILED_ERROR_MSG = (
-    "Extra config for {0} connection, should be formated as a valid json.".format(
-        DATABAND_AIRFLOW_CONN_ID
-    )
-)
+CONN_FAILED_ERROR_MSG = f"Extra config for {DATABAND_AIRFLOW_CONN_ID} connection, should be formated as a valid json."
 
 # JSONS for Extra section in DBND Airflow connection
 
@@ -81,7 +76,7 @@ def set_and_assert_config_configured():
     assert actual
 
 
-class TestConfigFromConnection(object):
+class TestConfigFromConnection:
     """Check that setting dbnd_connection in airflow configures dbnd global config correctly."""
 
     def test_setting_dbnd_config_from_valid_connection(self, af_session):
@@ -186,27 +181,41 @@ class TestConfigFromConnection(object):
         (
             sync_enabled,
             tracking_list,
+            excluded_tracking_list,
         ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(None)
         assert sync_enabled
         assert tracking_list is None
 
     @pytest.mark.parametrize(
-        "tracking_list_parametrize",
-        [(None, None), ("", None), ("a", ["a"]), ("a,b  ", ["a", "b"])],
+        "dag_ids, expected_tracking_list, excluded_dag_ids, expected_excluded_tracking_list",
+        [
+            (None, None, None, None),
+            ("", None, "", None),
+            ("a", ["a"], None, None),
+            ("a,b  ", ["a", "b"], None, None),
+            (None, None, "a,b, c ", ["a", "b", "c"]),
+            ("a,b", ["a", "b"], " c, d ", ["c", "d"]),
+        ],
     )
     def test_get_sync_status_and_tracking_dag_ids_from_dbnd_conf_parsing(
-        self, tracking_list_parametrize
+        self,
+        dag_ids,
+        excluded_dag_ids,
+        expected_tracking_list,
+        expected_excluded_tracking_list,
     ):
-        input_value, expected_value = tracking_list_parametrize
         (
             sync_enabled,
             tracking_list,
+            excluded_tracking_list,
         ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
             {
                 AIRFLOW_MONITOR_CONFIG_NAME: {
-                    DAG_IDS_FOR_TRACKING_CONFIG_NAME: input_value
+                    DAG_IDS_FOR_TRACKING_CONFIG_NAME: dag_ids,
+                    EXCLUDED_DAG_IDS_FOR_TRACKING_FLAG_CONFIG_NAME: excluded_dag_ids,
                 }
             }
         )
         assert sync_enabled
-        assert tracking_list == expected_value
+        assert tracking_list == expected_tracking_list
+        assert excluded_tracking_list == expected_excluded_tracking_list

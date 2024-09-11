@@ -4,7 +4,7 @@ import logging
 
 from contextlib import contextmanager
 from itertools import islice
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from dbnd import config, dbnd_bootstrap, log_metric, log_metrics
 from dbnd._core.configuration.environ_config import is_dbnd_disabled
@@ -45,21 +45,29 @@ def is_monitor_dag(dag_id):
     return dag_id == MONITOR_DAG_NAME
 
 
-def is_subdag_eligible_for_tracking(dag_id, tracking_list):
+def is_subdag_in_tracking_list(dag_id, tracking_list: List[str]) -> bool:
     for tracked_dag_id in tracking_list:
         if dag_id.startswith(f"{tracked_dag_id}."):
             return True
-
     return False
 
 
-def is_dag_eligable_for_tracking(dag_id, tracking_list):
+def is_dag_eligible_for_tracking(
+    dag_id,
+    tracking_list: Optional[List[str]],
+    excluded_tracking_list: Optional[List[str]],
+):
     # If return value is None, we track all dags. If it's empty list - we don't track anything.
-    return (
-        tracking_list is None
-        or dag_id in tracking_list
-        or is_subdag_eligible_for_tracking(dag_id, tracking_list)
-        or is_monitor_dag(dag_id)
+    if is_monitor_dag(dag_id) or (
+        tracking_list is None and excluded_tracking_list is None
+    ):
+        return True
+    if tracking_list is not None:
+        return dag_id in tracking_list or is_subdag_in_tracking_list(
+            dag_id, tracking_list
+        )
+    return dag_id not in excluded_tracking_list and not is_subdag_in_tracking_list(
+        dag_id, excluded_tracking_list
     )
 
 
@@ -80,9 +88,11 @@ def _try_to_start_airflow_operator_tracking(context):
     )
 
     dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
-    sync_enabled, tracking_list = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
-        dbnd_config_from_connection
-    )
+    (
+        sync_enabled,
+        tracking_list,
+        excluded_tracking_list,
+    ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(dbnd_config_from_connection)
     if not sync_enabled:
         dbnd_log_debug(
             f"DBND Tracking is disabled via Airflow connection`dbnd_config`"
@@ -90,8 +100,10 @@ def _try_to_start_airflow_operator_tracking(context):
         )
         return None
 
-    if not is_dag_eligable_for_tracking(
-        context["task_instance"].dag_id, tracking_list=tracking_list
+    if not is_dag_eligible_for_tracking(
+        context["task_instance"].dag_id,
+        tracking_list=tracking_list,
+        excluded_tracking_list=excluded_tracking_list,
     ):
         dbnd_log_debug("DAG id is not tracked %s", context["task_instance"].dag_id)
         return None
@@ -127,9 +139,7 @@ def execute_with_dbnd_tracking(context):
     try:
         dbnd_tracking_task_run = _try_to_start_airflow_operator_tracking(context)
     except Exception as e:
-        dbnd_log_exception(
-            "Exception caught while starting DBND tracking: {}".format(e)
-        )
+        dbnd_log_exception(f"Exception caught while starting DBND tracking: {e}")
 
     if not dbnd_tracking_task_run:
 
@@ -183,7 +193,7 @@ def execute_with_dbnd_tracking(context):
 
         except Exception as e:
             dbnd_log_exception(
-                "exception caught while logging airflow operator results {}".format(e)
+                f"exception caught while logging airflow operator results {e}"
             )
 
     # make sure we close and return the original results
@@ -230,10 +240,10 @@ def af_tracking_context(task_run, airflow_context, operator):
         )
 
     except Exception as e:
-        logger.error(
-            "exception caught adding tracking context to operator execution {}"
-            "continue without tracking context".format(e),
-            exc_info=True,
+        logger.exception(
+            "exception caught adding tracking context to operator execution %s"
+            "continue without tracking context",
+            e,
         )
         yield
         return
@@ -340,8 +350,9 @@ def extract_airflow_task_context(
 
     logger.debug(
         "airflow context from inspect, at least one of those params is missing"
-        "dag_id: {}, execution_date: {}, task_id: {}".format(
-            dag_id, execution_date, task_id
-        )
+        "dag_id: %s, execution_date: %s, task_id: %s",
+        dag_id,
+        execution_date,
+        task_id,
     )
     return None

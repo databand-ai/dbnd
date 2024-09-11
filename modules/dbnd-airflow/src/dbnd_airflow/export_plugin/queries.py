@@ -1,10 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from typing import List, Union
 
 from airflow.models import DagModel, DagRun, Log
-from airflow.settings import Session
-from sqlalchemy import and_, func, or_, tuple_
+from sqlalchemy import and_, func, not_, or_, tuple_
 from sqlalchemy.orm import joinedload, relationship
 
 from dbnd_airflow.export_plugin.metrics import measure_time, save_result_size
@@ -29,15 +27,20 @@ else:
     DagRunModel = DagRun
 
 
-def _build_query_for_subdag_prefixes(column, dag_ids):
-    subdag_dag_id_prefixes = [f"{dag_id}." for dag_id in dag_ids]
-    return or_(
-        column.in_(dag_ids),
-        or_(column.startswith(prefix) for prefix in subdag_dag_id_prefixes),
+def _build_query_for_subdag_prefixes(column, dag_ids, excluded_dag_ids):
+    subdag_dag_id_prefixes = (f"{dag_id}." for dag_id in dag_ids or excluded_dag_ids)
+    if dag_ids:
+        return or_(
+            column.in_(dag_ids),
+            *(column.startswith(prefix) for prefix in subdag_dag_id_prefixes),
+        )
+    return and_(
+        not_(column.in_(excluded_dag_ids)),
+        *(not_(column.startswith(prefix)) for prefix in subdag_dag_id_prefixes),
     )
 
 
-def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
+def _get_new_dag_runs_base_query(dag_ids, excluded_dag_ids, include_subdags, session):
     new_runs_base_query = session.query(
         DagRun.id,
         DagRun.dag_id,
@@ -46,9 +49,9 @@ def _get_new_dag_runs_base_query(dag_ids, include_subdags, session):
         DagModel.is_paused,
     ).join(DagModel, DagModel.dag_id == DagRun.dag_id)
 
-    if dag_ids:
+    if dag_ids or excluded_dag_ids:
         new_runs_base_query = new_runs_base_query.filter(
-            _build_query_for_subdag_prefixes(DagRun.dag_id, dag_ids)
+            _build_query_for_subdag_prefixes(DagRun.dag_id, dag_ids, excluded_dag_ids)
         )
 
     if not include_subdags:
@@ -102,13 +105,14 @@ def find_new_dag_runs(
     extra_dag_runs_ids,
     extra_dag_runs_tuple,
     dag_ids,
+    excluded_dag_ids,
     include_subdags,
     session,
 ):
     extra_dag_runs_tuple_list = list(extra_dag_runs_tuple)
 
     new_runs_base_query = _get_new_dag_runs_base_query(
-        dag_ids, include_subdags, session
+        dag_ids, excluded_dag_ids, include_subdags, session
     )
 
     if len(extra_dag_runs_tuple_list) < MAX_PARAMETERS_INSIDE_IN_CLAUSE:
@@ -134,8 +138,8 @@ def find_new_dag_runs(
 
 @save_result_size("find_all_logs_grouped_by_runs")
 @measure_time
-def find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session):
-    # type: (int, List[str], Session) -> List[Log]
+def find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, excluded_dag_ids, session):
+    # type: (int, List[str], List[str], Session) -> List[Log]
 
     if last_seen_log_id is None:
         return []
@@ -145,8 +149,10 @@ def find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session):
     else:  # mysql, sqlite
         events_field = func.group_concat(Log.event.distinct()).label("events")
 
-    if dag_ids:
-        dag_ids_filter_condition = _build_query_for_subdag_prefixes(Log.dag_id, dag_ids)
+    if dag_ids or excluded_dag_ids:
+        dag_ids_filter_condition = _build_query_for_subdag_prefixes(
+            Log.dag_id, dag_ids, excluded_dag_ids
+        )
     else:
         dag_ids_filter_condition = Log.dag_id.isnot(None)
 

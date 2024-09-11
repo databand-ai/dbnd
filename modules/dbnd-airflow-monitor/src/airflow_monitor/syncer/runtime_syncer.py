@@ -110,7 +110,9 @@ class AirflowRuntimeSyncer(BaseComponent):
 
     def _actual_sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
-            start_time_window=self.config.start_time_window, dag_ids=self.config.dag_ids
+            start_time_window=self.config.start_time_window,
+            dag_ids=self.config.dag_ids,
+            excluded_dag_ids=self.config.excluded_dag_ids,
         )
         if (
             dbnd_response.last_seen_dag_run_id is None
@@ -127,20 +129,23 @@ class AirflowRuntimeSyncer(BaseComponent):
             dbnd_response = self.tracking_service.get_active_dag_runs(
                 start_time_window=self.config.start_time_window,
                 dag_ids=self.config.dag_ids,
+                excluded_dag_ids=self.config.excluded_dag_ids,
             )
 
         logger.debug(
-            "Getting new dag runs from Airflow with parameters last_seen_dag_run_id=%s, last_seen_log_id=%s, extra_dag_run_ids=%s, dag_ids=%s",
+            "Getting new dag runs from Airflow with parameters last_seen_dag_run_id=%s, last_seen_log_id=%s, extra_dag_run_ids=%s, dag_ids=%s, excluded_dag_ids=%s",
             dbnd_response.last_seen_dag_run_id,
             dbnd_response.last_seen_log_id,
             ",".join(map(str, dbnd_response.dag_run_ids)),
             self.config.dag_ids,
+            self.config.excluded_dag_ids,
         )
         airflow_response = self.data_fetcher.get_airflow_dagruns_to_sync(
             last_seen_dag_run_id=dbnd_response.last_seen_dag_run_id,
             last_seen_log_id=dbnd_response.last_seen_log_id,
             extra_dag_run_ids=dbnd_response.dag_run_ids,
             dag_ids=self.config.dag_ids,
+            excluded_dag_ids=self.config.excluded_dag_ids,
         )  # type: AirflowDagRunsResponse
 
         dagruns_to_init, dagruns_to_update = categorize_dag_runs(

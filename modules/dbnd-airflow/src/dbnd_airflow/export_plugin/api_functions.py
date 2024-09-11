@@ -101,6 +101,7 @@ def get_new_dag_runs(
     last_seen_log_id,
     extra_dag_runs_ids,
     dag_ids=None,
+    excluded_dag_ids=None,
     include_subdags=True,
     session=None,
 ):
@@ -113,7 +114,9 @@ def get_new_dag_runs(
     if last_seen_log_id is None:
         last_seen_log_id = max_log_id
 
-    logs = find_all_logs_grouped_by_runs(last_seen_log_id, dag_ids, session)
+    logs = find_all_logs_grouped_by_runs(
+        last_seen_log_id, dag_ids, excluded_dag_ids, session
+    )
     logs_dict = {(log.dag_id, log.execution_date): log for log in logs}
 
     dag_runs = find_new_dag_runs(
@@ -121,6 +124,7 @@ def get_new_dag_runs(
         extra_dag_runs_ids,
         logs_dict.keys(),
         dag_ids,
+        excluded_dag_ids,
         include_subdags,
         session,
     )
@@ -158,7 +162,9 @@ def get_new_dag_runs(
 
 @safe_rich_result
 @provide_session
-def get_full_dag_runs_for_plugin(dag_run_ids, include_sources, session=None):
+def get_full_dag_runs_for_plugin(
+    dag_run_ids, excluded_dag_ids, include_sources, session=None
+):
     dbnd_dag_loader = DbndDagLoader()
     if AIRFLOW_VERSION_2:
         dbnd_dag_loader.load_dags_for_runs(dag_run_ids=dag_run_ids, session=session)
@@ -175,6 +181,7 @@ def get_full_dag_runs_for_plugin(dag_run_ids, include_sources, session=None):
 
     return get_full_dag_runs(
         dag_run_ids=dag_run_ids,
+        excluded_dag_ids=excluded_dag_ids,
         include_sources=include_sources,
         dag_loader=dbnd_dag_loader,
     )
@@ -189,7 +196,7 @@ def get_full_dag_runs(dag_run_ids, include_sources, dag_loader, session=None):
         DagModel.get_current = get_current_dag_model
         load_dags_models(session)
         task_instances, dag_runs = find_full_dag_runs(dag_run_ids, session)
-        dag_ids = set(run.dag_id for run in dag_runs)
+        dag_ids = {run.dag_id for run in dag_runs}
         dags = get_dags(dag_loader, True, dag_ids, False, include_sources)
         full_runs = FullRunsData(
             task_instances=task_instances, dag_runs=dag_runs, dags=dags

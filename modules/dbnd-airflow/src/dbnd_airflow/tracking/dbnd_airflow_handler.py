@@ -21,7 +21,7 @@ from dbnd_airflow.tracking.dbnd_airflow_conf import (
     get_dbnd_config_dict_from_airflow_connections,
     get_sync_status_and_tracking_dag_ids_from_dbnd_conf,
 )
-from dbnd_airflow.tracking.execute_tracking import is_dag_eligable_for_tracking
+from dbnd_airflow.tracking.execute_tracking import is_dag_eligible_for_tracking
 from dbnd_airflow.tracking.fakes import FakeTaskRun
 from dbnd_airflow.utils import get_task_run_attempt_uid_from_af_ti
 
@@ -85,13 +85,18 @@ class DbndAirflowLogHandler(logging.Handler):
         (
             sync_enabled,
             tracking_list,
+            excluded_tracking_list,
         ) = get_sync_status_and_tracking_dag_ids_from_dbnd_conf(
             dbnd_config_from_connection
         )
         if not sync_enabled:
             return
 
-        if not is_dag_eligable_for_tracking(ti.dag_id, tracking_list=tracking_list):
+        if not is_dag_eligible_for_tracking(
+            ti.dag_id,
+            tracking_list=tracking_list,
+            excluded_tracking_list=excluded_tracking_list,
+        ):
             return
 
         # we are not tracking SubDagOperator

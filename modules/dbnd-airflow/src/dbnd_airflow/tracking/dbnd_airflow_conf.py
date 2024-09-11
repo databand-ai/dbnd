@@ -172,17 +172,13 @@ def get_dbnd_config_dict_from_airflow_connections():
         if dbnd_conn_config.extra:
             # Airflow failed to parse extra config as json
             dbnd_log_exception(
-                "Extra config for {0} connection, should be formated as a valid json.".format(
-                    DATABAND_AIRFLOW_CONN_ID
-                )
+                f"Extra config for {DATABAND_AIRFLOW_CONN_ID} connection, should be formated as a valid json."
             )
 
         else:
             # Extra section in connection is empty
             dbnd_log_exception(
-                "No extra config provided to {0} connection.".format(
-                    DATABAND_AIRFLOW_CONN_ID
-                )
+                f"No extra config provided to {DATABAND_AIRFLOW_CONN_ID} connection."
             )
 
         return None
@@ -228,36 +224,48 @@ def set_dbnd_config_from_airflow_connections(dbnd_config_from_connection):
 IS_SYNC_ENABLED_TRACKING_CONFIG_NAME = "is_sync_enabled"
 DAG_IDS_FOR_TRACKING_CONFIG_NAME = "dag_ids"
 AIRFLOW_MONITOR_CONFIG_NAME = "airflow_monitor"
+EXCLUDED_DAG_IDS_FOR_TRACKING_FLAG_CONFIG_NAME = "excluded_dag_ids"
 
 
 def get_sync_status_and_tracking_dag_ids_from_dbnd_conf(dbnd_config_from_connection):
     """
-    return sync_enabled, dag_ids filter (None if empty)
+    return sync_enabled, dag_ids filter (None if empty), excluded_dag_ids filter (None if empty)
     """
     try:
 
         if not dbnd_config_from_connection:
-            return True, None
+            return True, None, None
         monitor_config = dbnd_config_from_connection.get(
             AIRFLOW_MONITOR_CONFIG_NAME, None
         )
         if not monitor_config:
-            return True, None
+            return True, None, None
 
         is_sync_enabled = monitor_config.get(IS_SYNC_ENABLED_TRACKING_CONFIG_NAME, True)
 
         dag_ids_config: Optional[str] = monitor_config.get(
             DAG_IDS_FOR_TRACKING_CONFIG_NAME, None
         )
+        excluded_dag_ids_config = monitor_config.get(
+            EXCLUDED_DAG_IDS_FOR_TRACKING_FLAG_CONFIG_NAME, None
+        )
         dag_ids_config_parsed: Optional[List[str]] = None
+        excluded_dag_ids_config_parsed: Optional[List[str]] = None
 
-        if dag_ids_config is not None:
-            if isinstance(dag_ids_config, str):
-                dag_ids_config = dag_ids_config.strip()
+        if isinstance(dag_ids_config, str):
+            dag_ids_config = dag_ids_config.strip()
             if dag_ids_config:
-                dag_ids_config_parsed = dag_ids_config.split(",")
+                dag_ids_config_parsed = [
+                    dag.strip() for dag in dag_ids_config.split(",")
+                ]
+        if isinstance(excluded_dag_ids_config, str):
+            excluded_dag_ids_config = excluded_dag_ids_config.strip()
+            if excluded_dag_ids_config:
+                excluded_dag_ids_config_parsed = [
+                    dag.strip() for dag in excluded_dag_ids_config.split(",")
+                ]
 
-        return is_sync_enabled, dag_ids_config_parsed
+        return is_sync_enabled, dag_ids_config_parsed, excluded_dag_ids_config_parsed
     except Exception as e:
-        dbnd_log_exception("Can't parse  {}".format(e), e)
-        return False, None
+        dbnd_log_exception(f"Can't parse  {e}", e)
+        return False, None, None

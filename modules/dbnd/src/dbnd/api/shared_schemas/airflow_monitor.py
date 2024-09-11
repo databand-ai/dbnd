@@ -34,6 +34,7 @@ class AirflowServerInfoSchema(ApiStrictSchema):
     fetcher = fields.String(allow_none=True)
     composer_client_id = fields.String(allow_none=True)
     dag_ids = fields.String(allow_none=True)
+    excluded_dag_ids = fields.String(allow_none=True)
 
     base_url = fields.String()
     external_url = fields.String(allow_none=True)
@@ -96,6 +97,7 @@ class AirflowServerInfo(object):
     fetcher = attr.ib(default=None)  # type: Optional[str]
     composer_client_id = attr.ib(default=None)  # type: Optional[str]
     dag_ids = attr.ib(default=None)  # type: Optional[str]
+    excluded_dag_ids = attr.ib(default=None)  # type: Optional[str]
     monitor_config = attr.ib(default=None)  # type: Optional[Dict]
     airflow_environment = attr.ib(default=None)  # type: Optional[str]
     last_seen_dag_run_id = attr.ib(default=None)  # type: Optional[int]

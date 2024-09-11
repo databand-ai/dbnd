@@ -60,7 +60,6 @@ def insert_dag_runs(
             dag_run.run_id = f"manual__{execution_date.isoformat()}"
 
         session.add(dag_run)
-        session.commit()
         if with_log:
             task_instance = FakeTaskInstance()
             task_instance.dag_id = dag_id

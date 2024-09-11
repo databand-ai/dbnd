@@ -117,10 +117,14 @@ class DbFetcher(AirflowDataFetcher):
         last_seen_log_id: Optional[int] = None,
         extra_dag_run_ids: Optional[List[int]] = None,
         dag_ids: Optional[str] = None,
+        excluded_dag_ids: Optional[str] = None,
     ) -> AirflowDagRunsResponse:
         from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
 
         dag_ids_list = dag_ids.split(",") if dag_ids else None
+        excluded_dag_ids_list = (
+            excluded_dag_ids.split(",") if excluded_dag_ids else None
+        )
 
         with self._get_session() as session:
             data = get_new_dag_runs(
@@ -128,6 +132,7 @@ class DbFetcher(AirflowDataFetcher):
                 last_seen_log_id=last_seen_log_id,
                 extra_dag_runs_ids=extra_dag_run_ids,
                 dag_ids=dag_ids_list,
+                excluded_dag_ids=excluded_dag_ids_list,
                 include_subdags=True,
                 session=session,
             )

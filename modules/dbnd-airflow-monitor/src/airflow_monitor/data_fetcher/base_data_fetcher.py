@@ -31,6 +31,7 @@ class AirflowDataFetcher(ABC):
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
         dag_ids: Optional[str],
+        excluded_dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
         pass
 

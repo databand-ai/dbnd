@@ -25,6 +25,7 @@ class AirflowIntegrationConfig(BaseIntegrationConfig):
     api_mode = attr.ib(default=None)  # type: str
     fetcher_type = attr.ib(default="web")  # type: str
     dag_ids = attr.ib(default=None)  # type: Optional[str]
+    excluded_dag_ids = attr.ib(default=None)  # type: Optional[str]
 
     # for web data fetcher
     rbac_username = attr.ib(default=None)  # type: str
@@ -68,6 +69,7 @@ class AirflowIntegrationConfig(BaseIntegrationConfig):
         dag_ids = config["dag_ids"]
         if dag_ids:
             dag_ids = dag_ids + "," + MONITOR_DAG_NAME
+        excluded_dag_ids = config.get("excluded_dag_ids")
 
         conf = cls(
             uid=config["uid"],
@@ -79,6 +81,7 @@ class AirflowIntegrationConfig(BaseIntegrationConfig):
             fetcher_type=monitor_config.fetcher or config["fetcher"],
             composer_client_id=config["composer_client_id"],
             dag_ids=dag_ids,
+            excluded_dag_ids=excluded_dag_ids,
             sql_alchemy_conn=monitor_config.sql_alchemy_conn,  # TODO: currently support only one server!
             json_file_path=monitor_config.json_file_path,  # TODO: currently support only one server!
             rbac_username=monitor_config.rbac_username,  # TODO: currently support only one server!

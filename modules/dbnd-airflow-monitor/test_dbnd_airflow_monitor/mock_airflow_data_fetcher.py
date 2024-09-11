@@ -94,8 +94,10 @@ class MockDataFetcher(AirflowDataFetcher):
         last_seen_log_id: Optional[int],
         extra_dag_run_ids: Optional[List[int]],
         dag_ids: Optional[str],
+        excluded_dag_ids: Optional[str],
     ) -> AirflowDagRunsResponse:
         dag_ids_list = dag_ids.split(",") if dag_ids else None
+        excluded_dag_ids.split(",") if excluded_dag_ids else None
 
         updated = {}
         if last_seen_log_id is not None:
