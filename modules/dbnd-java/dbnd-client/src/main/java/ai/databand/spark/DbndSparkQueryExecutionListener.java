@@ -35,6 +35,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -127,6 +128,11 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
             }
             isProcessed = submitReadOps(executedPlan);
         }
+        /* It might need to be enabled if used by some customers  (SQLs with "limit X" statement)
+        if (executedPlan instanceof CollectLimitExec) {
+            LOG.verbose("[{}] ExecutePlan is instanceof CollectLimitExec", executedPlan.hashCode());
+            isProcessed = submitReadOps(executedPlan);
+        }*/
         if (!isProcessed) {
             LOG.verbose("[{}] Spark event was not processed because execution plan class {} and all its child plans are not supported", executedPlan.hashCode(), executedPlan.getClass().getName());
         } else {
@@ -174,13 +180,13 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         log(path, DatasetOperationType.READ, hiveTableScan.relation().schema(), rows,true);
                         isProcessed = true;
                     } catch (Exception e) {
-                        LOG.error("[{}] Unable to extract dataset information from HiveTableScanExec - {}", executedPlan.hashCode(), e);
+                        LOG.error("[{}][{}] Unable to extract dataset information from HiveTableScanExec - {}", executedPlan.hashCode(), next.hashCode(), e);
                     }
                     continue;
                 }
             }
 
-            LOG.verbose("[{}] Unsupported children plan: {}", executedPlan.hashCode(), next.getClass().getName());
+            LOG.verbose("[{}][{}] Unsupported children plan: {}", executedPlan.hashCode(), next.hashCode(), next.getClass().getName());
         }
         return isProcessed;
     }
@@ -283,41 +289,49 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
         List<SparkPlan> result = new ArrayList<>();
         Deque<SparkPlan> deque = new LinkedList<>();
         deque.add(root);
+        List<String> spark3classes = Arrays.asList("org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec", "org.apache.spark.sql.execution.adaptive.BroadcastQueryStageExec");
         while (!deque.isEmpty()) {
             SparkPlan next = deque.pop();
             result.add(next);
-            if (next.getClass().getName().contains("ShuffleQueryStageExec")) {
+            if (spark3classes.contains(next.getClass().getName())) {
                 // Spark 3 feature
-                Optional<SparkPlan> shuffleChild = extractChildFromShuffle(next);
-                shuffleChild.ifPresent(deque::add);
+                Optional<SparkPlan> spark3Child = extractChildFromSpark3(next);
+                spark3Child.ifPresent(deque::add);
+                if(!spark3Child.isPresent()) {
+                    LOG.verbose("[{}][{}] No child node for Spark3 node class '{}'", root.hashCode(), next.hashCode(), next.getClass().getName());
+                }
             } else if (next.getClass().getName().contains("AdaptiveSparkPlanExec")) {
                 Optional<SparkPlan> finalPlanFromAdaptive = extractFinalFromAdaptive(next);
                 finalPlanFromAdaptive.ifPresent(deque::add);
             } else {
                 List<SparkPlan> children = scala.collection.JavaConverters.seqAsJavaListConverter(next.children()).asJava();
                 deque.addAll(children);
+                if(children.size() == 0) {
+                    // For some Spark nodes this message means new node type needs to be added to "spark3classes" list
+                    LOG.verbose("[{}][{}] No children nodes for node '{}'", root.hashCode(), next.hashCode(), next.getClass().getName());
+                }
             }
         }
         return result;
     }
 
     /**
-     * Shuffle queries was introduced in Spark 3 and doesn't have "children" nodes.
+     * Some queries were introduced in Spark 3 and doesn't have "children" nodes.
      * Instead, the child node can be accessed using plan() method.
      * We use reflection to gain access to this method in runtime and avoid direct dependency to Spark 3.
      *
-     * @param shuffleQuery
+     * @param spark3Query
      * @return
      */
-    protected Optional<SparkPlan> extractChildFromShuffle(SparkPlan shuffleQuery) {
+    protected Optional<SparkPlan> extractChildFromSpark3(SparkPlan spark3Query) {
         try {
-            Class<?> clazz = Class.forName("org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec");
+            Class<?> clazz = Class.forName(spark3Query.getClass().getName());
             Method method = clazz.getDeclaredMethod("plan");
-            SparkPlan value = (SparkPlan) method.invoke(shuffleQuery);
+            SparkPlan value = (SparkPlan) method.invoke(spark3Query);
             return Optional.of(value);
         } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException |
                  InvocationTargetException e) {
-            LOG.error("[{}] Unable to extract child plan from the shuffle query using reflection. Dataset operation won't be logged - {}.", shuffleQuery.hashCode(), e);
+            LOG.error("[{}] Unable to extract child plan from the spark3 query '{}' using reflection. Dataset operation won't be logged - {}.", spark3Query.hashCode(), spark3Query.getClass().getName(), e);
             return Optional.empty();
         }
     }
