@@ -3,7 +3,7 @@
 import json
 import logging
 
-from typing import Union
+from typing import Optional, Union
 
 import pytest
 
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 def set_dbnd_airflow_connection(
     af_session,
     dbnd_config_value: Union[dict, str],
-    password: str = None,
+    password: Optional[str] = None,
     conn_id=DATABAND_AIRFLOW_CONN_ID,
 ):
     from airflow.models.connection import Connection
@@ -69,7 +69,7 @@ def set_and_assert_config_configured():
     dbnd_config_from_connection = get_dbnd_config_dict_from_airflow_connections()
 
     # we can't print to log, as caplog is active in tests
-    print("CONFIG FROM CONNECTION: %s" % str(dbnd_config_from_connection))
+    print(f"CONFIG FROM CONNECTION: {str(dbnd_config_from_connection)}")
     actual = set_dbnd_config_from_airflow_connections(
         dbnd_config_from_connection=dbnd_config_from_connection
     )
@@ -142,10 +142,10 @@ class TestConfigFromConnection:
         set_dbnd_airflow_connection(
             af_session, dbnd_config_value=json_for_connection["value"], conn_id=conn_id
         )
-        logger.info("Set config based on  {0}  ".format(json_for_connection["name"]))
+        logger.info("Set config based on  %s  ", json_for_connection["name"])
 
         set_and_assert_config_configured()
-        print("CAPTURED LOG: %s" % caplog.text)
+        print(f"CAPTURED LOG: {caplog.text}")
 
         # exceptions are different in airflow 1, so we can not compare log_msg
         if not AIRFLOW_VERSION_1:
@@ -153,7 +153,7 @@ class TestConfigFromConnection:
 
         print("Test Succeeded")
 
-    def test_settings_airflow_operarator_handler_custom(self, af_session):
+    def test_settings_airflow_operator_handler_custom(self, af_session):
         dbnd_config = {
             "core": {
                 "databand_url": DATABAND_URL,

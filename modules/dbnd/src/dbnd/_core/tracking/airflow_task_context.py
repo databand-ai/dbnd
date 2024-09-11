@@ -13,7 +13,7 @@ def disable_airflow_subdag_tracking():
 
 
 @attr.s
-class AirflowTaskContext(object):
+class AirflowTaskContext:
     dag_id = attr.ib()  # type: str
     execution_date = attr.ib()  # type: str
     task_id = attr.ib()  # type: str

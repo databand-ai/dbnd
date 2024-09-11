@@ -186,8 +186,7 @@ def get_dbnd_config_dict_from_airflow_connections():
     except AirflowException as afe:
         # Probably dbnd_config is not set properly in Airflow connections.
         dbnd_log_exception(
-            "Failed to parse '%s' connection:  %s"
-            % (DATABAND_AIRFLOW_CONN_ID, str(afe))
+            f"Failed to parse '{DATABAND_AIRFLOW_CONN_ID}' connection:  {str(afe)}"
         )
         return None
     except Exception:
@@ -198,9 +197,9 @@ def get_dbnd_config_dict_from_airflow_connections():
 def set_dbnd_config_from_airflow_connections(dbnd_config_from_connection):
     from dbnd._core.configuration.dbnd_config import config
 
-    all_config_layers_names = set(
-        [layer.name for layer in config.config_layer.get_all_layers()]
-    )
+    all_config_layers_names = {
+        layer.name for layer in config.config_layer.get_all_layers()
+    }
 
     if AIRFLOW_DBND_CONNECTION_SOURCE in all_config_layers_names:
         dbnd_log_debug(

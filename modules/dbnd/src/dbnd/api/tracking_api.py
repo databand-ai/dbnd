@@ -129,6 +129,7 @@ class InitRunArgs(object):
     af_with_monitor = attr.ib(default=True)  # type: bool
     af_context = attr.ib(default=None)  # type: Optional[AirflowTaskContext]
     tracking_source = attr.ib(default=None)  # type: Optional[TrackingSource]
+    tracking_source_uid = attr.ib(default=None)  # type: Optional[str]
 
     def asdict(self):
         return attr.asdict(self, recurse=False)
@@ -170,6 +171,7 @@ class InitRunArgsSchema(ApiStrictSchema):
     source = fields.Str(allow_none=True)
     af_context = fields.Nested(AirflowTaskContextSchema, allow_none=True)
     tracking_source = fields.Nested(TrackingSourceSchema, allow_none=True)
+    tracking_source_uid = fields.String(allow_none=True)
 
     @post_load
     def make_init_run_args(self, data, **kwargs):

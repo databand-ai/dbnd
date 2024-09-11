@@ -122,6 +122,11 @@ class TrackingConfig(Config):
         description="Control which of the Airflow Operator's fields would be flattened when tracked.",
     )[Dict[str, str]]
 
+    tracking_source_uid = parameter(
+        default=None,
+        description="Tracking Source UUID from the SDK. Corresponds to Tracking Source UUID in Databand Webserver.",
+    )[str]
+
     def get_value_meta_conf(self, meta_conf, value_type, target=None):
         # type: (ValueMetaConf, ValueType, Optional[Target]) -> ValueMetaConf
         meta_conf_by_type = calc_meta_conf_for_value_type(

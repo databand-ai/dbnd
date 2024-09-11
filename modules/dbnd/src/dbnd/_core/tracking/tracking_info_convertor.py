@@ -104,6 +104,7 @@ class TrackingInfoBuilder(object):
             af_with_monitor=should_use_airflow_monitor(),
             af_context=run.af_context,
             tracking_source=run.tracking_source,
+            tracking_source_uid=run.context.settings.tracking.tracking_source_uid,
         )
 
         if (

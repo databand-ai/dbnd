@@ -431,7 +431,7 @@ def tracking_start_base(
     job_name=None,
     run_name=None,
     project_name=None,
-    airflow_context: AirflowTaskContext = None,
+    airflow_context: Optional[AirflowTaskContext] = None,
     conf=None,
 ):
     """

@@ -243,7 +243,7 @@ def af_tracking_context(task_run, airflow_context, operator):
         logger.exception(
             "exception caught adding tracking context to operator execution %s"
             "continue without tracking context",
-            e,
+            str(e),
         )
         yield
         return
