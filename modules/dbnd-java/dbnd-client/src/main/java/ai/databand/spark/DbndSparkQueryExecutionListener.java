@@ -4,33 +4,8 @@
 
 package ai.databand.spark;
 
-import ai.databand.DbndAppLog;
-import ai.databand.DbndWrapper;
-import ai.databand.config.DbndConfig;
-import ai.databand.parameters.DatasetOperationPreview;
-import ai.databand.schema.ColumnStats;
-import ai.databand.schema.DatasetOperationStatus;
-import ai.databand.schema.DatasetOperationType;
-import ai.databand.schema.LogDataset;
-import ai.databand.schema.Pair;
+import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.sql.catalyst.plans.QueryPlan;
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
-import org.apache.spark.sql.execution.CollectLimitExec;
-import org.apache.spark.sql.execution.FileSourceScanExec;
-import org.apache.spark.sql.execution.QueryExecution;
-import org.apache.spark.sql.execution.SparkPlan;
-import org.apache.spark.sql.execution.WholeStageCodegenExec;
-import org.apache.spark.sql.execution.command.DataWritingCommandExec;
-import org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand;
-import org.apache.spark.sql.hive.execution.HiveTableScanExec;
-import org.apache.spark.sql.hive.execution.InsertIntoHiveTable;
-import org.apache.spark.sql.types.StructType;
-import org.apache.spark.sql.util.QueryExecutionListener;
-import org.slf4j.LoggerFactory;
-
-import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -43,7 +18,32 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static ai.databand.DbndPropertyNames.DBND_INTERNAL_ALIAS;
+import org.apache.spark.sql.catalyst.plans.QueryPlan;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.execution.CollectLimitExec;
+import org.apache.spark.sql.execution.FileSourceScanExec;
+import org.apache.spark.sql.execution.QueryExecution;
+import org.apache.spark.sql.execution.SparkPlan;
+import org.apache.spark.sql.execution.WholeStageCodegenExec;
+import org.apache.spark.sql.execution.command.DataWritingCommandExec;
+import org.apache.spark.sql.execution.datasources.HadoopFsRelation;
+import org.apache.spark.sql.execution.datasources.InsertIntoHadoopFsRelationCommand;
+import org.apache.spark.sql.execution.metric.SQLMetric;
+import org.apache.spark.sql.hive.execution.HiveTableScanExec;
+import org.apache.spark.sql.hive.execution.InsertIntoHiveTable;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.QueryExecutionListener;
+import org.slf4j.LoggerFactory;
+
+import ai.databand.DbndAppLog;
+import ai.databand.DbndWrapper;
+import ai.databand.parameters.DatasetOperationPreview;
+import ai.databand.schema.ColumnStats;
+import ai.databand.schema.DatasetOperationStatus;
+import ai.databand.schema.DatasetOperationType;
+import ai.databand.schema.LogDataset;
+import ai.databand.schema.Pair;
+import scala.collection.Map;
 
 public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
 
@@ -76,78 +76,55 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
     @Override
     public void onSuccess(String funcName, QueryExecution qe, long durationNs) {
         boolean isProcessed = false;
-        SparkPlan executedPlan = qe.executedPlan();
+        SparkPlan rootPlan = qe.executedPlan();
 
-        LOG.verbose("[{}] Processing event from function \"{}()\" and execution plan class: {}. Executed plan: {}", executedPlan.hashCode(), funcName, executedPlan.getClass().getName(), executedPlan);
+        LOG.verbose("[{}] Processing event from function \"{}()\" and execution plan class: {}. Executed root plan: {}", rootPlan.hashCode(), funcName, rootPlan.getClass().getName(), rootPlan);
 
         // Instanceof chain used instead of pattern-matching for the sake of simplicity here.
         // When new implementations will be added, this part should be refactored to use pattern-matching (strategies)
-        if (isAdaptivePlan(executedPlan)) {
-            executedPlan = extractFinalFromAdaptive(executedPlan).orElse(executedPlan);
+        if (isAdaptivePlan(rootPlan)) {
+            rootPlan = extractFinalFromAdaptive(rootPlan).orElse(rootPlan);
 
-            LOG.verbose("[{}] Extracted final plan from adaptive plan. Final executed plan: {}", executedPlan.hashCode(), executedPlan);
+            LOG.verbose("[{}] Extracted final root plan from adaptive plan. Final executed root plan: {}", rootPlan.hashCode(), rootPlan);
         }
-        if (executedPlan instanceof DataWritingCommandExec) {
-            LOG.verbose("[{}] ExecutedPlan is instanceof DataWritingCommandExec", executedPlan.hashCode());
+        if (rootPlan instanceof DataWritingCommandExec) {
+            LOG.verbose("[{}] rootPlan is instanceof DataWritingCommandExec", rootPlan.hashCode());
 
-            // when write is combined with reads, we should submit reads too
-            isProcessed = submitReadOps(executedPlan);
-            DataWritingCommandExec writePlan = (DataWritingCommandExec) executedPlan;
-            if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
-                LOG.verbose("[{}] write is combined with reads", writePlan.hashCode());
-                InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
-
-                String path = extractPath(cmd.outputPath().toString());
-                long rows = cmd.metrics().get("numOutputRows").get().value();
-
-                log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows,false);
-                isProcessed = true;
-            }
-            if (isHiveEnabled) {
-                if (writePlan.cmd() instanceof InsertIntoHiveTable) {
-                    LOG.verbose("[{}] ExecutePlan is instanceof InsertIntoHiveTable", writePlan.hashCode());
-                    try {
-                        InsertIntoHiveTable cmd = (InsertIntoHiveTable) writePlan.cmd();
-
-                        String path = cmd.table().identifier().table();
-                        long rows = cmd.metrics().get("numOutputRows").get().value();
-
-                        log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows,true);
-                        isProcessed = true;
-                    } catch (Exception e) {
-                        LOG.error("[{}] Unable to extract dataset information from InsertIntoHiveTable - {}", writePlan.hashCode(), e);
-                    }
-                }
-            }
+            isProcessed = submitReadWriteOps(rootPlan);
         }
-        if (executedPlan instanceof WholeStageCodegenExec) {
-            LOG.verbose("[{}] ExecutePlan is instanceof WholeStageCodegenExec", executedPlan.hashCode());
+        if (rootPlan instanceof WholeStageCodegenExec) {
+            LOG.verbose("[{}] rootPlan is instanceof WholeStageCodegenExec", rootPlan.hashCode());
             if (isDbndPlan(qe)) {
-                LOG.warn("[{}] Explicit Databand SDK DataFrame tracking will not be reported by JVM", executedPlan.hashCode());
+                LOG.warn("[{}] Explicit Databand SDK DataFrame tracking will not be reported by JVM", rootPlan.hashCode());
                 return;
             }
-            isProcessed = submitReadOps(executedPlan);
+            isProcessed = submitReadWriteOps(rootPlan);
+        }
+        if (rootPlan.getClass().getName().equals("org.apache.spark.sql.execution.adaptive.ResultQueryStageExec")) {
+            // Databricks Spark
+            LOG.verbose("[{}] rootPlan is instanceof ResultQueryStageExec", rootPlan.hashCode());
+            isProcessed = submitReadWriteOps(rootPlan);
         }
         /* It might need to be enabled if used by some customers  (SQLs with "limit X" statement)
-        if (executedPlan instanceof CollectLimitExec) {
-            LOG.verbose("[{}] ExecutePlan is instanceof CollectLimitExec", executedPlan.hashCode());
-            isProcessed = submitReadOps(executedPlan);
+        if (rootPlan instanceof CollectLimitExec) {
+            LOG.verbose("[{}] rootPlan is instanceof CollectLimitExec", rootPlan.hashCode());
+            isProcessed = submitReadWriteOps(rootPlan);
         }*/
         if (!isProcessed) {
-            LOG.verbose("[{}] Spark event was not processed because execution plan class {} and all its child plans are not supported", executedPlan.hashCode(), executedPlan.getClass().getName());
+            LOG.verbose("[{}] Spark event was not processed because root execution plan class {} and all its child plans are not supported", rootPlan.hashCode(), rootPlan.getClass().getName());
         } else {
-            LOG.verbose("[{}] Spark event was processed succesfully, execution plan class: {}", executedPlan.hashCode(), executedPlan.getClass().getName());
+            LOG.verbose("[{}] Spark event was processed succesfully, root execution plan class: {}", rootPlan.hashCode(), rootPlan.getClass().getName());
         }
     }
 
-    protected boolean submitReadOps(SparkPlan executedPlan) {
+    protected boolean submitReadWriteOps(SparkPlan rootPlan) {
         boolean isProcessed = false;
-        List<SparkPlan> allChildren = getAllChildren(executedPlan);
-        LOG.verbose("[{}] {} children plans detected.", executedPlan.hashCode(), allChildren.size());
+        List<SparkPlan> allChildren = getAllChildren(rootPlan);
+        LOG.verbose("[{}] {} children plans detected.", rootPlan.hashCode(), allChildren.size());
 
         for (SparkPlan next : allChildren) {
             if (next instanceof FileSourceScanExec) {
-                LOG.verbose("[{}][{}] Supported FileSourceScanExec child plan type detected", executedPlan.hashCode(), next.hashCode());
+                LOG.verbose("[{}][{}] Supported FileSourceScanExec child plan type detected", rootPlan.hashCode(), next.hashCode());
                 FileSourceScanExec fileSourceScan = (FileSourceScanExec) next;
 
                 StructType schema = fileSourceScan.schema();
@@ -164,9 +141,41 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                 isProcessed = true;
                 continue;
             }
+            if (next.getClass().getName().equals("com.databricks.photon.PhotonJsonFileScanExec")) {
+                // Databricks Spark Photon engine
+                LOG.verbose("[{}][{}] Supported PhotonJsonFileScanExec child plan type detected", rootPlan.hashCode(), next.hashCode());
+                try {
+                    Class[] argTypes = new Class[] {};
+                    Method mschema = next.getClass().getMethod("schema", argTypes);
+                    StructType schema = (StructType) mschema.invoke(next);
+                    // when performing operations like "count" schema is not reported in a PhotonJsonFileScanExec itself,
+                    // but we can try to figure it out from the HadoopRelation.
+                    if (schema.isEmpty()) {
+                        Method mrelation = next.getClass().getMethod("relation", argTypes);
+                        HadoopFsRelation relation = (HadoopFsRelation) mrelation.invoke(next);
+                        if (relation != null) {
+                            schema = relation.schema();
+                        }
+                    }
+                    Method mmetadata = next.getClass().getMethod("metadata", argTypes);
+                    Map<String, String> meta = (Map<String, String>) mmetadata.invoke(next);
+
+                    String path = extractPath(meta.get("Location").get());
+
+                    Method mmetrics = next.getClass().getMethod("metrics", argTypes);
+                    Map<String, SQLMetric> metrics = (Map<String, SQLMetric>) mmetrics.invoke(next);
+                    long rows = metrics.get("numOutputRows").get().value();
+
+                    log(path, DatasetOperationType.READ, schema, rows,false);
+                    isProcessed = true;
+                } catch (Exception e) {
+                    LOG.error("[{}][{}] Unable to extract dataset information from PhotonJsonFileScanExec - {}", rootPlan.hashCode(), next.hashCode(), e);
+                }
+                continue;
+            }
             if (isHiveEnabled) {
                 if (next instanceof HiveTableScanExec) {
-                    LOG.verbose("[{}][{}] Supported HiveTableScanExec child plan type detected", executedPlan.hashCode(), next.hashCode());
+                    LOG.verbose("[{}][{}] Supported HiveTableScanExec child plan type detected", rootPlan.hashCode(), next.hashCode());
                     try {
                         HiveTableScanExec hiveTableScan = (HiveTableScanExec) next;
 
@@ -180,13 +189,45 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
                         log(path, DatasetOperationType.READ, hiveTableScan.relation().schema(), rows,true);
                         isProcessed = true;
                     } catch (Exception e) {
-                        LOG.error("[{}][{}] Unable to extract dataset information from HiveTableScanExec - {}", executedPlan.hashCode(), next.hashCode(), e);
+                        LOG.error("[{}][{}] Unable to extract dataset information from HiveTableScanExec - {}", rootPlan.hashCode(), next.hashCode(), e);
                     }
                     continue;
                 }
             }
+            if (next instanceof DataWritingCommandExec) {
+                LOG.verbose("[{}][{}] Supported DataWritingCommandExec child plan type detected", rootPlan.hashCode(), next.hashCode());
 
-            LOG.verbose("[{}][{}] Unsupported children plan: {}", executedPlan.hashCode(), next.hashCode(), next.getClass().getName());
+                DataWritingCommandExec writePlan = (DataWritingCommandExec) next;
+                if (writePlan.cmd() instanceof InsertIntoHadoopFsRelationCommand) {
+                    LOG.verbose("[{}][{}] writeplan is instanceof InsertIntoHadoopFsRelationCommand", rootPlan.hashCode(), writePlan.hashCode());
+                    InsertIntoHadoopFsRelationCommand cmd = (InsertIntoHadoopFsRelationCommand) writePlan.cmd();
+
+                    String path = extractPath(cmd.outputPath().toString());
+                    long rows = cmd.metrics().get("numOutputRows").get().value();
+
+                    log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows,false);
+                    isProcessed = true;
+                }
+                if (isHiveEnabled) {
+                    if (writePlan.cmd() instanceof InsertIntoHiveTable) {
+                        LOG.verbose("[{}][{}] writeplan is instanceof InsertIntoHiveTable", rootPlan.hashCode(), writePlan.hashCode());
+                        try {
+                            InsertIntoHiveTable cmd = (InsertIntoHiveTable) writePlan.cmd();
+
+                            String path = cmd.table().identifier().table();
+                            long rows = cmd.metrics().get("numOutputRows").get().value();
+
+                            log(path, DatasetOperationType.WRITE, cmd.query().schema(), rows,true);
+                            isProcessed = true;
+                        } catch (Exception e) {
+                            LOG.error("[{}][{}] Unable to extract dataset information from InsertIntoHiveTable - {}", rootPlan.hashCode(), writePlan.hashCode(), e);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            LOG.verbose("[{}][{}] Unsupported children plan: {}", rootPlan.hashCode(), next.hashCode(), next.getClass().getName());
         }
         return isProcessed;
     }
@@ -289,7 +330,7 @@ public class DbndSparkQueryExecutionListener implements QueryExecutionListener {
         List<SparkPlan> result = new ArrayList<>();
         Deque<SparkPlan> deque = new LinkedList<>();
         deque.add(root);
-        List<String> spark3classes = Arrays.asList("org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec", "org.apache.spark.sql.execution.adaptive.BroadcastQueryStageExec");
+        List<String> spark3classes = Arrays.asList("org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec", "org.apache.spark.sql.execution.adaptive.BroadcastQueryStageExec", "org.apache.spark.sql.execution.adaptive.ResultQueryStageExec");
         while (!deque.isEmpty()) {
             SparkPlan next = deque.pop();
             result.add(next);
