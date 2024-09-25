@@ -66,8 +66,9 @@ class TaskDecorator(object):
         self.task_defaults = decorator_kwargs.pop("defaults", None)
 
         self.task_namespace = decorator_kwargs.get("task_namespace", NOTHING)
-        self.task_family = decorator_kwargs.get("_conf__task_family")
-
+        self.task_family = decorator_kwargs.get(
+            "_conf__task_family"
+        ) or decorator_kwargs.pop("task_family", None)
         # rest of kwargs are "user params"
         self.decorator_kwargs = decorator_kwargs
 

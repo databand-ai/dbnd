@@ -190,13 +190,10 @@ class CallableTrackingManager(object):
                 # if we started to call the user code and not got to user_code_finished
                 # line - it means there was user code exception - so just re-raise it
                 raise
-            # else it's either we didn't reached calling user code, or already passed it
+            # else it's either we didn't reach calling user code, or already passed it
             # then it's some dbnd tracking error - just log it
-            if func_call:
-                _handle_tracking_error("tracking-init", func_call)
-            else:
-                log_exception_to_server()
-        # if we didn't reached user_code_called=True line - there was an error during
+            _handle_tracking_error("tracking-init", str(self.callable))
+        # if we didn't reache user_code_called=True line - there was an error during
         # dbnd tracking initialization, so nothing is done - user function wasn't called yet
         if not user_code_called:
             # tracking_context is context manager - user code will run on yield
@@ -204,12 +201,11 @@ class CallableTrackingManager(object):
             return
 
 
-def _handle_tracking_error(msg, func_call=None):
+def _handle_tracking_error(msg, location=None):
     log_exception_to_server()
-    location = " %s" % func_call.callable if func_call else ""
     msg = (
         "Failed during dbnd '%s' step at '%s', ignoring, and continue without tracking"
-        % (msg, location)
+        % (msg, location or "")
     )
     if is_verbose():
         logger.warning(msg, exc_info=True)

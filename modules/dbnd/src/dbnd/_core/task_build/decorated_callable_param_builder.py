@@ -118,11 +118,7 @@ class DecoratedCallableParamBuilder(object):
             if k not in self.callable_spec.args and k not in self.base_params:
                 # we have parameter which is not part of real function signature
                 # @task(some_unknown_parameter=parameter)
-                logger.info(
-                    "{} is not part of parameters, creating hidden parameter".format(
-                        context
-                    )
-                )
+                logger.info("{} is not part of known @task parameters".format(context))
 
             if k in self.callable_spec.defaults:
                 if isinstance(self.callable_spec.defaults[k], ParameterFactory):
