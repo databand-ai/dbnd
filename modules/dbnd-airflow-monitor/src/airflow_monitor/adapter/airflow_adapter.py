@@ -28,11 +28,4 @@ class AirflowAdapter(MonitorAdapter):
         metadata = get_plugin_metadata()
         metadata_dict = metadata.as_safe_dict() if metadata else {}
 
-        from airflow_monitor.adapter.validations import (
-            get_all_errors,
-            get_tracking_validation_steps,
-        )
-
-        errors_list = get_all_errors(get_tracking_validation_steps())
-
-        return ThirdPartyInfo(metadata=metadata_dict, error_list=errors_list)
+        return ThirdPartyInfo(metadata=metadata_dict, error_list=[])
