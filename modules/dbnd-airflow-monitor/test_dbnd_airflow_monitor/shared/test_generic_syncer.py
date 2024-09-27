@@ -21,9 +21,9 @@ class TestGenericSyncer:
         generic_runtime_syncer.sync_once()
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         generic_runtime_syncer.sync_once()
-        assert mock_tracking_service.get_last_cursor_and_state() == (1, "update")
+        assert mock_tracking_service.get_last_cursor_and_state() == (1, "active")
         generic_runtime_syncer.sync_once()
-        assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
+        assert mock_tracking_service.get_last_cursor_and_state() == (2, "active")
         assert mock_tracking_service.sent_data == [
             {"data": [0]},
             {"data": [1]},
@@ -42,10 +42,10 @@ class TestGenericSyncer:
         assert mock_tracking_service.get_last_cursor_and_state() == (0, "init")
         generic_runtime_syncer.sync_once()
         # last cursor is not updated after failure
-        assert mock_tracking_service.get_last_cursor_and_state() == (1, "update")
+        assert mock_tracking_service.get_last_cursor_and_state() == (1, "active")
         generic_runtime_syncer.sync_once()
         # call get data with same cursor before failure
-        assert mock_tracking_service.get_last_cursor_and_state() == (2, "update")
+        assert mock_tracking_service.get_last_cursor_and_state() == (2, "active")
         # every request appears twice because of retries
         assert mock_tracking_service.sent_data == [
             {"data": [0]},

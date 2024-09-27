@@ -168,7 +168,7 @@ class GenericSyncer(BaseComponent):
             self.tracking_service.update_last_cursor(
                 integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
-                state="update",
+                state=AssetState.ACTIVE.value,
                 data=new_cursor,
             )
         if new_assets.assets_to_state:
@@ -188,7 +188,7 @@ class GenericSyncer(BaseComponent):
             self.tracking_service.update_last_cursor(
                 integration_id=str(self.config.uid),
                 syncer_instance_id=self.syncer_instance_id,
-                state="init",
+                state=AssetState.INIT.value,
                 data=cursor,
             )
         return cursor
