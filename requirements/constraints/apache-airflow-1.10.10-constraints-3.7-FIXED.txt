@@ -275,7 +275,7 @@ pytzdata==2019.3
 pywinrm==0.4.1
 pyzmq==19.0.0
 qds-sdk==1.15.0
-redis==3.4.1
+redis==4.4.4
 regex==2020.2.20
 requests-futures==0.9.4
 requests-kerberos==0.12.0
