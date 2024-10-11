@@ -16,14 +16,20 @@ class TrackingServiceConfig:
     access_token: str
     user: str
     password: str
+    ignore_ssl_errors: bool
 
     @classmethod
     def from_env(cls) -> "TrackingServiceConfig":
+        def get_env_bool(key: str, default: bool) -> bool:
+            value = os.getenv(key, str(default)).lower()
+            return False if value == "false" else True if value == "true" else default
+
         config = cls(
             url=os.getenv("DBND__CORE__DATABAND_URL"),
             access_token=os.getenv("DBND__CORE__DATABAND_ACCESS_TOKEN"),
             user=os.getenv("DBND__CORE__DBND_USER", "databand"),
             password=os.getenv("DBND__CORE__DBND_PASSWORD", "databand"),
+            ignore_ssl_errors=get_env_bool("DBND__CORE__IGNORE_SSL_ERRORS", False),
         )
         return config
 
@@ -46,4 +52,5 @@ def _get_api_client() -> ApiClient:
         default_request_timeout=DEFAULT_REQUEST_TIMEOUT,
         default_retry_sleep=1,
         default_max_retry=3,
+        ignore_ssl_errors=tracking_service_config.ignore_ssl_errors,
     )
