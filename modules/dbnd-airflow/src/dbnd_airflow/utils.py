@@ -1,17 +1,15 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import logging
-import uuid
+from uuid import uuid4
 
-from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_attempt_uid
 
 
-logger = logging.getLogger(__name__)
+AIRFLOW_INSTANCE_UUID_VAR_NAME = "DBND_AIRFLOW_INSTANCE_UUID"
 
 
 def get_task_run_attempt_uid_from_af_ti(ti):
-    airflow_instance_uid = get_airflow_instance_uid()
+    airflow_instance_uid = get_or_create_airflow_instance_uid()
     run_uid = get_job_run_uid(
         airflow_instance_uid=airflow_instance_uid,
         dag_id=ti.dag_id,
@@ -20,12 +18,16 @@ def get_task_run_attempt_uid_from_af_ti(ti):
     return get_task_run_attempt_uid(run_uid, ti.dag_id, ti.task_id, ti.try_number)
 
 
-@cached()
-def get_airflow_instance_uid():
+def get_or_create_airflow_instance_uid() -> str:
     """used to distinguish between jobs of different airflow instances"""
-    import airflow
+    from airflow.models import Variable  # pylint: disable=import-error
 
-    db_url = airflow.settings.Session.bind.engine.url
-    db_str = "{}:{}/{}".format(db_url.host, db_url.port, db_url.database)
-    airflow_instance_uid = uuid.uuid5(uuid.NAMESPACE_URL, db_str)
-    return str(airflow_instance_uid)
+    airflow_instance_uid = Variable.get(
+        AIRFLOW_INSTANCE_UUID_VAR_NAME, default_var=None
+    )
+    if airflow_instance_uid:
+        return airflow_instance_uid
+
+    new_airflow_instance_uid = str(uuid4())
+    Variable.set(AIRFLOW_INSTANCE_UUID_VAR_NAME, new_airflow_instance_uid)
+    return new_airflow_instance_uid

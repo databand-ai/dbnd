@@ -19,7 +19,7 @@ from dbnd._core.log.dbnd_log import dbnd_log_info
 from dbnd._core.settings import CoreConfig, TrackingConfig
 from dbnd._core.utils.trace import get_tracing_id
 from dbnd_airflow.tracking.config import TrackingSparkConfig
-from dbnd_airflow.utils import get_airflow_instance_uid
+from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 
 
 AIRFLOW_DBND_CONNECTION_SOURCE = "airflow_dbnd_connection"
@@ -45,7 +45,7 @@ def get_airflow_conf(
         "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
         "AIRFLOW_CTX_TASK_ID": task_id,
         "AIRFLOW_CTX_TRY_NUMBER": try_number,
-        "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+        "AIRFLOW_CTX_UID": get_or_create_airflow_instance_uid(),
     }
     airflow_conf.update(get_databand_url_conf())
     return airflow_conf
@@ -83,6 +83,7 @@ def extract_airflow_conf(context):
     task_id = task_instance.task_id
     execution_date = task_instance.execution_date.isoformat()
     try_number = str(task_instance.try_number)
+    airflow_instance_uid = get_or_create_airflow_instance_uid()
 
     if dag_id and task_id and execution_date:
         return {
@@ -90,7 +91,7 @@ def extract_airflow_conf(context):
             "AIRFLOW_CTX_EXECUTION_DATE": execution_date,
             "AIRFLOW_CTX_TASK_ID": task_id,
             "AIRFLOW_CTX_TRY_NUMBER": try_number,
-            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+            "AIRFLOW_CTX_UID": airflow_instance_uid,
         }
     return {}
 

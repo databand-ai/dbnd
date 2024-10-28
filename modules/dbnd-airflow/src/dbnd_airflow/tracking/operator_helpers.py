@@ -6,7 +6,7 @@ from dbnd._core.current import try_get_current_task_run
 from dbnd_airflow.tracking.dbnd_airflow_conf import (
     extend_airflow_ctx_with_dbnd_tracking_info,
 )
-from dbnd_airflow.utils import get_airflow_instance_uid
+from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 
 
 def context_to_airflow_vars(context, in_env_var_format=False):
@@ -23,7 +23,7 @@ def context_to_airflow_vars(context, in_env_var_format=False):
     params.update(
         {
             "AIRFLOW_CTX_TRY_NUMBER": try_number,
-            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+            "AIRFLOW_CTX_UID": get_or_create_airflow_instance_uid(),
         }
     )
     return params

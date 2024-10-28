@@ -4,7 +4,7 @@ import contextlib
 import json
 import logging
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
@@ -19,10 +19,6 @@ from airflow_monitor.errors import AirflowFetchingException
 from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
 
 
-if TYPE_CHECKING:
-    from airflow.models import Variable  # noqa: F401
-
-AIRFLOW_INSTANCE_UUID_VAR_NAME = "DBND_AIRFLOW_INSTANCE_UUID"
 logger = logging.getLogger(__name__)
 
 
@@ -185,9 +181,3 @@ class DbFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         return True
-
-    def get_airflow_instance_uid(self) -> Optional[str]:
-        return Variable.get(AIRFLOW_INSTANCE_UUID_VAR_NAME, default_var=None)
-
-    def set_airflow_instance_uid(self, new_airflow_instance_uid: str) -> None:
-        Variable.set(AIRFLOW_INSTANCE_UUID_VAR_NAME, new_airflow_instance_uid)

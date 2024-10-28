@@ -35,7 +35,7 @@ from dbnd_airflow.tracking.wrap_operators import (
     get_airflow_operator_handlers_config,
     wrap_operator_with_tracking_info,
 )
-from dbnd_airflow.utils import get_airflow_instance_uid
+from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 
 
 logger = logging.getLogger(__name__)
@@ -336,6 +336,7 @@ def extract_airflow_task_context(
     task_id = task_instance.task_id
     execution_date = str(task_instance.execution_date)
     try_number = task_instance.try_number
+    airflow_instance_uid = get_or_create_airflow_instance_uid()
 
     if dag_id and task_id and execution_date:
         return AirflowTaskContext(
@@ -344,7 +345,7 @@ def extract_airflow_task_context(
             task_id=task_id,
             try_number=try_number,
             context=airflow_context,
-            airflow_instance_uid=get_airflow_instance_uid(),
+            airflow_instance_uid=airflow_instance_uid,
             is_subdag=airflow_context.get("dag").is_subdag,
         )
 

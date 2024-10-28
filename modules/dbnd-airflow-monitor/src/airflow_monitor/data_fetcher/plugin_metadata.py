@@ -11,12 +11,12 @@ def get_plugin_metadata() -> PluginMetadata:
         import dbnd_airflow
 
         from dbnd_airflow.export_plugin.compat import get_api_mode
-        from dbnd_airflow.utils import get_airflow_instance_uid
+        from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 
         return PluginMetadata(
             airflow_version=airflow_version.version,
             plugin_version=dbnd_airflow.__version__,
-            airflow_instance_uid=get_airflow_instance_uid(),
+            airflow_instance_uid=get_or_create_airflow_instance_uid(),
             api_mode=get_api_mode(),
         )
     except Exception:

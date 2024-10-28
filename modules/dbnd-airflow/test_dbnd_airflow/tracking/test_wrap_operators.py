@@ -25,7 +25,7 @@ from dbnd_airflow.tracking.wrap_operators import (
     get_airflow_operator_handlers_config,
     wrap_operator_with_tracking_info,
 )
-from dbnd_airflow.utils import get_airflow_instance_uid
+from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 
 
 if AIRFLOW_VERSION_BEFORE_2_2:
@@ -85,7 +85,7 @@ class TestTrackOperator(object):
             "AIRFLOW_CTX_EXECUTION_DATE": "emr_task",
             "AIRFLOW_CTX_TASK_ID": "1970-01-01T0000.000",
             "AIRFLOW_CTX_TRY_NUMBER": "1",
-            "AIRFLOW_CTX_UID": get_airflow_instance_uid(),
+            "AIRFLOW_CTX_UID": get_or_create_airflow_instance_uid(),
             DBND_ROOT_RUN_UID: str(uuid.uuid4()),
         }
 
