@@ -11,13 +11,11 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.error_aggregator import ErrorAggregatorResult
-from airflow_monitor.shared.integration_management_service import (
-    IntegrationManagementService,
-)
-from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.timezone import utcnow
+from dbnd_monitor.base_tracking_service import BaseTrackingService
+from dbnd_monitor.error_aggregator import ErrorAggregatorResult
+from dbnd_monitor.integration_management_service import IntegrationManagementService
+from dbnd_monitor.reporting_service import ReportingService
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mock_airflow_data_fetcher import MockDagRun
 

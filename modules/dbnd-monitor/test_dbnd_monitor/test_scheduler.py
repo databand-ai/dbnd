@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from airflow_monitor.shared.scheduler import Scheduler
+from dbnd_monitor.scheduler import Scheduler
 
 
 class TestScheduler:

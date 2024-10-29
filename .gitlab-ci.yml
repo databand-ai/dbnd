@@ -172,6 +172,16 @@ dbnd_airflow 1_10_15_py37:
       junit: modules/dbnd-airflow/build/junit-py37-airflow_1_10_15.xml
   only: *on_significant_branch
 
+dbnd_monitor py39:
+  <<: *template__python_test_job
+  image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}
+  script:
+    - cd modules/dbnd-monitor
+    - tox -e py39
+  artifacts:
+    reports:
+      junit: modules/dbnd-monitor/build/junit-py39.xml
+
 dbnd_airflow_monitor 1_10_10_py37:
   <<: *template__python_test_job
   image: ${DOCKER_IMAGE_CI_PYTEST_MULTI}

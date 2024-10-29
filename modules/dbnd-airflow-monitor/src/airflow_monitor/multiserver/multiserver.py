@@ -4,11 +4,9 @@ import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
-from airflow_monitor.shared.integration_management_service import (
-    IntegrationManagementService,
-)
-from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.errors.base import DatabandConfigError
+from dbnd_monitor.integration_management_service import IntegrationManagementService
+from dbnd_monitor.multiserver import MultiServerMonitor
 
 
 logger = logging.getLogger(__name__)

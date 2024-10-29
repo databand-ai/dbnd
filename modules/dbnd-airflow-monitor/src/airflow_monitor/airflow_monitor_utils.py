@@ -2,7 +2,7 @@
 
 import logging
 
-from airflow_monitor.common.metric_reporter import METRIC_REPORTER
+from dbnd_monitor.metric_reporter import METRIC_REPORTER
 
 
 logger = logging.getLogger(__name__)

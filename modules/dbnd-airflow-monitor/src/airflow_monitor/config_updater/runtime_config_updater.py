@@ -2,10 +2,10 @@
 
 import logging
 
-from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
+from dbnd_monitor.base_component import BaseComponent
 
 
 logger = logging.getLogger(__name__)

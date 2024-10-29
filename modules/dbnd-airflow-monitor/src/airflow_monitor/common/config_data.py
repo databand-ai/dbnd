@@ -5,8 +5,8 @@ from typing import Optional
 import attr
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 
 
 # Do not change this name unless you change the same constant in compat.py in dbnd-airflow

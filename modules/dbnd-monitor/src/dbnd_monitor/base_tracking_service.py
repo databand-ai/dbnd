@@ -3,11 +3,11 @@ import logging
 
 from typing import List
 
-from airflow_monitor.common.metric_reporter import METRIC_REPORTER, measure_time
-from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
-from airflow_monitor.shared.utils import _get_api_client
 from dbnd._vendor.cachetools import TTLCache
 from dbnd._vendor.tenacity import retry, stop_after_attempt
+from dbnd_monitor.adapter.adapter import AssetState, AssetToState
+from dbnd_monitor.metric_reporter import METRIC_REPORTER, measure_time
+from dbnd_monitor.utils import _get_api_client
 
 
 logger = logging.getLogger(__name__)

@@ -9,6 +9,7 @@
 
 # databand tracking airflow plugins:
 -e file:modules/dbnd-airflow
+-e file:modules/dbnd-monitor
 -e file:modules/dbnd-airflow-monitor
 
 # databand tracking

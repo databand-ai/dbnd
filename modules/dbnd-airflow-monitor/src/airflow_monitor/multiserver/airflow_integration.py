@@ -9,12 +9,12 @@ from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
-from airflow_monitor.shared.base_integration import BaseIntegration
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
+from dbnd_monitor.adapter.adapter import ThirdPartyInfo
+from dbnd_monitor.base_integration import BaseIntegration
 
 
 logger = logging.getLogger(__name__)

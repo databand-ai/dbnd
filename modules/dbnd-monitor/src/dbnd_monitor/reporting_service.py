@@ -4,15 +4,12 @@ from collections import defaultdict
 from typing import Optional
 from uuid import UUID
 
-import airflow_monitor
+import dbnd_monitor
 
-from airflow_monitor.shared.error_aggregator import (
-    ErrorAggregator,
-    ErrorAggregatorResult,
-)
-from airflow_monitor.shared.utils import _get_api_client
 from dbnd._core.utils.timezone import utcnow
 from dbnd.utils.api_client import ApiClient
+from dbnd_monitor.error_aggregator import ErrorAggregator, ErrorAggregatorResult
+from dbnd_monitor.utils import _get_api_client
 
 
 class ReportingService:
@@ -69,7 +66,7 @@ class ReportingService:
 
     def report_exception_to_web_server(self, exception: str):
         data = {
-            "dbnd_version": airflow_monitor.__version__,
+            "dbnd_version": dbnd_monitor.__version__,
             "source": f"{self.monitor_type}_monitor",
             "stack_trace": exception,
             "timestamp": utcnow().isoformat(),

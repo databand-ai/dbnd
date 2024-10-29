@@ -35,6 +35,7 @@ prj_tracking = \
 prj_tracking_airflow = \
            modules/dbnd \
            modules/dbnd-airflow \
+           modules/dbnd-monitor \
            modules/dbnd-airflow-monitor\
            plugins/dbnd-airflow-auto-tracking \
            plugins/dbnd-airflow-export
@@ -44,6 +45,7 @@ prj_dist := \
 		modules/dbnd \
 		\
 		modules/dbnd-airflow \
+		modules/dbnd-monitor \
 		modules/dbnd-airflow-monitor \
 		plugins/dbnd-airflow-auto-tracking \
 		plugins/dbnd-airflow-export \

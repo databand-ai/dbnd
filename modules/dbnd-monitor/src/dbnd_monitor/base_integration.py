@@ -2,13 +2,13 @@
 from abc import ABC, abstractmethod
 from typing import ClassVar, List, Optional, Type
 
-import airflow_monitor
+import dbnd_monitor
 
-from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
-from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.reporting_service import ReportingService
+from dbnd_monitor.adapter.adapter import ThirdPartyInfo
+from dbnd_monitor.base_component import BaseComponent
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.reporting_service import ReportingService
 
 
 class BaseIntegration(ABC):
@@ -68,7 +68,7 @@ class BaseIntegration(ABC):
     def _report_third_party_data(self) -> None:
         # This is the version of the monitor, since currently the shared logic exists
         # in airflow_monitor package we import this package and get the version
-        metadata = {"monitor_version": airflow_monitor.__version__}
+        metadata = {"monitor_version": dbnd_monitor.__version__}
 
         # pylint: disable=assignment-from-none
         third_party_info = self.get_third_party_info()

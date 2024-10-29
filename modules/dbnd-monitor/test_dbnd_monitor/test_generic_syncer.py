@@ -2,8 +2,8 @@
 
 import pytest
 
-from airflow_monitor.shared.adapter.adapter import AssetState, AssetToState
-from airflow_monitor.shared.generic_syncer import (
+from dbnd_monitor.adapter.adapter import AssetState, AssetToState
+from dbnd_monitor.generic_syncer import (
     GenericSyncer,
     assets_to_str,
     get_data_dimension_str,

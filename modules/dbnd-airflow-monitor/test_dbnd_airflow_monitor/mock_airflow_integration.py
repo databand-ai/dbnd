@@ -2,7 +2,7 @@
 
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
-from airflow_monitor.shared.adapter.adapter import ThirdPartyInfo
+from dbnd_monitor.adapter.adapter import ThirdPartyInfo
 
 from .mock_airflow_adapter import MockAirflowAdapter
 from .mock_airflow_data_fetcher import MockDataFetcher

@@ -6,9 +6,9 @@ from typing import Dict, List
 import prometheus_client as prom
 import pytest
 
-from airflow_monitor.shared.adapter.adapter import AssetState
-from airflow_monitor.shared.generic_syncer import GenericSyncer
-from airflow_monitor.shared.integration_metrics_reporter import (
+from dbnd_monitor.adapter.adapter import AssetState
+from dbnd_monitor.generic_syncer import GenericSyncer
+from dbnd_monitor.integration_metrics_reporter import (
     func_execution_time,
     integration_assets_in_state,
     integration_total_assets_size,

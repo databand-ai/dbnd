@@ -3,7 +3,7 @@ from typing import Optional
 
 import attr
 
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 
 
 def to_bool(value):

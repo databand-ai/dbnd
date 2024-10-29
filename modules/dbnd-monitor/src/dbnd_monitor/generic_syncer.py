@@ -6,20 +6,18 @@ from typing import Any, Collection, List, Tuple
 
 import attr
 
-from airflow_monitor.shared.adapter.adapter import (
+from dbnd_monitor.adapter.adapter import (
     Assets,
     AssetState,
     AssetToState,
     MonitorAdapter,
     update_assets_retry_state,
 )
-from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.integration_metrics_reporter import (
-    IntegrationMetricsReporter,
-)
-from airflow_monitor.shared.reporting_service import ReportingService
+from dbnd_monitor.base_component import BaseComponent
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.base_tracking_service import BaseTrackingService
+from dbnd_monitor.integration_metrics_reporter import IntegrationMetricsReporter
+from dbnd_monitor.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)

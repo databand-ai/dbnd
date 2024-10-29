@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import attr
 
-from airflow_monitor.shared.base_monitor_config import NOTHING, BaseMonitorState
+from dbnd_monitor.base_monitor_config import NOTHING, BaseMonitorState
 
 
 @attr.s

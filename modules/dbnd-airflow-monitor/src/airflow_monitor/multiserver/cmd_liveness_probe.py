@@ -1,11 +1,8 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from airflow_monitor.shared.liveness_probe import (
-    MAX_TIME_DIFF_IN_SECONDS,
-    check_monitor_alive,
-)
 from dbnd import dbnd_config
 from dbnd._vendor import click
+from dbnd_monitor.liveness_probe import MAX_TIME_DIFF_IN_SECONDS, check_monitor_alive
 
 
 @click.command()

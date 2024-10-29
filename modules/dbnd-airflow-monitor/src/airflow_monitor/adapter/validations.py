@@ -3,7 +3,7 @@
 import logging
 
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.shared.utils import TrackingServiceConfig
+from dbnd_monitor.utils import TrackingServiceConfig
 
 
 logger = logging.getLogger(__name__)

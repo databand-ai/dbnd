@@ -4,11 +4,7 @@ import logging
 from typing import Optional, Tuple
 
 from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
-from airflow_monitor.shared.adapter.adapter import (
-    Assets,
-    MonitorAdapter,
-    ThirdPartyInfo,
-)
+from dbnd_monitor.adapter.adapter import Assets, MonitorAdapter, ThirdPartyInfo
 
 
 logger = logging.getLogger(__name__)

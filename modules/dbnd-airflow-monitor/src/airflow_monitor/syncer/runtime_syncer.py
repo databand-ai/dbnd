@@ -13,11 +13,11 @@ from airflow_monitor.common.airflow_data import (
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
-from airflow_monitor.shared.base_component import BaseComponent
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
 from dbnd._core.utils.timezone import utcnow
+from dbnd_monitor.base_component import BaseComponent
 
 
 logger = logging.getLogger(__name__)

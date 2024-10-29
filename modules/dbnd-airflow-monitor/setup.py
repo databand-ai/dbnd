@@ -16,7 +16,7 @@ version = config["metadata"]["version"]
 setuptools.setup(
     name="dbnd-airflow-monitor",
     package_dir={"": "src"},
-    install_requires=["dbnd==" + version, "setuptools", "prometheus_client"],
+    install_requires=["dbnd==" + version, "setuptools"],
     extras_require={
         "tests": ["pytest", "mock", "sh"],
         "composer": [

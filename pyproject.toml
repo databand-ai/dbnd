@@ -27,6 +27,7 @@ remove_redundant_aliases = true
 known_first_party = [
     "databand",
     "dbnd",
+    "dbnd_monitor",
     "dbnd_airflow",
     "dbnd_airflow_operator",
     "dbnd_airflow_contrib",
@@ -52,6 +53,7 @@ known_first_party = [
     "dbnd_test_scenarios",
     "tests",
     "test_dbnd",
+    "test_dbnd_monitor",
     "test_dbnd_airflow",
     "test_dbnd_airflow_monitor",
     "test_dbnd_airflow",

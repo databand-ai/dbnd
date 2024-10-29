@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from airflow_monitor.shared.reporting_service import ReportingService
+from dbnd_monitor.reporting_service import ReportingService
 
 
 class TestReportError:

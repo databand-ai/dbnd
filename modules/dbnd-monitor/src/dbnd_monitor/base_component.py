@@ -7,12 +7,12 @@ from uuid import UUID
 
 from prometheus_client import Summary
 
-from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.monitoring.apm import transaction_scope
-from airflow_monitor.shared.monitoring.prometheus_tools import sync_once_time
-from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.trace import new_tracing_id
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.base_tracking_service import BaseTrackingService
+from dbnd_monitor.monitoring.apm import transaction_scope
+from dbnd_monitor.monitoring.prometheus_tools import sync_once_time
+from dbnd_monitor.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class BaseComponent:
             logging.root.setLevel(self.config.log_level)
 
     def sync_once(self):
-        from airflow_monitor.shared.error_handler import capture_component_exception
+        from dbnd_monitor.error_handler import capture_component_exception
 
         logger.info(
             "Starting sync_once on tracking source uid: %s, syncer: %s",

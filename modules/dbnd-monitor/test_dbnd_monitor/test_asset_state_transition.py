@@ -3,13 +3,13 @@ from datetime import timedelta
 
 import pytest
 
-from airflow_monitor.shared.adapter.adapter import (
+from dbnd._core.utils.timezone import utcnow
+from dbnd_monitor.adapter.adapter import (
     AssetState,
     AssetToState,
     update_asset_retry_state,
     update_assets_retry_state,
 )
-from dbnd._core.utils.timezone import utcnow
 
 
 freezed_time = utcnow()

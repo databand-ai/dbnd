@@ -8,16 +8,17 @@ import pytest
 
 from attr import evolve
 
-from airflow_monitor.shared.adapter.adapter import (
+from dbnd._vendor.tenacity import retry, stop_after_attempt
+from dbnd_monitor.adapter.adapter import (
     Assets,
     AssetState,
     AssetToState,
     MonitorAdapter,
 )
-from airflow_monitor.shared.base_integration_config import BaseIntegrationConfig
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
-from airflow_monitor.shared.generic_syncer import GenericSyncer
-from dbnd._vendor.tenacity import retry, stop_after_attempt
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.base_tracking_service import BaseTrackingService
+from dbnd_monitor.generic_syncer import GenericSyncer
+from dbnd_monitor.reporting_service import ReportingService
 
 
 INTEGRATION_UID = uuid4()
@@ -122,6 +123,12 @@ class MockTrackingService(BaseTrackingService):
 @pytest.fixture
 def mock_tracking_service() -> MockTrackingService:
     yield MockTrackingService("integration", "12345")
+
+
+@pytest.fixture
+def mock_reporting_service() -> ReportingService:
+    with patch("dbnd.utils.api_client.ApiClient.api_request"):
+        yield ReportingService("airflow")
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ import pytest
 
 from mock import patch
 
-from airflow_monitor.shared.utils import TrackingServiceConfig
+from dbnd_monitor.utils import TrackingServiceConfig
 
 
 @pytest.fixture

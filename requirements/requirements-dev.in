@@ -4,6 +4,7 @@
 
 # databand:
 -e file:modules/dbnd
+-e file:modules/dbnd-monitor
 
 # databand tracking monitors:
 -e file:modules/dbnd-airflow-monitor

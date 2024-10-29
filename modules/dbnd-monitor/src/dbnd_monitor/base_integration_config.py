@@ -5,7 +5,7 @@ from uuid import UUID
 
 import attr
 
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 
 
 DEFAULT_SYNC_INTERVAL_IN_SECONDS = 10

@@ -2,11 +2,7 @@
 
 from typing import Optional, Tuple
 
-from airflow_monitor.shared.adapter.adapter import (
-    Assets,
-    MonitorAdapter,
-    ThirdPartyInfo,
-)
+from dbnd_monitor.adapter.adapter import Assets, MonitorAdapter, ThirdPartyInfo
 
 
 class MockAirflowAdapter(MonitorAdapter):

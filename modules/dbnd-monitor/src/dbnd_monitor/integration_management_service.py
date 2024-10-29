@@ -7,7 +7,6 @@ from typing import Dict, List, Optional
 from prometheus_client import generate_latest
 from urllib3.exceptions import HTTPError
 
-from airflow_monitor.shared.utils import _get_api_client
 from dbnd._core.errors.base import DatabandConnectionException
 from dbnd._vendor.tenacity import (
     before_sleep_log,
@@ -17,6 +16,7 @@ from dbnd._vendor.tenacity import (
     wait_exponential,
 )
 from dbnd.utils.api_client import ApiClient
+from dbnd_monitor.utils import _get_api_client
 
 
 logger = logging.getLogger(__name__)

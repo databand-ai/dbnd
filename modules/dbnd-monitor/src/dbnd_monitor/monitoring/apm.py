@@ -30,7 +30,7 @@ def configure_apm():
     #     "requests.exceptions:SSLError",
     #     "requests.exceptions:Timeout",
     #     "requests.exceptions:ConnectTimeout",
-    #     "airflow_monitor.shared.errors:ClientConnectionError",
+    #     "dbnd_monitor.errors:ClientConnectionError",
     #     "dbnd._core.errors.base:DatabandConnectionException",
     # )
     # apply_config_setting(

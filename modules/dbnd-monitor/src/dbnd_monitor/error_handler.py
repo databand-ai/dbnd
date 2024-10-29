@@ -8,11 +8,11 @@ from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
-from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.errors import ClientConnectionError
-from airflow_monitor.shared.reporting_service import ReportingService
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
+from dbnd_monitor.base_component import BaseComponent
+from dbnd_monitor.errors import ClientConnectionError
+from dbnd_monitor.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)

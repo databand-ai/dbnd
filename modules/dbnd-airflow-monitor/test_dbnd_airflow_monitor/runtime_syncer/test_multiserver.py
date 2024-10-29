@@ -14,10 +14,10 @@ from airflow_monitor.common.airflow_data import PluginMetadata
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.config import AirflowMonitorConfig
 from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
-from airflow_monitor.shared.base_component import BaseComponent
-from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.uid_utils import get_uuid
+from dbnd_monitor.base_component import BaseComponent
+from dbnd_monitor.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
 from test_dbnd_airflow_monitor.mock_airflow_integration import MockAirflowIntegration
 

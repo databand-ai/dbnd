@@ -1,7 +1,7 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 from airflow_monitor.common.airflow_data import PluginMetadata
-from airflow_monitor.shared.base_monitor_config import NOTHING
+from dbnd_monitor.base_monitor_config import NOTHING
 
 
 def get_plugin_metadata() -> PluginMetadata:

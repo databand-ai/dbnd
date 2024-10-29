@@ -13,10 +13,10 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.common.metric_reporter import METRIC_REPORTER, measure_time
 from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import AirflowFetchingException
 from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
+from dbnd_monitor.metric_reporter import METRIC_REPORTER, measure_time
 
 
 logger = logging.getLogger(__name__)

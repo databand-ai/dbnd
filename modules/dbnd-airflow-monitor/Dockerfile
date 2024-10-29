@@ -7,15 +7,18 @@ RUN apt-get update -yqq && \
 
 # install dbnd packages:
 COPY ./dbnd-core/dist-python/dbnd.requirements.txt \
+    ./dbnd-core/dist-python/dbnd-monitor.requirements.txt \
     ./dbnd-core/dist-python/dbnd-airflow-monitor.requirements.txt \
     ./dbnd-core/dist-python/dbnd-airflow-monitor[[]composer].requirements.txt \
     /dist-python/
 RUN pip install -r /dist-python/dbnd.requirements.txt \
+    && pip install -r /dist-python/dbnd-monitor.requirements.txt \
     && pip install -r /dist-python/dbnd-airflow-monitor.requirements.txt \
     && pip install -r /dist-python/dbnd-airflow-monitor[composer].requirements.txt
 
 COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd-*.whl \
+    ./dbnd-core/dist-python/dbnd_monitor-*.whl \
     ./dbnd-core/dist-python/dbnd_airflow_monitor-*.whl \
     /dist-python/
 

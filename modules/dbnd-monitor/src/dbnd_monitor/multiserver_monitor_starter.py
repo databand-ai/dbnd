@@ -3,14 +3,12 @@ from typing import Type
 
 import prometheus_client
 
-from airflow_monitor.shared.base_integration import BaseIntegration
-from airflow_monitor.shared.base_monitor_config import BaseMonitorConfig
-from airflow_monitor.shared.integration_management_service import (
-    IntegrationManagementService,
-)
-from airflow_monitor.shared.monitoring.apm import configure_apm
-from airflow_monitor.shared.multiserver import MultiServerMonitor
 from dbnd._vendor import click
+from dbnd_monitor.base_integration import BaseIntegration
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.integration_management_service import IntegrationManagementService
+from dbnd_monitor.monitoring.apm import configure_apm
+from dbnd_monitor.multiserver import MultiServerMonitor
 
 
 def start_integration_multi_server(

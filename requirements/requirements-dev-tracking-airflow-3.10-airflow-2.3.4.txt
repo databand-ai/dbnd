@@ -14,6 +14,8 @@
     #   dbnd-snowflake
 -e file:modules/dbnd-airflow
     # via -r requirements/requirements-dev-tracking-airflow.in
+-e file:modules/dbnd-monitor
+    # via -r requirements/requirements-dev-tracking-airflow.in
 -e file:modules/dbnd-airflow-monitor
     # via -r requirements/requirements-dev-tracking-airflow.in
 -e file:plugins/dbnd-postgres

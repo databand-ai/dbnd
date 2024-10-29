@@ -12,9 +12,9 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from airflow_monitor.shared.base_tracking_service import BaseTrackingService
 from dbnd._core.utils.timezone import utctoday
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
+from dbnd_monitor.base_tracking_service import BaseTrackingService
 
 
 logger = logging.getLogger(__name__)
