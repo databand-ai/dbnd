@@ -6,7 +6,7 @@ import uuid
 import pytest
 
 from click.testing import CliRunner
-from mock import MagicMock
+from mock import MagicMock, patch
 
 import airflow_monitor
 
@@ -69,6 +69,17 @@ def multi_server(mock_integration_management_service, airflow_monitor_config):
         monitor_config=airflow_monitor_config,
         integration_management_service=mock_integration_management_service,
         integration_types=[MockAirflowIntegration],
+    )
+
+
+@pytest.fixture
+def multi_server_with_multiple_integration_types(
+    mock_integration_management_service, airflow_monitor_config
+):
+    yield MultiServerMonitor(
+        monitor_config=airflow_monitor_config,
+        integration_management_service=mock_integration_management_service,
+        integration_types=[MockAirflowIntegration, MockAirflowIntegration],
     )
 
 
@@ -349,3 +360,26 @@ class TestMultiServer(object):
         first_integration_component.sync_once.assert_called_once()
         second_integration_component.sync_once.assert_not_called()
         third_integration_component.sync_once.assert_called_once()
+
+    @patch("dbnd_monitor.multiserver.logger.warning")
+    @patch("dbnd_monitor.multiserver.configure_sending_monitor_logs")
+    def test_set_remote_log_handler(
+        self, mock_configure_sending_monitor_logs, mock_logger, multi_server
+    ):
+        multi_server.set_remote_log_handler()
+        mock_configure_sending_monitor_logs.assert_called_once()
+        mock_logger.assert_not_called()
+
+    @patch("dbnd_monitor.multiserver.logger.warning")
+    @patch("dbnd_monitor.multiserver.configure_sending_monitor_logs")
+    def test_set_remote_log_handler_with_multiple_integration_types(
+        self,
+        mock_configure_sending_monitor_logs,
+        mock_logger,
+        multi_server_with_multiple_integration_types,
+    ):
+        multi_server_with_multiple_integration_types.set_remote_log_handler()
+        mock_configure_sending_monitor_logs.assert_not_called()
+        mock_logger.assert_called_once_with(
+            "This monitor contains more than one integrations type, configuring sending monitor logs not possible"
+        )

@@ -17,7 +17,7 @@ from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 from dbnd_monitor.integration_management_service import IntegrationManagementService
 from dbnd_monitor.liveness_probe import create_liveness_file
-from dbnd_monitor.logger_config import configure_logging
+from dbnd_monitor.logger_config import configure_logging, configure_sending_monitor_logs
 from dbnd_monitor.monitoring.apm import transaction_scope
 from dbnd_monitor.monitoring.prometheus_tools import (
     integration_components_count,
@@ -209,6 +209,9 @@ class MultiServerMonitor:
     def run(self):
         configure_logging(use_json=self.monitor_config.use_json_logging)
 
+        if self.monitor_config.enable_sending_monitor_logs:
+            self.set_remote_log_handler()
+
         while True:
             self.iteration += 1
             try:
@@ -264,6 +267,20 @@ class MultiServerMonitor:
                 ]
             )
         return integrations
+
+    def set_remote_log_handler(self):
+
+        if len(self.integration_types) == 1:
+            configure_sending_monitor_logs(
+                monitor_type=self.integration_types[0].MONITOR_TYPE,
+                syncer_name=self.monitor_config.syncer_name,
+                monitor_config=self.monitor_config,
+            )
+        else:
+            logger.warning(
+                "This monitor contains more than one integrations type, configuring sending monitor logs "
+                "not possible"
+            )
 
 
 T = TypeVar("T")

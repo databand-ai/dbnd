@@ -30,6 +30,12 @@ class BaseMonitorConfig:
     # Sync only integration with this name
     syncer_name: Optional[str] = None
 
+    enable_sending_monitor_logs: bool = False
+
+    max_logs_buffer_size_in_kb: int = 50
+
+    max_time_delta_to_send_monitor_logs_in_minutes: int = 2
+
     @property
     def use_json_logging(self):
         return self.log_format == "json"
