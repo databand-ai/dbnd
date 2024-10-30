@@ -3,15 +3,15 @@
 import json
 import logging
 
-from dbnd._core.errors.base import DatabandApiError
+from dbnd._core.errors.base import DatabandApiError, DatabandBadRequest
 from dbnd._core.utils.basics.text_banner import TextBanner, safe_tabulate
 from dbnd._vendor import click
+from dbnd._vendor.marshmallow import ValidationError, validate
 from dbnd.api.airflow_sync import (
     archive_airflow_instance,
     create_airflow_instance,
     edit_airflow_instance,
     list_synced_airflow_instances,
-    unarchive_airflow_instance,
 )
 
 
@@ -77,6 +77,9 @@ def build_instances_table(instances_data):
 
 @airflow_sync.command()
 @click.option(
+    "--name", "-n", help="Name for the syncer", type=click.STRING, required=True
+)
+@click.option(
     "--url", "-u", help="base url for instance", type=click.STRING, required=True
 )
 @click.option(
@@ -118,7 +121,6 @@ def build_instances_table(instances_data):
     type=click.STRING,
     default=None,
 )
-@click.option("--name", help="Name for the syncer", type=click.STRING, default=None)
 @click.option(
     "--generate-token",
     help="Generate access token for the syncer, value is token lifespan (in seconds)",
@@ -162,6 +164,7 @@ def build_instances_table(instances_data):
     default=None,
 )
 def add(
+    name,
     url,
     external_url,
     fetcher,
@@ -170,7 +173,6 @@ def add(
     dag_ids,
     last_seen_dag_run_id,
     last_seen_log_id,
-    name,
     generate_token,
     config_file_output,
     with_auto_alerts,
@@ -201,6 +203,7 @@ def add(
         if start_time_window:
             monitor_config["start_time_window"] = start_time_window
 
+        validate.URL(schemes={"http", "https"}, require_tld=False)(url)
         config_json = create_airflow_instance(
             url,
             external_url,
@@ -214,10 +217,15 @@ def add(
             system_alert_definitions,
             monitor_config,
         )
+
         if config_file_output:
             json.dump(config_json, config_file_output, indent=4)
+    except ValidationError:
+        raise DatabandBadRequest(
+            f"Could not edit airflow syncer because url {url} was not a valid url"
+        )
     except DatabandApiError as e:
-        logger.warning("failed with - {}".format(e.response))
+        logger.warning(f"failed with - {e.response}")
     else:
         logger.info("Successfully added %s", url)
 
@@ -225,7 +233,7 @@ def add(
 @airflow_sync.command()
 @click.option(
     "--tracking-source-uid",
-    "-u",
+    "-t",
     help='Tracking source uid of the edited airflow syncer. (you can get this with the "list" command)',
     type=click.STRING,
     required=True,
@@ -339,6 +347,7 @@ def edit(
         if start_time_window:
             monitor_config["start_time_window"] = start_time_window
 
+        validate.URL(schemes={"http", "https"}, require_tld=False)(url)
         edit_airflow_instance(
             tracking_source_uid,
             url,
@@ -352,6 +361,10 @@ def edit(
             system_alert_definitions,
             monitor_config,
         )
+    except ValidationError:
+        raise DatabandBadRequest(
+            f"Could not edit airflow syncer because url {url} was not a valid url"
+        )
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
@@ -360,33 +373,16 @@ def edit(
 
 @airflow_sync.command()
 @click.option(
-    "--url",
-    "-u",
-    help="base url of an instance to archive",
+    "--tracking-source-uid",
+    "-t",
+    help='Tracking source uid of the archived airflow syncer. (you can get this with the "list" command)',
     type=click.STRING,
     required=True,
 )
-def archive(url):
+def archive(tracking_source_uid):
     try:
-        archive_airflow_instance(url)
+        archive_airflow_instance(tracking_source_uid)
     except DatabandApiError as e:
         logger.warning("failed with - {}".format(e.response))
     else:
-        logger.info("Archived instance %s", url)
-
-
-@airflow_sync.command()
-@click.option(
-    "--url",
-    "-u",
-    help="base url of an instance to unarchive",
-    type=click.STRING,
-    required=True,
-)
-def unarchive(url):
-    try:
-        unarchive_airflow_instance(url)
-    except DatabandApiError as e:
-        logger.warning("failed with - {}".format(e.response))
-    else:
-        logger.info("Unarchived instance %s", url)
+        logger.info("Archived instance %s", tracking_source_uid)

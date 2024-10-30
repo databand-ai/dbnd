@@ -99,13 +99,7 @@ def edit_airflow_instance(
     client.api_request(endpoint, request_data, method="POST")
 
 
-def archive_airflow_instance(url):
+def archive_airflow_instance(tracking_source_uid):
     client = get_databand_context().databand_api_client
     endpoint = "airflow_monitor/archive"
-    client.api_request(endpoint, url, method="POST")
-
-
-def unarchive_airflow_instance(url):
-    client = get_databand_context().databand_api_client
-    endpoint = "airflow_monitor/unarchive"
-    client.api_request(endpoint, url, method="POST")
+    client.api_request(endpoint, tracking_source_uid, method="POST")
