@@ -1,6 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import uuid
 
 from typing import List, Optional
 
@@ -13,9 +12,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsStateData,
     LastSeenValues,
 )
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
-from dbnd._core.utils.uid_utils import get_uuid
+from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 
 
@@ -64,16 +61,9 @@ class MockLog:
     execution_date = attr.ib(default="date1")  # type: str
 
 
-class MockDataFetcher(AirflowDataFetcher):
+class MockDataFetcher(DbFetcher):
     def __init__(self):
-        super().__init__(
-            AirflowIntegrationConfig(
-                uid=get_uuid(),
-                source_name="test",
-                source_type="airflow",
-                tracking_source_uid=uuid.uuid4(),
-            )
-        )
+        self.source_name = "test"
         self.dag_runs = []  # type: List[MockDagRun]
         self.logs = []  # type: List[MockLog]
         self.alive = True
@@ -90,14 +80,13 @@ class MockDataFetcher(AirflowDataFetcher):
     @can_be_dead
     def get_airflow_dagruns_to_sync(
         self,
-        last_seen_dag_run_id: Optional[int],
-        last_seen_log_id: Optional[int],
-        extra_dag_run_ids: Optional[List[int]],
-        dag_ids: Optional[str],
-        excluded_dag_ids: Optional[str],
+        last_seen_dag_run_id: Optional[int] = None,
+        last_seen_log_id: Optional[int] = None,
+        extra_dag_run_ids: Optional[List[int]] = None,
+        dag_ids: Optional[str] = None,
+        excluded_dag_ids: Optional[str] = None,
     ) -> AirflowDagRunsResponse:
-        dag_ids_list = dag_ids.split(",") if dag_ids else None
-        excluded_dag_ids.split(",") if excluded_dag_ids else None
+        dag_ids_list = dag_ids.split(",") if dag_ids else []
 
         updated = {}
         if last_seen_log_id is not None:
@@ -127,7 +116,7 @@ class MockDataFetcher(AirflowDataFetcher):
                     )
                     or (dr.dag_id, dr.execution_date) in updated
                 )
-                and (dag_ids_list is None or dr.dag_id in dag_ids_list)
+                and (not dag_ids_list or dr.dag_id in dag_ids_list)
             )
         ]
         return AirflowDagRunsResponse(

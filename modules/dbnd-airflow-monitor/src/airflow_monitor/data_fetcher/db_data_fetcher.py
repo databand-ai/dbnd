@@ -6,14 +6,15 @@ import logging
 
 from typing import List, Optional
 
+from airflow_monitor.airflow_monitor_utils import log_received_tasks, send_metrics
 from airflow_monitor.common.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
+    PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
 from airflow_monitor.errors import AirflowFetchingException
 from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
 from dbnd_monitor.metric_reporter import METRIC_REPORTER, measure_time
@@ -31,9 +32,9 @@ def json_conv(data):
     return json.loads(json.dumps(data, cls=JsonEncoder))
 
 
-class DbFetcher(AirflowDataFetcher):
+class DbFetcher:
     def __init__(self, config: AirflowIntegrationConfig) -> None:
-        super().__init__(config)
+        self.source_name = config.source_name
         # It's important to do this import to prevent import issues
         import airflow  # noqa: F401
 
@@ -181,3 +182,10 @@ class DbFetcher(AirflowDataFetcher):
 
     def is_alive(self):
         return True
+
+    def get_plugin_metadata(self) -> PluginMetadata:
+        return PluginMetadata()
+
+    def _on_data_received(self, json_data, data_source):
+        log_received_tasks(data_source, json_data)
+        send_metrics(self.source_name, json_data.get("airflow_export_meta"))

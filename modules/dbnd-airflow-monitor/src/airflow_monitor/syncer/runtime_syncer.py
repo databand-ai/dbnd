@@ -11,7 +11,7 @@ from airflow_monitor.common.airflow_data import (
     DagRunsStateData,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.base_data_fetcher import AirflowDataFetcher
+from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
@@ -73,7 +73,7 @@ class AirflowRuntimeSyncer(BaseComponent):
 
     tracking_service: AirflowTrackingService
     config: AirflowIntegrationConfig
-    data_fetcher: AirflowDataFetcher
+    data_fetcher: DbFetcher
 
     last_success_sync: datetime.datetime = None
     last_sync_heartbeat: datetime.datetime = None
