@@ -440,7 +440,7 @@ pyparsing==2.4.7
 pypsrp==0.8.1
 pyrsistent==0.18.1
 pysftp==0.2.9
-pyspark==3.2.1
+pyspark==3.2.2
 pyspnego==0.5.1
 pytest-asyncio==0.18.3
 pytest-cov==3.0.0
