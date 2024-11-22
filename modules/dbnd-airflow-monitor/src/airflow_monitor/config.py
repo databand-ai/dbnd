@@ -3,18 +3,7 @@ from typing import Optional
 
 import attr
 
-from dbnd_monitor.base_monitor_config import BaseMonitorConfig
-
-
-def to_bool(value):
-    if isinstance(value, bool):
-        return bool(value)
-    value = value.lower()
-    if value in ("true", "t", "1", "yes", "y"):
-        return True
-    if value in ("false", "f", "0", "no", "n"):
-        return False
-    raise ValueError(f"Cannot convert value to bool: {value}")
+from dbnd_monitor.base_monitor_config import BaseMonitorConfig, to_bool
 
 
 @attr.s(auto_attribs=True)

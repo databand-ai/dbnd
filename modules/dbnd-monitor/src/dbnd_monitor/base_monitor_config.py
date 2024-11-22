@@ -8,6 +8,17 @@ import attr
 from attr.converters import optional
 
 
+def to_bool(value):
+    if isinstance(value, bool):
+        return bool(value)
+    value = value.lower()
+    if value in ("true", "t", "1", "yes", "y"):
+        return True
+    if value in ("false", "f", "0", "no", "n"):
+        return False
+    raise ValueError(f"Cannot convert value to bool: {value}")
+
+
 @attr.s(auto_attribs=True)
 class BaseMonitorConfig:
     _env_prefix = "DBND__MONITOR__"
@@ -30,7 +41,7 @@ class BaseMonitorConfig:
     # Sync only integration with this name
     syncer_name: Optional[str] = None
 
-    enable_sending_monitor_logs: bool = False
+    enable_sending_monitor_logs: bool = attr.ib(converter=to_bool, default=False)
 
     max_logs_buffer_size_in_kb: int = 50
 
