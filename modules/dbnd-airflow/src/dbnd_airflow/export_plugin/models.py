@@ -62,13 +62,20 @@ class ETask(object):
     @staticmethod
     def from_task(t, include_task_args, dag, include_source=True):
         # type: (BaseOperator, bool, DAG, bool) -> ETask
-        module_code = _get_module_code(t) or _read_dag_file(dag.fileloc)
+        if include_source:
+            task_source_hash = source_md5(_get_source_code(t))
+            module_source_hash = source_md5(
+                _get_module_code(t) or _read_dag_file(dag.fileloc)
+            )
+        else:
+            task_source_hash = None
+            module_source_hash = None
         return ETask(
             upstream_task_ids=t.upstream_task_ids,
             downstream_task_ids=t.downstream_task_ids,
             task_type=t.task_type,
-            task_source_hash=source_md5(_get_source_code(t)),
-            module_source_hash=source_md5(module_code),
+            task_source_hash=task_source_hash,
+            module_source_hash=module_source_hash,
             dag_id=t.dag_id,
             task_id=t.task_id,
             retries=t.retries,

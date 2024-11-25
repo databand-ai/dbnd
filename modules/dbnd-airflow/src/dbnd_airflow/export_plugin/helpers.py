@@ -1,14 +1,15 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
 import datetime
+import inspect
 import json
 import logging
 import os
 import sys
 
-from typing import Dict
-
 from airflow.models import BaseOperator
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
 
 from dbnd._core.utils.basics.memoized import cached
 from dbnd._core.utils.git import get_git_commit, is_git_dirty
@@ -67,8 +68,9 @@ def _get_log(ti, task):
         if logs_size < MAX_LOGS_SIZE_IN_BYTES:
             return all_logs
 
-        result = all_logs[-MAX_LOGS_SIZE_IN_BYTES:] + "... ({} of {})".format(
-            MAX_LOGS_SIZE_IN_BYTES, len(all_logs)
+        result = (
+            all_logs[-MAX_LOGS_SIZE_IN_BYTES:]
+            + f"... ({MAX_LOGS_SIZE_IN_BYTES} of {len(all_logs)})"
         )
         return result
     except Exception:
@@ -85,31 +87,27 @@ def _get_git_status(path):
 
 
 def _get_source_code(t):
-    # type: (BaseOperator) -> str
+    # type: (BaseOperator) -> str | None
     # TODO: add other "code" extractions
     # TODO: maybe return it with operator code as well
     try:
-        from airflow.operators.bash_operator import BashOperator
-        from airflow.operators.python_operator import PythonOperator
-
         if isinstance(t, PythonOperator):
-            import inspect
-
             return inspect.getsource(t.python_callable)
-        elif isinstance(t, BashOperator):
-            return t.bash_command
+        if isinstance(t, BashOperator):
+            if isinstance(t.bash_command, str):
+                return t.bash_command
+            if hasattr(t, "python_callable"):
+                # Adds support for bash decorator added in Airflow 2.9
+                return inspect.getsource(t.python_callable)
+        return None
     except Exception:
-        pass
+        return None
 
 
 def _get_module_code(t):
     # type: (BaseOperator) -> str
     try:
-        from airflow.operators.python_operator import PythonOperator
-
         if isinstance(t, PythonOperator):
-            import inspect
-
             return inspect.getsource(inspect.getmodule(t.python_callable))
     except Exception:
         pass
@@ -123,16 +121,11 @@ def _add_source_code(tasks_hash_to_source, source_code):
 
 def _get_command_from_operator(t):
     # type: (BaseOperator) -> str
-    from airflow.operators.bash_operator import BashOperator
-    from airflow.operators.python_operator import PythonOperator
-
     if isinstance(t, BashOperator):
-        return "bash_command='{bash_command}'".format(bash_command=t.bash_command)
+        return f"bash_command='{t.bash_command}'"
     elif isinstance(t, PythonOperator):
         func_name = get_callable_name(t.python_callable)
-        return "python_callable={func}, op_kwargs={kwrags}".format(
-            func=func_name, kwrags=t.op_kwargs
-        )
+        return f"python_callable={func_name}, op_kwargs={t.op_kwargs}"
 
 
 def _extract_args_from_dict(t_dict, call_num=1):
