@@ -2,6 +2,7 @@
 
 import os
 
+from random import choice
 from typing import Optional
 
 import attr
@@ -37,6 +38,15 @@ from dbnd_monitor.base_monitor_config import BaseMonitorConfig
                 "stop_after": None,
                 "number_of_iterations": 3,
             },
+        ),
+        (
+            {
+                "SOME_ENV_PREFIX__COMPONENT_ERROR_SUPPORT": choice(
+                    ["y", "yes", "t", "true", "1"]
+                )
+            },
+            {},
+            {"component_error_support": True},
         ),
     ],
 )

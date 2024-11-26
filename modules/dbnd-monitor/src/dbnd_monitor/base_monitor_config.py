@@ -41,6 +41,9 @@ class BaseMonitorConfig:
     # Sync only integration with this name
     syncer_name: Optional[str] = None
 
+    # Pick proper context manager for captured exception reporting
+    component_error_support: bool = attr.ib(converter=to_bool, default=False)
+
     enable_sending_monitor_logs: bool = attr.ib(converter=to_bool, default=False)
 
     max_logs_buffer_size_in_kb: int = 50
