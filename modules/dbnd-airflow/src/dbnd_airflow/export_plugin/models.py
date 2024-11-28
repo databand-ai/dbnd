@@ -314,9 +314,6 @@ class AirflowNewDagRun(object):
     execution_date = attr.ib()  # type: datetime
     state = attr.ib()  # type: str
     is_paused = attr.ib()  # type: bool
-    has_updated_task_instances = attr.ib()  # type: bool
-    max_log_id = attr.ib()  # type: int
-    events = attr.ib()  # type: List[str]
 
     def as_dict(self):
         return dict(
@@ -325,9 +322,6 @@ class AirflowNewDagRun(object):
             execution_date=self.execution_date,
             state=self.state,
             is_paused=self.is_paused,
-            has_updated_task_instances=self.has_updated_task_instances,
-            max_log_id=self.max_log_id,
-            events=self.events,
         )
 
 
@@ -404,12 +398,10 @@ class AirflowExportData(object):
 @attr.s
 class LastSeenData(AirflowExportData):
     last_seen_dag_run_id = attr.ib(default=None)  # type: int
-    last_seen_log_id = attr.ib(default=None)  # type: int
 
     def as_dict(self):
         return dict(
             last_seen_dag_run_id=self.last_seen_dag_run_id,
-            last_seen_log_id=self.last_seen_log_id,
             airflow_export_meta=self.airflow_export_meta.as_dict(),
             error_message=self.error_message,
         )
@@ -419,13 +411,11 @@ class LastSeenData(AirflowExportData):
 class NewRunsData(AirflowExportData):
     new_dag_runs = attr.ib(default=None)  # type: List[AirflowNewDagRun]
     last_seen_dag_run_id = attr.ib(default=None)  # type: int
-    last_seen_log_id = attr.ib(default=None)  # type: int
 
     def as_dict(self):
         return dict(
             new_dag_runs=[new_dag_run.as_dict() for new_dag_run in self.new_dag_runs],
             last_seen_dag_run_id=self.last_seen_dag_run_id,
-            last_seen_log_id=self.last_seen_log_id,
             airflow_export_meta=self.airflow_export_meta.as_dict(),
             error_message=self.error_message,
         )

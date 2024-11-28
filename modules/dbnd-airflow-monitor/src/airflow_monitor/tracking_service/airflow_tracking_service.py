@@ -118,14 +118,8 @@ class AirflowTrackingService(BaseTrackingService):
 
         return self.save_tracking_data(data)
 
-    def update_dagruns(
-        self,
-        dag_runs_state_data: DagRunsStateData,
-        last_seen_log_id: int,
-        syncer_type: str,
-    ):
+    def update_dagruns(self, dag_runs_state_data: DagRunsStateData, syncer_type: str):
         data = dag_runs_state_data.as_dict()
-        data["last_seen_log_id"] = last_seen_log_id
         data["syncer_type"] = syncer_type
         data["airflow_instance_uid"] = self.airflow_instance_uid
         return self.save_tracking_data(data)

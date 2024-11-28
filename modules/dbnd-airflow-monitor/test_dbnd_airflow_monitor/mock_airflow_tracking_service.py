@@ -59,7 +59,6 @@ class MockTrackingService(BaseTrackingService):
         self.dag_runs = []  # type: List[MockDagRun]
 
         self.last_seen_dag_run_id = None
-        self.last_seen_log_id = None
         self.alive = True
 
         self.airflow_monitor_version = "2.0"
@@ -68,8 +67,6 @@ class MockTrackingService(BaseTrackingService):
     @ticking
     def update_last_seen_values(self, last_seen_values: LastSeenValues):
         last_seen_values = LastSeenValues.from_dict(last_seen_values.as_dict())
-        if self.last_seen_log_id is None:
-            self.last_seen_log_id = last_seen_values.last_seen_log_id
         if self.last_seen_dag_run_id is None:
             self.last_seen_dag_run_id = last_seen_values.last_seen_dag_run_id
 
@@ -87,7 +84,6 @@ class MockTrackingService(BaseTrackingService):
                 if dag_ids_list is None or dag_run.dag_id in dag_ids_list
             ],
             last_seen_dag_run_id=None,
-            last_seen_log_id=None,
         )
 
     @can_be_dead
@@ -96,6 +92,7 @@ class MockTrackingService(BaseTrackingService):
         self, start_time_window: int, dag_ids: str, excluded_dag_ids: Optional[str]
     ) -> DbndDagRunsResponse:
         dag_ids_list = dag_ids.split(",") if dag_ids else None
+        excluded_dag_ids_list = excluded_dag_ids.split(",") if excluded_dag_ids else []
 
         return DbndDagRunsResponse(
             dag_run_ids=[
@@ -103,10 +100,10 @@ class MockTrackingService(BaseTrackingService):
                 for dag_run in self.dag_runs
                 if dag_run.state == "RUNNING"
                 and not dag_run.is_paused
+                and dag_run.id not in excluded_dag_ids_list
                 and (dag_ids_list is None or dag_run.dag_id in dag_ids_list)
             ],
             last_seen_dag_run_id=self.last_seen_dag_run_id,
-            last_seen_log_id=self.last_seen_log_id,
         )
 
     def _get_dagrun_index(self, dr_or_ti):
@@ -142,12 +139,7 @@ class MockTrackingService(BaseTrackingService):
 
     @can_be_dead
     @ticking
-    def update_dagruns(
-        self,
-        dag_runs_state_data: DagRunsStateData,
-        last_seen_log_id: int,
-        syncer_type: str,
-    ):
+    def update_dagruns(self, dag_runs_state_data: DagRunsStateData, syncer_type: str):
         dag_runs_state_data = DagRunsStateData.from_dict(dag_runs_state_data.as_dict())
         for ti in dag_runs_state_data.task_instances:
             self.dag_runs[self._get_dagrun_index(ti)].test_updated_at = ticker.now
@@ -155,9 +147,6 @@ class MockTrackingService(BaseTrackingService):
             inner_dr = self.dag_runs[self._get_dagrun_index(dr)]
             inner_dr.state = dr.state
             inner_dr.is_paused = dr.is_paused
-
-        if last_seen_log_id and last_seen_log_id > self.last_seen_log_id:
-            self.last_seen_log_id = last_seen_log_id
 
     @can_be_dead
     @ticking

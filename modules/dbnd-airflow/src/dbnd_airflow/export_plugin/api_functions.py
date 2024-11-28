@@ -31,10 +31,8 @@ from dbnd_airflow.export_plugin.models import (
     NewRunsData,
 )
 from dbnd_airflow.export_plugin.queries import (
-    find_all_logs_grouped_by_runs,
     find_full_dag_runs,
     find_max_dag_run_id,
-    find_max_log_run_id,
     find_new_dag_runs,
 )
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
@@ -85,18 +83,13 @@ def get_meta(metrics):
 @provide_session
 def get_last_seen_values(session=None):
     max_dag_run_id = find_max_dag_run_id(session)
-    max_log_id = find_max_log_run_id(session)
-
-    return LastSeenData(
-        last_seen_dag_run_id=max_dag_run_id, last_seen_log_id=max_log_id
-    )
+    return LastSeenData(last_seen_dag_run_id=max_dag_run_id)
 
 
 @safe_rich_result
 @provide_session
 def get_new_dag_runs(
     last_seen_dag_run_id,
-    last_seen_log_id,
     extra_dag_runs_ids,
     dag_ids=None,
     excluded_dag_ids=None,
@@ -104,23 +97,13 @@ def get_new_dag_runs(
     session=None,
 ):
     max_dag_run_id = find_max_dag_run_id(session)
-    max_log_id = find_max_log_run_id(session)
 
     if last_seen_dag_run_id is None:
         last_seen_dag_run_id = max_dag_run_id
 
-    if last_seen_log_id is None:
-        last_seen_log_id = max_log_id
-
-    logs = find_all_logs_grouped_by_runs(
-        last_seen_log_id, dag_ids, excluded_dag_ids, session
-    )
-    logs_dict = {(log.dag_id, log.execution_date): log for log in logs}
-
     dag_runs = find_new_dag_runs(
         last_seen_dag_run_id,
         extra_dag_runs_ids,
-        logs_dict.keys(),
         dag_ids,
         excluded_dag_ids,
         include_subdags,
@@ -129,31 +112,17 @@ def get_new_dag_runs(
 
     new_dag_runs = []
     for dag_run in dag_runs:
-        log = logs_dict.get((dag_run.dag_id, dag_run.execution_date), None)
-
-        if log is None:
-            events = []
-        elif isinstance(log.events, str):  # mysql, sqlite
-            events = log.events.split(",")
-        else:  # postgres
-            events = log.events
-
         new_dag_run = AirflowNewDagRun(
             id=dag_run.id,
             dag_id=dag_run.dag_id,
             execution_date=dag_run.execution_date,
             state=dag_run.state,
             is_paused=dag_run.is_paused,
-            has_updated_task_instances=log is not None,
-            events=events,
-            max_log_id=log.id if log else None,
         )
         new_dag_runs.append(new_dag_run)
 
     new_runs = NewRunsData(
-        new_dag_runs=new_dag_runs,
-        last_seen_dag_run_id=max_dag_run_id,
-        last_seen_log_id=max_log_id,
+        new_dag_runs=new_dag_runs, last_seen_dag_run_id=max_dag_run_id
     )
     return new_runs
 

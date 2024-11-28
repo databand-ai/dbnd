@@ -10,7 +10,7 @@ from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from dbnd._core.utils.uid_utils import get_uuid
 
-from ..mock_airflow_data_fetcher import MockDagRun, MockLog
+from ..mock_airflow_data_fetcher import MockDagRun
 
 
 @pytest.fixture
@@ -97,15 +97,6 @@ class TestRuntimeSyncer:
             init=1,
             update=0,
             case="in airflow one dagrun started to run => should do one init",
-        )
-
-        # in airflow dagrun is running, dbnd knows about it, not updated => nothing
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=0,
-            case="in airflow dagrun is running, dbnd knows about it, not updated => nothing",
         )
 
         # finished in airflow, running in dbnd
@@ -199,61 +190,10 @@ class TestRuntimeSyncer:
             [dr.id for dr in mock_update_dagruns.call_args.args[0].dag_runs]
         ) == list(range(11))
 
-    def test_05_paused_changed(
-        self, runtime_syncer, mock_data_fetcher, mock_tracking_service
-    ):
-        mock_tracking_service.dag_runs = [MockDagRun(id=1)]
-        mock_data_fetcher.dag_runs = [MockDagRun(id=1)]
-
-        runtime_syncer.sync_once()
-        # both running, no changes - nothing should happen
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=0,
-            is_dbnd_empty=True,
-            case="both running, no changes - nothing should happen",
-        )
-
-        # dagrun was paused in airflow => should update
-        mock_data_fetcher.dag_runs[0].is_paused = True
-        assert not mock_tracking_service.dag_runs[0].is_paused  # just consistency check
-
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=1,
-            case="dagrun was paused in airflow => should update",
-        )
-        assert mock_tracking_service.dag_runs[0].is_paused
-
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=0,
-            case="both paused, no changes - nothing should happen",
-        )
-
-        # dagrun was unpaused in airflow => should update
-        mock_data_fetcher.dag_runs[0].is_paused = False
-        assert mock_tracking_service.dag_runs[0].is_paused  # just consistency check
-
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=1,
-            update=0,
-            case="dagrun was unpaused in airflow => should init",
-        )
-        assert not mock_tracking_service.dag_runs[0].is_paused
-
     def test_06_initial_state(
         self, runtime_syncer, mock_data_fetcher, mock_tracking_service
     ):
         assert mock_tracking_service.last_seen_dag_run_id is None
-        assert mock_tracking_service.last_seen_log_id is None
 
         runtime_syncer.sync_once()
 
@@ -261,20 +201,15 @@ class TestRuntimeSyncer:
             runtime_syncer, init=0, update=0, is_dbnd_empty=True, reset=False
         )
         assert mock_tracking_service.last_seen_dag_run_id == -1
-        assert mock_tracking_service.last_seen_log_id == -1
 
     def test_07_initial_state_af_non_empty(
         self, runtime_syncer, mock_data_fetcher, mock_tracking_service
     ):
         assert mock_tracking_service.last_seen_dag_run_id is None
-        assert mock_tracking_service.last_seen_log_id is None
 
         mock_data_fetcher.dag_runs = sorted(
             [MockDagRun(id=i, dag_id=f"dag{i}", state="FINISHED") for i in range(11)],
             key=lambda _: random.random(),
-        )
-        mock_data_fetcher.logs = sorted(
-            [MockLog(id=i) for i in range(22)], key=lambda _: random.random()
         )
         runtime_syncer.sync_once()
 
@@ -282,7 +217,6 @@ class TestRuntimeSyncer:
             runtime_syncer, init=0, update=0, is_dbnd_empty=True, reset=False
         )
         assert mock_tracking_service.last_seen_dag_run_id == 10
-        assert mock_tracking_service.last_seen_log_id == 21
         assert not mock_tracking_service.dag_runs
 
     def test_08_dag_ids(self, runtime_syncer, mock_data_fetcher, mock_tracking_service):
@@ -314,15 +248,6 @@ class TestRuntimeSyncer:
             init=1,
             update=0,
             case="in airflow one dagrun started to run => should do one init",
-        )
-
-        # in airflow dagrun is running, dbnd knows about it, not updated => nothing
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=0,
-            case="in airflow dagrun is running, dbnd knows about it, not updated => nothing",
         )
 
         # finished in airflow, running in dbnd
@@ -409,15 +334,6 @@ class TestRuntimeSyncer:
             init=1,
             update=0,
             case="in airflow one dagrun started to run => should do one init",
-        )
-
-        # in airflow dagrun is running, dbnd knows about it, not updated => nothing
-        runtime_syncer.sync_once()
-        expect_changes(
-            runtime_syncer,
-            init=0,
-            update=0,
-            case="in airflow dagrun is running, dbnd knows about it, not updated => nothing",
         )
 
         # finished in airflow, running in dbnd

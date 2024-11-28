@@ -13,15 +13,6 @@ def gen_dag_run(id_, **kwargs):
     kwargs.setdefault("execution_date", random_text())
     kwargs.setdefault("state", random.choice(["RUNNING", "SUCCESS", "FAILED"]))
     kwargs.setdefault("is_paused", random.choice([False, True]))
-
-    kwargs.setdefault("has_updated_task_instances", random.choice([False, True]))
-    if kwargs["has_updated_task_instances"]:
-        kwargs.setdefault("max_log_id", random.randint(1, 10000))
-        kwargs.setdefault("events", random.choice(["run"]))
-    else:
-        kwargs.setdefault("max_log_id", None)
-        kwargs.setdefault("events", None)
-
     return AirflowDagRun(id_, **kwargs)
 
 
@@ -38,36 +29,21 @@ class TestDagRunCategorization:
         assert dag_runs == to_init
         assert not to_update
 
-    def test_020_view_only_events(self):
+    def test_020_finished_and_not_discovered_runs(self):
         # not RUNNING in dbnd nor in airflow, view only event => just update
-        dag_runs = gen_dag_runs(0, 10, events="graph", state="SUCCESS") + gen_dag_runs(
-            10, 20, events="graph", state="FAILED"
+        dag_runs = gen_dag_runs(0, 10, state="SUCCESS") + gen_dag_runs(
+            10, 20, state="FAILED"
         )
-        to_init, to_update = categorize_dag_runs(dag_runs, [100, 101])
-        assert not to_init
-        assert dag_runs == to_update
-
-    def test_021_view_only_events(self):
-        # not RUNNING in dbnd but RUNNING in airflow, view only event => init
-        dag_runs = gen_dag_runs(10, events="graph", state="RUNNING")
         to_init, to_update = categorize_dag_runs(dag_runs, [100, 101])
         assert dag_runs == to_init
         assert not to_update
 
-    def test_022_view_only_events(self):
-        # RUNNING in dbnd, view only event => update
-        dag_runs = gen_dag_runs(
-            0, 10, events="graph", state="RUNNING", has_updated_task_instances=True
-        ) + gen_dag_runs(10, 20, events="graph", state="SUCCESS")
-        to_init, to_update = categorize_dag_runs(dag_runs, list(range(20)))
-        assert not to_init
-        assert dag_runs == to_update
-
-    def test_030_update_changed(self):
-        dag_runs = gen_dag_runs(10, has_updated_task_instances=True)
-        to_init, to_update = categorize_dag_runs(dag_runs, list(range(10)))
-        assert not to_init
-        assert dag_runs == to_update
+    def test_021_running_and_not_discovered_runs(self):
+        # not RUNNING in dbnd but RUNNING in airflow, view only event => init
+        dag_runs = gen_dag_runs(10, state="RUNNING")
+        to_init, to_update = categorize_dag_runs(dag_runs, [100, 101])
+        assert dag_runs == to_init
+        assert not to_update
 
     def test_031_update_paused(self):
         dag_runs = gen_dag_runs(10, is_paused=True)

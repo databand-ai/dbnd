@@ -23,8 +23,6 @@ class MockDagRun:
     execution_date = attr.ib(default="date1")  # type: str
     state = attr.ib(default="RUNNING")  # type: str
     is_paused = attr.ib(default=False)  # type: bool
-    max_log_id = attr.ib(default=None)  # type: Optional[int]
-    events = attr.ib(default=None)  # type: str
 
     # mock only
     n_task_instances = attr.ib(default=3)
@@ -40,8 +38,6 @@ class MockDagRun:
             "execution_date": self.execution_date,
             "state": self.state,
             "is_paused": self.is_paused,
-            "max_log_id": self.max_log_id,
-            "events": self.events,
         }
 
 
@@ -54,18 +50,10 @@ class MockTaskInstance:
         return {"dag_id": self.dag_id, "execution_date": self.execution_date}
 
 
-@attr.s
-class MockLog:
-    id = attr.ib()  # type: int
-    dag_id = attr.ib(default="dag1")  # type: str
-    execution_date = attr.ib(default="date1")  # type: str
-
-
 class MockDataFetcher(DbFetcher):
     def __init__(self):
         self.source_name = "test"
         self.dag_runs = []  # type: List[MockDagRun]
-        self.logs = []  # type: List[MockLog]
         self.alive = True
 
     @can_be_dead
@@ -73,27 +61,19 @@ class MockDataFetcher(DbFetcher):
         return LastSeenValues(
             last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
             if self.dag_runs
-            else None,
-            last_seen_log_id=max(log.id for log in self.logs) if self.logs else None,
+            else None
         )
 
     @can_be_dead
     def get_airflow_dagruns_to_sync(
         self,
         last_seen_dag_run_id: Optional[int] = None,
-        last_seen_log_id: Optional[int] = None,
         extra_dag_run_ids: Optional[List[int]] = None,
         dag_ids: Optional[str] = None,
         excluded_dag_ids: Optional[str] = None,
     ) -> AirflowDagRunsResponse:
         dag_ids_list = dag_ids.split(",") if dag_ids else []
-
-        updated = {}
-        if last_seen_log_id is not None:
-            for log in self.logs:
-                if log.id > last_seen_log_id:
-                    key = (log.dag_id, log.execution_date)
-                    updated[key] = max(log.id, updated.get(key, -1))
+        excluded_dag_ids_list = excluded_dag_ids.split(",") if excluded_dag_ids else []
 
         dag_runs = [
             AirflowDagRun(
@@ -102,8 +82,6 @@ class MockDataFetcher(DbFetcher):
                 execution_date=dr.execution_date,
                 state=dr.state,
                 is_paused=dr.is_paused,
-                has_updated_task_instances=(dr.dag_id, dr.execution_date) in updated,
-                max_log_id=updated.get((dr.dag_id, dr.execution_date)),
             )
             for dr in self.dag_runs
             if (
@@ -114,9 +92,9 @@ class MockDataFetcher(DbFetcher):
                         last_seen_dag_run_id is not None
                         and dr.id > last_seen_dag_run_id
                     )
-                    or (dr.dag_id, dr.execution_date) in updated
                 )
                 and (not dag_ids_list or dr.dag_id in dag_ids_list)
+                and dr.dag_id not in excluded_dag_ids_list
             )
         ]
         return AirflowDagRunsResponse(
@@ -124,7 +102,6 @@ class MockDataFetcher(DbFetcher):
             last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
             if self.dag_runs
             else None,
-            last_seen_log_id=max(log.id for log in self.logs) if self.logs else None,
         )
 
     @can_be_dead

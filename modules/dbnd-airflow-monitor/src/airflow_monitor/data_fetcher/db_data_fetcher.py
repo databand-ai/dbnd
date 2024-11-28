@@ -116,7 +116,6 @@ class DbFetcher:
     def get_airflow_dagruns_to_sync(
         self,
         last_seen_dag_run_id: Optional[int] = None,
-        last_seen_log_id: Optional[int] = None,
         extra_dag_run_ids: Optional[List[int]] = None,
         dag_ids: Optional[str] = None,
         excluded_dag_ids: Optional[str] = None,
@@ -131,7 +130,6 @@ class DbFetcher:
         with self._get_session() as session:
             data = get_new_dag_runs(
                 last_seen_dag_run_id=last_seen_dag_run_id,
-                last_seen_log_id=last_seen_log_id,
                 extra_dag_runs_ids=extra_dag_run_ids,
                 dag_ids=dag_ids_list,
                 excluded_dag_ids=excluded_dag_ids_list,

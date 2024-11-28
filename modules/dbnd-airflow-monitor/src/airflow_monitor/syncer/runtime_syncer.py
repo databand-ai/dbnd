@@ -22,50 +22,17 @@ from dbnd_monitor.base_component import BaseComponent
 
 logger = logging.getLogger(__name__)
 
-VIEW_ONLY_EVENTS = {
-    "duration",
-    "elasticsearch",
-    "extra_links",
-    "gantt",
-    "get_logs_with_metadata",
-    "graph",
-    "landing_times",
-    "log",
-    "rendered",
-    "task",
-    "task_instances",
-    "tree",
-    "tries",
-    "variables",
-    "varimport",
-    "xcom",
-}
-
-
-def is_view_only_events(dr: AirflowDagRun):
-    if not dr.events:
-        return False
-    non_view_events = set(dr.events.split(",")) - VIEW_ONLY_EVENTS
-    return len(non_view_events) == 0
-
 
 def categorize_dag_runs(
     airflow_dag_runs: List[AirflowDagRun], dbnd_dag_run_ids: List[int]
 ):
-    dagruns_to_init = []
-    dagruns_to_update = []
-    dagruns_to_skip = []
+    to_init = []
+    to_update = []
+
     for dr in airflow_dag_runs:
-        is_finished = dr.state != "RUNNING"
-        if is_finished and is_view_only_events(dr):
-            dagruns_to_update.append(dr)
-        elif dr.id not in dbnd_dag_run_ids:
-            dagruns_to_init.append(dr)
-        elif is_finished or dr.has_updated_task_instances or dr.is_paused:
-            dagruns_to_update.append(dr)
-        else:
-            dagruns_to_skip.append(dr)
-    return dagruns_to_init, dagruns_to_update
+        (to_update if dr.id in dbnd_dag_run_ids else to_init).append(dr)
+
+    return to_init, to_update
 
 
 class AirflowRuntimeSyncer(BaseComponent):
@@ -114,13 +81,8 @@ class AirflowRuntimeSyncer(BaseComponent):
             dag_ids=self.config.dag_ids,
             excluded_dag_ids=self.config.excluded_dag_ids,
         )
-        if (
-            dbnd_response.last_seen_dag_run_id is None
-            or dbnd_response.last_seen_log_id is None
-        ):
+        if dbnd_response.last_seen_dag_run_id is None:
             last_seen_values = self.data_fetcher.get_last_seen_values()
-            if last_seen_values.last_seen_log_id is None:
-                last_seen_values.last_seen_log_id = -1
             if last_seen_values.last_seen_dag_run_id is None:
                 last_seen_values.last_seen_dag_run_id = -1
 
@@ -133,16 +95,14 @@ class AirflowRuntimeSyncer(BaseComponent):
             )
 
         logger.debug(
-            "Getting new dag runs from Airflow with parameters last_seen_dag_run_id=%s, last_seen_log_id=%s, extra_dag_run_ids=%s, dag_ids=%s, excluded_dag_ids=%s",
+            "Getting new dag runs from Airflow with parameters last_seen_dag_run_id=%s, extra_dag_run_ids=%s, dag_ids=%s, excluded_dag_ids=%s",
             dbnd_response.last_seen_dag_run_id,
-            dbnd_response.last_seen_log_id,
             ",".join(map(str, dbnd_response.dag_run_ids)),
             self.config.dag_ids,
             self.config.excluded_dag_ids,
         )
         airflow_response = self.data_fetcher.get_airflow_dagruns_to_sync(
             last_seen_dag_run_id=dbnd_response.last_seen_dag_run_id,
-            last_seen_log_id=dbnd_response.last_seen_log_id,
             extra_dag_run_ids=dbnd_response.dag_run_ids,
             dag_ids=self.config.dag_ids,
             excluded_dag_ids=self.config.excluded_dag_ids,
@@ -190,17 +150,13 @@ class AirflowRuntimeSyncer(BaseComponent):
             # if there is no dagruns to update - do empty update to set last_sync_time
             # otherwise we might get false alarms that monitor is not syncing
             self.tracking_service.update_dagruns(
-                DagRunsStateData(task_instances=[], dag_runs=[]), None, self.SYNCER_TYPE
+                DagRunsStateData(task_instances=[], dag_runs=[]), self.SYNCER_TYPE
             )
             return
 
-        dagruns = sorted(
-            run_ids_to_update, key=lambda dr: (dr.max_log_id is None, dr.max_log_id)
-        )  # type: List[AirflowDagRun]
-
-        bulk_size = self.config.dag_run_bulk_size or len(dagruns)
-        for i in range(0, len(dagruns), bulk_size):
-            dagruns_chunk = dagruns[i : i + bulk_size]
+        bulk_size = self.config.dag_run_bulk_size or len(run_ids_to_update)
+        for i in range(0, len(run_ids_to_update), bulk_size):
+            dagruns_chunk = run_ids_to_update[i : i + bulk_size]
             dag_run_ids = [dr.id for dr in dagruns_chunk]
             dag_runs_state_data = self.data_fetcher.get_dag_runs_state_data(dag_run_ids)
             logger.info(
@@ -208,9 +164,5 @@ class AirflowRuntimeSyncer(BaseComponent):
                 len(dag_runs_state_data.dag_runs),
                 len(dag_runs_state_data.task_instances),
             )
-            max_logs_ids = [dr.max_log_id for dr in dagruns_chunk if dr.max_log_id]
-            self.tracking_service.update_dagruns(
-                dag_runs_state_data,
-                max(max_logs_ids) if max_logs_ids else None,
-                self.SYNCER_TYPE,
-            )
+
+            self.tracking_service.update_dagruns(dag_runs_state_data, self.SYNCER_TYPE)
