@@ -29,6 +29,8 @@ class BaseIntegrationConfig:
     credentials: str = ""
     integration_config: dict = {}
 
+    component_error_support: Optional[bool] = False
+
     @classmethod
     def create(cls, config: dict, monitor_config: Optional[BaseMonitorConfig] = None):
         if "integration_config" not in config:
@@ -43,6 +45,11 @@ class BaseIntegrationConfig:
             tracking_source_uid = integration_config["synced_entities"][0][
                 "tracking_source_uid"
             ]
+        component_error_support = (
+            monitor_config.component_error_support
+            if monitor_config is not None
+            else False
+        )
         return BaseIntegrationConfig(
             uid=config["uid"],
             source_type=config["integration_type"],
@@ -57,4 +64,5 @@ class BaseIntegrationConfig:
             sync_bulk_size=integration_config.get(
                 "runs_bulk_size", DEFAULT_SYNC_BULK_SIZE
             ),
+            component_error_support=component_error_support,
         )

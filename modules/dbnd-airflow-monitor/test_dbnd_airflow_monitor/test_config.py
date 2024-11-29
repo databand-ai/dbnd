@@ -25,3 +25,9 @@ def test_airflow_monitor_config_from_env():
         airflow_config = AirflowMonitorConfig.from_env()
         assert airflow_config.syncer_name == "awful_syncer"
         assert airflow_config.is_sync_enabled is False
+
+    assert airflow_config.component_error_support is False
+    env = {"DBND__AIRFLOW_MONITOR__COMPONENT_ERROR_SUPPORT": "Y"}
+    with patch.dict(os.environ, env):
+        airflow_config = AirflowMonitorConfig.from_env()
+        assert airflow_config.component_error_support is True

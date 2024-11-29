@@ -63,6 +63,29 @@ def capture_component_exception(component: BaseComponent, function_name: str):
         component.report_sync_metrics(is_success=False)
 
 
+@contextmanager
+def capture_component_exception_as_component_error(
+    component: BaseComponent, function_name: str
+):
+    syncer_logger = getattr(component.__module__, "logger", None) or logging.getLogger(
+        component.__module__
+    )
+    syncer_logger.debug("Running function %s from %s", function_name, component)
+
+    try:
+        yield
+    except Exception:
+        # syncer_logger.exception(
+        #     "Error when running function %s from %s, integration_uid: %s, "
+        #     "tracking_source_uid: %s",
+        #     function_name,
+        #     component.name,
+        #     component.config.uid,
+        #     component.tracking_source_uid,
+        # )
+        pass
+
+
 log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())
 
 

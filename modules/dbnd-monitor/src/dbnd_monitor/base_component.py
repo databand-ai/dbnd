@@ -55,7 +55,6 @@ class BaseComponent:
             logging.root.setLevel(self.config.log_level)
 
     def sync_once(self):
-        from dbnd_monitor.error_handler import capture_component_exception
 
         logger.info(
             "Starting sync_once on tracking source uid: %s, syncer: %s",
@@ -63,7 +62,7 @@ class BaseComponent:
             self.identifier,
         )
 
-        with new_tracing_id(), self._time_sync_once(), capture_component_exception(
+        with new_tracing_id(), self._time_sync_once(), self.error_handler(
             self, "sync_once"
         ), transaction_scope(f"{self.config.source_type}.{self.SYNCER_TYPE}.sync_once"):
             result = self._sync_once()
@@ -104,3 +103,14 @@ class BaseComponent:
             return self.config.tracking_source_uid
 
         return self.tracking_service.tracking_source_uid
+
+    @property
+    def error_handler(self):
+        from dbnd_monitor.error_handler import (  # noqa: Cyclic import
+            capture_component_exception,
+            capture_component_exception_as_component_error,
+        )
+
+        if self.config.component_error_support:
+            return capture_component_exception_as_component_error
+        return capture_component_exception
