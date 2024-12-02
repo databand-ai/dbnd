@@ -39,6 +39,7 @@ def create_alert(
     operator,
     value,
     user_metric,
+    custom_name,
     is_str_value=False,
     **optional_fields,
 ):
@@ -53,6 +54,7 @@ def create_alert(
         "value": value,
         "severity": severity,
         "user_metric": user_metric,
+        "custom_name": custom_name,
         "is_str_value": is_str_value,
     }
     if operator == AlertDefOperator.ANOMALY.value:

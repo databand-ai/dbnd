@@ -285,8 +285,9 @@ def alerts(ctx):
     type=click.STRING,
     required=False,
 )
+@click.option("--custom-name", type=click.STRING, required=True)
 @click.pass_context
-def create(ctx, pipeline, pipeline_id, severity, task, uid):
+def create(ctx, pipeline, pipeline_id, severity, task, uid, custom_name):
     """Create or update alerts for given job."""
     ctx.obj = {
         "job": pipeline,
@@ -294,6 +295,7 @@ def create(ctx, pipeline, pipeline_id, severity, task, uid):
         "severity": severity,
         "task": task,
         "uid": uid,
+        "custom_name": custom_name,
     }
 
 
@@ -400,6 +402,7 @@ def cmd_create_alert(
             operator=operator,
             value=value,
             user_metric=user_metric,
+            custom_name=manage_ctx.obj.get("custom_name"),
             is_str_value=str_value,
             **more_options,
         )
