@@ -42,11 +42,16 @@ class IntegrationManagementService:
         reraise=True,
     )
     def get_all_integration_configs(
-        self, monitor_type: str, syncer_name: Optional[str] = None
+        self,
+        monitor_type: str,
+        syncer_name: Optional[str] = None,
+        source_instance_uid: Optional[str] = None,
     ) -> List[Dict]:
         data = {}
         if syncer_name:
-            data.update({"name": syncer_name})
+            data["name"] = syncer_name
+        if source_instance_uid:
+            data["source_instance_uid"] = source_instance_uid
 
         response = self._api_client.api_request(
             endpoint=f"integrations/config?type={monitor_type}", method="GET", data=data

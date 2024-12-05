@@ -257,8 +257,11 @@ class MultiServerMonitor:
     def get_integrations(self) -> List[BaseIntegration]:
         integrations = []
         for integration_type in self.integration_types:
+            source_instance_uid = integration_type.get_source_instance_uid_or_none()
             configs = self.integration_management_service.get_all_integration_configs(
-                integration_type.MONITOR_TYPE, self.monitor_config.syncer_name
+                monitor_type=integration_type.MONITOR_TYPE,
+                syncer_name=self.monitor_config.syncer_name,
+                source_instance_uid=source_instance_uid,
             )
             integrations.extend(
                 [

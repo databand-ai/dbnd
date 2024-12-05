@@ -13,6 +13,7 @@ from airflow_monitor.syncer.runtime_syncer import AirflowRuntimeSyncer
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
+from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import ThirdPartyInfo
 from dbnd_monitor.base_integration import BaseIntegration
 
@@ -67,3 +68,7 @@ class AirflowIntegration(BaseIntegration):
             self.config, tracking_service, self.reporting_service
         )
         updater.sync_once()
+
+    @staticmethod
+    def get_source_instance_uid_or_none() -> Optional[str]:
+        return get_or_create_airflow_instance_uid()

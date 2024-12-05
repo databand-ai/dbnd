@@ -383,3 +383,17 @@ class TestMultiServer(object):
         mock_logger.assert_called_once_with(
             "This monitor contains more than one integrations type, configuring sending monitor logs not possible"
         )
+
+    @patch(
+        "airflow_monitor.multiserver.airflow_integration.get_or_create_airflow_instance_uid"
+    )
+    def test_get_integrations(self, mock_instance_uid, multi_server):
+        test_uid = str(uuid.uuid4())
+        mock_instance_uid.return_value = test_uid
+        multi_server.integration_management_service.get_all_integration_configs = (
+            MagicMock()
+        )
+        multi_server.get_integrations()
+        multi_server.integration_management_service.get_all_integration_configs.assert_called_once_with(
+            monitor_type="airflow", syncer_name=None, source_instance_uid=test_uid
+        )

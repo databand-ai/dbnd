@@ -164,7 +164,10 @@ class MockIntegrationManagementService(IntegrationManagementService):
     @can_be_dead
     @ticking
     def get_all_integration_configs(
-        self, monitor_type: str, syncer_name: Optional[str] = None
+        self,
+        monitor_type: str,
+        syncer_name: Optional[str] = None,
+        source_instance_uid: Optional[str] = None,
     ) -> List[Dict]:
         return self.mock_configs
 

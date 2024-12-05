@@ -84,3 +84,7 @@ class BaseIntegration(ABC):
             metadata.update(third_party_info.metadata)
 
         self.reporting_service.report_metadata(self.config.uid, metadata)
+
+    @staticmethod
+    def get_source_instance_uid_or_none() -> Optional[str]:
+        return None
