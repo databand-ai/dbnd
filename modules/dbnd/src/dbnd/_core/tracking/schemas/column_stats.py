@@ -36,15 +36,15 @@ class ColumnStatsArgs:
     )
 
     # Metric for non-numeric column type
-    unique_count: Optional[int] = attr.ib(
+    unique_count: Optional[Union[int, float]] = attr.ib(
         default=None,
-        validator=attr.validators.optional(attr.validators.instance_of(int)),
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
     )
     # Most frequent value
     most_freq_value: Optional[Any] = attr.ib(default=None)
-    most_freq_value_count: Optional[int] = attr.ib(
+    most_freq_value_count: Optional[Union[int, float]] = attr.ib(
         default=None,
-        validator=attr.validators.optional(attr.validators.instance_of(int)),
+        validator=attr.validators.optional(attr.validators.instance_of((int, float))),
     )
     # Metric for numeric column type
     mean_value: Optional[Union[int, float]] = attr.ib(
@@ -77,11 +77,11 @@ class ColumnStatsArgs:
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
     )
 
-    non_null_count: Optional[int] = attr.ib()
+    non_null_count: Optional[Union[int, float]] = attr.ib()
     null_percent: Optional[Union[int, float]] = attr.ib()
 
     @non_null_count.default
-    def _non_null_count(self) -> Optional[int]:
+    def _non_null_count(self) -> Optional[Union[int, float]]:
         if self.records_count is None or self.null_count is None:
             return None
         return self.records_count - self.null_count
