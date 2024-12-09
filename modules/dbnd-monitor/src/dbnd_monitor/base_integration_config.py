@@ -24,7 +24,6 @@ class BaseIntegrationConfig:
     fetcher_type: Optional[str] = None
 
     log_level: str = None
-    syncer_max_retries: int = 5
 
     credentials: str = ""
     integration_config: dict = {}

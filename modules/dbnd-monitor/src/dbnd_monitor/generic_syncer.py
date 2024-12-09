@@ -23,6 +23,9 @@ from dbnd_monitor.reporting_service import ReportingService
 logger = logging.getLogger(__name__)
 
 
+SYNCER_MAX_RETRIES = 5
+
+
 def mark_assets_as_failed(assets: List[AssetToState]) -> List[AssetToState]:
     return [attr.evolve(asset, state=AssetState.FAILED_REQUEST) for asset in assets]
 
@@ -251,7 +254,7 @@ class GenericSyncer(BaseComponent):
 
         # Here we take care of retry count, transition to MAX_RETRIES, etc.
         new_assets_states = update_assets_retry_state(
-            new_assets_states, max_retries=self.config.syncer_max_retries
+            new_assets_states, max_retries=SYNCER_MAX_RETRIES
         )
         self.report_assets_metrics(new_assets_states)
 
