@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import logging
 
 from datetime import datetime
 
@@ -9,6 +10,9 @@ from airflow.utils.db import provide_session
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
+
+
+logger = logging.getLogger(__name__)
 
 
 @attr.s
@@ -60,6 +64,10 @@ def insert_dag_runs(
             dag_run.run_id = f"manual__{execution_date.isoformat()}"
 
         session.add(dag_run)
+        session.commit()
+
+        logger.info("Run has been created for %s", execution_date)
+
         if with_log:
             task_instance = FakeTaskInstance()
             task_instance.dag_id = dag_id
