@@ -68,9 +68,7 @@ def build_instances_table(instances_data):
     table_data = []
     for server_info in instances_data:
         instance_row = [getattr(server_info, key, "") for key in extract_keys]
-        instance_row.append(
-            "Airflow" if getattr(server_info, "fetcher") == "web" else "GC Composer"
-        )
+        instance_row.append("Airflow")
         table_data.append(instance_row)
     return safe_tabulate(table_data, headers)
 

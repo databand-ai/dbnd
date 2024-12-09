@@ -1,11 +1,9 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-import time
 import uuid
 
 import pytest
 
-from click.testing import CliRunner
 from mock import MagicMock, patch
 
 import airflow_monitor
@@ -13,7 +11,6 @@ import airflow_monitor
 from airflow_monitor.common.airflow_data import PluginMetadata
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.config import AirflowMonitorConfig
-from airflow_monitor.multiserver.cmd_liveness_probe import airflow_monitor_v2_alive
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent
@@ -207,22 +204,7 @@ class TestMultiServer(object):
         assert len(multi_server.active_integrations) == 1
         assert not mock_airflow_integration.mock_reporting_service.error
 
-    def test_06_liveness_prove(self, multi_server, caplog):
-        runner = CliRunner()
-        multi_server.run_once()
-
-        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
-        assert result.exit_code == 0
-
-        time.sleep(6)
-        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
-        assert result.exit_code != 0
-
-        multi_server.run_once()
-        result = runner.invoke(airflow_monitor_v2_alive, ["--max-time-diff", "5"])
-        assert result.exit_code == 0
-
-    def test_07_report_metadata(self, multi_server):
+    def test_06_report_metadata(self, multi_server):
         mock_airflow_integration = MockAirflowIntegration(
             AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG)
         )
@@ -245,7 +227,7 @@ class TestMultiServer(object):
             == expected_metadata
         )
 
-    def test_08_syncer_last_heartbeat(self, multi_server):
+    def test_07_syncer_last_heartbeat(self, multi_server):
         components = {"state_sync": MockSyncer}
         mock_airflow_integration = MockAirflowIntegration(
             AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
@@ -281,7 +263,7 @@ class TestMultiServer(object):
         ][MockSyncer.SYNCER_TYPE]
         assert newer_last_heartbeat == new_last_heartbeat
 
-    def test_09_run_once_on_integration_enabled_raise_exception(self, multi_server):
+    def test_08_run_once_on_integration_enabled_raise_exception(self, multi_server):
         # Arrange
         multi_server.get_integrations = MagicMock()
         integration_with_error = MagicMock(
@@ -297,7 +279,7 @@ class TestMultiServer(object):
         # Assert
         assert len(multi_server.active_integrations) == 2
 
-    def test_10_heartbeat_one_integration_raise_exception(self, multi_server):
+    def test_09_heartbeat_one_integration_raise_exception(self, multi_server):
         # Arrange
         existing_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
         missing_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
@@ -322,7 +304,7 @@ class TestMultiServer(object):
         missing_integration_component.sync_once.assert_not_called()
         missing_integration_component.refresh_config.assert_not_called()
 
-    def test_11_heartbeat_continue_iteration_after_exception(self, multi_server):
+    def test_10_heartbeat_continue_iteration_after_exception(self, multi_server):
         # Arrange
         first_integration = MagicMock(config=_as_dotted_dict(**{"uid": get_uuid()}))
         first_integration_component = MagicMock(spec=BaseComponent)
@@ -363,7 +345,7 @@ class TestMultiServer(object):
 
     @patch("dbnd_monitor.multiserver.logger.warning")
     @patch("dbnd_monitor.multiserver.configure_sending_monitor_logs")
-    def test_set_remote_log_handler(
+    def test_11_set_remote_log_handler(
         self, mock_configure_sending_monitor_logs, mock_logger, multi_server
     ):
         multi_server.set_remote_log_handler()
@@ -372,7 +354,7 @@ class TestMultiServer(object):
 
     @patch("dbnd_monitor.multiserver.logger.warning")
     @patch("dbnd_monitor.multiserver.configure_sending_monitor_logs")
-    def test_set_remote_log_handler_with_multiple_integration_types(
+    def test_12_set_remote_log_handler_with_multiple_integration_types(
         self,
         mock_configure_sending_monitor_logs,
         mock_logger,

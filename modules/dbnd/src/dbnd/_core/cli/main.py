@@ -80,14 +80,10 @@ dbnd_run_cmd = partial(dbnd_cmd, "run")
 
 def _register_legacy_airflow_monitor_commands(cli):
     try:
-        from airflow_monitor.multiserver.cmd_liveness_probe import (
-            airflow_monitor_v2_alive,
-        )
         from airflow_monitor.multiserver.cmd_multiserver import airflow_monitor_v2
     except ImportError:
         return
 
-    cli.add_command(airflow_monitor_v2_alive)
     cli.add_command(airflow_monitor_v2)
     return cli
 

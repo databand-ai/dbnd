@@ -16,7 +16,6 @@ from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 from dbnd_monitor.integration_management_service import IntegrationManagementService
-from dbnd_monitor.liveness_probe import create_liveness_file
 from dbnd_monitor.logger_config import configure_logging, configure_sending_monitor_logs
 from dbnd_monitor.monitoring.apm import transaction_scope
 from dbnd_monitor.monitoring.prometheus_tools import (
@@ -252,7 +251,6 @@ class MultiServerMonitor:
             self._stop_disabled_integrations(to_remove)
             self._start_new_enabled_integrations(to_add)
         self._heartbeat(integrations)
-        create_liveness_file()
 
     def get_integrations(self) -> List[BaseIntegration]:
         integrations = []
