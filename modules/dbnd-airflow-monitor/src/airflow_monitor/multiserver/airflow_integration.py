@@ -16,6 +16,7 @@ from airflow_monitor.tracking_service.airflow_tracking_service import (
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import ThirdPartyInfo
 from dbnd_monitor.base_integration import BaseIntegration
+from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,10 @@ class AirflowIntegration(BaseIntegration):
     MONITOR_TYPE = "airflow"
     CONFIG_CLASS = AirflowIntegrationConfig
     config: AirflowIntegrationConfig
+
+    def __init__(self, integration_config: BaseIntegrationConfig):
+        super().__init__(integration_config)
+        self.adapter = AirflowAdapter(self.config)
 
     def get_components_dict(self):
         return {
@@ -58,7 +63,7 @@ class AirflowIntegration(BaseIntegration):
         )
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
-        return AirflowAdapter().get_third_party_info()
+        return self.adapter.get_third_party_info()
 
     def on_integration_disabled(self):
         tracking_service = self.get_tracking_service()

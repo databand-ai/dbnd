@@ -12,6 +12,7 @@ from airflow_monitor.common.airflow_data import (
 )
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
 from dbnd._core.utils.timezone import utcnow
+from dbnd_monitor.adapter.adapter import AssetState, AssetToState
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 from dbnd_monitor.error_aggregator import ErrorAggregatorResult
 from dbnd_monitor.integration_management_service import IntegrationManagementService
@@ -105,6 +106,13 @@ class MockTrackingService(BaseTrackingService):
             ],
             last_seen_dag_run_id=self.last_seen_dag_run_id,
         )
+
+    @can_be_dead
+    @ticking
+    def get_active_assets(self, integration_id: str, syncer_instance_id: str):
+        dag_run_ids = self.get_active_dag_runs(0, str(), None).dag_run_ids
+        asset_ids = list(map(str, dag_run_ids))
+        return list(map(lambda id: AssetToState(id, AssetState.ACTIVE), asset_ids))
 
     def _get_dagrun_index(self, dr_or_ti):
         for i, dr in enumerate(self.dag_runs):

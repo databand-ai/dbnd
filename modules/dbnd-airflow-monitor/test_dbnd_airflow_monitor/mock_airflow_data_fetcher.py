@@ -34,6 +34,7 @@ class MockDagRun:
     def as_dict(self):
         return {
             "id": self.id,
+            "dagrun_id": self.id,
             "dag_id": self.dag_id,
             "execution_date": self.execution_date,
             "state": self.state,
