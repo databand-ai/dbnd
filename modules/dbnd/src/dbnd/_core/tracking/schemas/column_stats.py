@@ -20,6 +20,20 @@ def get_column_stats_by_col_name(
     )
 
 
+def convert_to_float_or_int(x):
+    if isinstance(x, str):
+        if x.isdigit() or (x[0] == "-" and x[1:].isdigit()):
+            return int(x)
+        else:
+            return float(x)
+    else:
+        return x
+
+
+def convert_to_int(x):
+    return int(x) if x else None
+
+
 @attr.s(auto_attribs=True)
 class ColumnStatsArgs:
     column_name: str = attr.ib(validator=attr.validators.instance_of(str))
@@ -29,6 +43,7 @@ class ColumnStatsArgs:
     distinct_count: Optional[int] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of(int)),
+        converter=convert_to_int,
     )
     null_count: Optional[int] = attr.ib(
         default=None,
@@ -39,42 +54,51 @@ class ColumnStatsArgs:
     unique_count: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     # Most frequent value
     most_freq_value: Optional[Any] = attr.ib(default=None)
     most_freq_value_count: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     # Metric for numeric column type
     mean_value: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     min_value: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     max_value: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     std_value: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     # Percentiles
     quartile_1: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     quartile_2: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
     quartile_3: Optional[Union[int, float]] = attr.ib(
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of((int, float))),
+        converter=convert_to_float_or_int,
     )
 
     non_null_count: Optional[Union[int, float]] = attr.ib()

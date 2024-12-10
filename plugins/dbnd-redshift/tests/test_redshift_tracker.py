@@ -17,6 +17,7 @@ from dbnd_redshift.sdk.redshift_values import (
     get_col_stats_queries,
     query_list_to_text,
 )
+from targets.value_meta import ColumnStatsArgs
 
 
 NON_NUMERIC_TYPES = [
@@ -262,6 +263,34 @@ def test_extract_stats_query():
     ]
     query = query_list_to_text(queries)
     assert all(k in query for k in schema)
+
+
+def test_column_stats_args_proper_field_types():
+    columnStatsArgs = ColumnStatsArgs(
+        column_name="test_name",
+        column_type="test_type",
+        mean_value="12.0",
+        distinct_count="12",
+        min_value="12.0",
+        max_value="12.0",
+        std_value="12.0",
+        quartile_1="12.0",
+        quartile_2="12.0",
+        quartile_3="12.0",
+        unique_count="12.0",
+        most_freq_value_count="12.0",
+    )
+
+    assert isinstance(columnStatsArgs.mean_value, float)
+    assert isinstance(columnStatsArgs.min_value, float)
+    assert isinstance(columnStatsArgs.max_value, float)
+    assert isinstance(columnStatsArgs.std_value, float)
+    assert isinstance(columnStatsArgs.quartile_1, float)
+    assert isinstance(columnStatsArgs.quartile_2, float)
+    assert isinstance(columnStatsArgs.quartile_3, float)
+    assert isinstance(columnStatsArgs.unique_count, float)
+    assert isinstance(columnStatsArgs.most_freq_value_count, float)
+    assert isinstance(columnStatsArgs.distinct_count, int)
 
 
 def test_multiple_psycopg2_connections(mock_redshift):
