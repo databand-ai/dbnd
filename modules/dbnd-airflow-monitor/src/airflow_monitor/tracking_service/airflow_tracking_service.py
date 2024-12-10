@@ -2,7 +2,6 @@
 
 import logging
 
-from datetime import datetime, timedelta
 from typing import Optional
 
 from airflow_monitor.common.airflow_data import (
@@ -12,19 +11,11 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.dbnd_data import DbndDagRunsResponse
-from dbnd._core.utils.timezone import utctoday
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 
 
 logger = logging.getLogger(__name__)
-
-
-def _min_start_time(start_time_window: int) -> Optional[datetime]:
-    if not start_time_window:
-        return None
-
-    return utctoday() - timedelta(days=start_time_window)
 
 
 class AirflowTrackingService(BaseTrackingService):
@@ -59,15 +50,9 @@ class AirflowTrackingService(BaseTrackingService):
         self._make_request("update_last_seen_values", method="POST", data=data)
 
     def get_all_dag_runs(
-        self,
-        start_time_window: int,
-        dag_ids: str,
-        excluded_dag_ids: Optional[str] = None,
+        self, dag_ids: str, excluded_dag_ids: Optional[str] = None
     ) -> DbndDagRunsResponse:
         params = {}
-        start_time = _min_start_time(start_time_window)
-        if start_time:
-            params["min_start_time"] = start_time.isoformat()
         if dag_ids:
             params["dag_ids"] = dag_ids
         if excluded_dag_ids:
@@ -82,15 +67,9 @@ class AirflowTrackingService(BaseTrackingService):
         return dags_to_sync
 
     def get_active_dag_runs(
-        self,
-        start_time_window: int,
-        dag_ids: Optional[str] = None,
-        excluded_dag_ids: Optional[str] = None,
+        self, dag_ids: Optional[str] = None, excluded_dag_ids: Optional[str] = None
     ) -> DbndDagRunsResponse:
         params = {}
-        start_time = _min_start_time(start_time_window)
-        if start_time:
-            params["min_start_time"] = start_time.isoformat()
         if dag_ids:
             params["dag_ids"] = dag_ids
         if excluded_dag_ids:

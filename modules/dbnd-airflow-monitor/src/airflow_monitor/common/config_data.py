@@ -44,7 +44,6 @@ class AirflowIntegrationConfig(BaseIntegrationConfig):
     # runtime syncer config
     dag_run_bulk_size = attr.ib(default=10)  # type: int
 
-    start_time_window = attr.ib(default=14)  # type: int
     interval = attr.ib(default=10)  # type: int
     sync_interval = attr.ib(default=10)  # type: int
 

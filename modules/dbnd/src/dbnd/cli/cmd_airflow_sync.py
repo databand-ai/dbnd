@@ -155,12 +155,6 @@ def build_instances_table(instances_data):
     type=click.INT,
     default=None,
 )
-@click.option(
-    "--start-time-window",
-    help="Start time window for the syncer (in days)",
-    type=click.INT,
-    default=None,
-)
 def add(
     name,
     url,
@@ -177,7 +171,6 @@ def add(
     include_logs_bytes_from_head,
     include_logs_bytes_from_end,
     dag_run_bulk_size,
-    start_time_window,
 ):
     try:
         if not env:
@@ -197,9 +190,6 @@ def add(
 
         if dag_run_bulk_size:
             monitor_config["dag_run_bulk_size"] = dag_run_bulk_size
-
-        if start_time_window:
-            monitor_config["start_time_window"] = start_time_window
 
         validate.URL(schemes={"http", "https"}, require_tld=False)(url)
         config_json = create_airflow_instance(
@@ -303,12 +293,6 @@ def add(
     type=click.INT,
     default=None,
 )
-@click.option(
-    "--start-time-window",
-    help="Start time window for the syncer (in days)",
-    type=click.INT,
-    default=None,
-)
 def edit(
     tracking_source_uid,
     url,
@@ -324,7 +308,6 @@ def edit(
     include_logs_bytes_from_head,
     include_logs_bytes_from_end,
     dag_run_bulk_size,
-    start_time_window,
 ):
     try:
         system_alert_definitions = {
@@ -341,9 +324,6 @@ def edit(
 
         if dag_run_bulk_size:
             monitor_config["dag_run_bulk_size"] = dag_run_bulk_size
-
-        if start_time_window:
-            monitor_config["start_time_window"] = start_time_window
 
         validate.URL(schemes={"http", "https"}, require_tld=False)(url)
         edit_airflow_instance(

@@ -77,9 +77,7 @@ class AirflowRuntimeSyncer(BaseComponent):
 
     def _actual_sync_once(self):
         dbnd_response = self.tracking_service.get_active_dag_runs(
-            start_time_window=self.config.start_time_window,
-            dag_ids=self.config.dag_ids,
-            excluded_dag_ids=self.config.excluded_dag_ids,
+            dag_ids=self.config.dag_ids, excluded_dag_ids=self.config.excluded_dag_ids
         )
         if dbnd_response.last_seen_dag_run_id is None:
             last_seen_values = self.data_fetcher.get_last_seen_values()
@@ -89,7 +87,6 @@ class AirflowRuntimeSyncer(BaseComponent):
             self.tracking_service.update_last_seen_values(last_seen_values)
 
             dbnd_response = self.tracking_service.get_active_dag_runs(
-                start_time_window=self.config.start_time_window,
                 dag_ids=self.config.dag_ids,
                 excluded_dag_ids=self.config.excluded_dag_ids,
             )

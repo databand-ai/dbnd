@@ -73,9 +73,7 @@ class MockTrackingService(BaseTrackingService):
 
     @can_be_dead
     @ticking
-    def get_all_dag_runs(
-        self, start_time_window: int, dag_ids: str
-    ) -> DbndDagRunsResponse:
+    def get_all_dag_runs(self, dag_ids: str) -> DbndDagRunsResponse:
         dag_ids_list = dag_ids.split(",") if dag_ids else None
 
         return DbndDagRunsResponse(
@@ -90,7 +88,7 @@ class MockTrackingService(BaseTrackingService):
     @can_be_dead
     @ticking
     def get_active_dag_runs(
-        self, start_time_window: int, dag_ids: str, excluded_dag_ids: Optional[str]
+        self, dag_ids: str, excluded_dag_ids: Optional[str]
     ) -> DbndDagRunsResponse:
         dag_ids_list = dag_ids.split(",") if dag_ids else None
         excluded_dag_ids_list = excluded_dag_ids.split(",") if excluded_dag_ids else []
