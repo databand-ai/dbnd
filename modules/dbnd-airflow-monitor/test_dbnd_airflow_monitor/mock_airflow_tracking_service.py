@@ -108,7 +108,7 @@ class MockTrackingService(BaseTrackingService):
     @can_be_dead
     @ticking
     def get_active_assets(self, integration_id: str, syncer_instance_id: str):
-        dag_run_ids = self.get_active_dag_runs(0, str(), None).dag_run_ids
+        dag_run_ids = self.get_active_dag_runs(str(), None).dag_run_ids
         asset_ids = list(map(str, dag_run_ids))
         return list(map(lambda id: AssetToState(id, AssetState.ACTIVE), asset_ids))
 
