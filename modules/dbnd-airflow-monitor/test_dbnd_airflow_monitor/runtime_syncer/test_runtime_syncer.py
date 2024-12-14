@@ -88,7 +88,7 @@ class TestRuntimeSyncer:
         )
 
         # in airflow one dagrun started to run => should do one init
-        airflow_dag_run = MockDagRun(id=10, state="RUNNING", is_paused=False)
+        airflow_dag_run = MockDagRun(id=10, state="running", is_paused=False)
         mock_data_fetcher.dag_runs.append(airflow_dag_run)
 
         runtime_syncer.sync_once()
@@ -234,10 +234,10 @@ class TestRuntimeSyncer:
 
         # in airflow one dagrun started to run => should do one init
         airflow_dag_run1 = MockDagRun(
-            id=10, dag_id="dag1", state="RUNNING", is_paused=False
+            id=10, dag_id="dag1", state="running", is_paused=False
         )
         airflow_dag_run2 = MockDagRun(
-            id=11, dag_id="dag2", state="RUNNING", is_paused=False
+            id=11, dag_id="dag2", state="running", is_paused=False
         )
         mock_data_fetcher.dag_runs.append(airflow_dag_run1)
         mock_data_fetcher.dag_runs.append(airflow_dag_run2)
@@ -320,10 +320,10 @@ class TestRuntimeSyncer:
 
         # in airflow one dagrun started to run => should do one init
         airflow_dag_run1 = MockDagRun(
-            id=10, dag_id="dag1", state="RUNNING", is_paused=False
+            id=10, dag_id="dag1", state="running", is_paused=False
         )
         airflow_dag_run2 = MockDagRun(
-            id=11, dag_id="dag2", state="RUNNING", is_paused=False
+            id=11, dag_id="dag2", state="running", is_paused=False
         )
         mock_data_fetcher.dag_runs.append(airflow_dag_run1)
         mock_data_fetcher.dag_runs.append(airflow_dag_run2)

@@ -21,7 +21,7 @@ class MockDagRun:
     id = attr.ib()  # type: int
     dag_id = attr.ib(default="dag1")  # type: str
     execution_date = attr.ib(default="date1")  # type: str
-    state = attr.ib(default="RUNNING")  # type: str
+    state = attr.ib(default="running")  # type: str
     is_paused = attr.ib(default=False)  # type: bool
 
     # mock only
@@ -87,7 +87,7 @@ class MockDataFetcher(DbFetcher):
             for dr in self.dag_runs
             if (
                 (
-                    (dr.state == "RUNNING" and not dr.is_paused)
+                    (dr.state == "running" and not dr.is_paused)
                     or dr.id in extra_dag_run_ids
                     or (
                         last_seen_dag_run_id is not None

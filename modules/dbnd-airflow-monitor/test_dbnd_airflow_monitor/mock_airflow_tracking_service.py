@@ -97,7 +97,7 @@ class MockTrackingService(BaseTrackingService):
             dag_run_ids=[
                 dag_run.id
                 for dag_run in self.dag_runs
-                if dag_run.state == "RUNNING"
+                if dag_run.state == "running"
                 and not dag_run.is_paused
                 and dag_run.id not in excluded_dag_ids_list
                 and (dag_ids_list is None or dag_run.dag_id in dag_ids_list)

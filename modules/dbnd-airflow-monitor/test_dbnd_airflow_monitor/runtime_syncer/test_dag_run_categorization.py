@@ -11,7 +11,7 @@ from . import random_text
 def gen_dag_run(id_, **kwargs):
     kwargs.setdefault("dag_id", random_text())
     kwargs.setdefault("execution_date", random_text())
-    kwargs.setdefault("state", random.choice(["RUNNING", "SUCCESS", "FAILED"]))
+    kwargs.setdefault("state", random.choice(["running", "SUCCESS", "FAILED"]))
     kwargs.setdefault("is_paused", random.choice([False, True]))
     return AirflowDagRun(id_, **kwargs)
 
@@ -40,7 +40,7 @@ class TestDagRunCategorization:
 
     def test_021_running_and_not_discovered_runs(self):
         # not RUNNING in dbnd but RUNNING in airflow, view only event => init
-        dag_runs = gen_dag_runs(10, state="RUNNING")
+        dag_runs = gen_dag_runs(10, state="running")
         to_init, to_update = categorize_dag_runs(dag_runs, [100, 101])
         assert dag_runs == to_init
         assert not to_update

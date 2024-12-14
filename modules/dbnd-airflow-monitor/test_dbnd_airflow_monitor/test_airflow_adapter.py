@@ -22,10 +22,10 @@ from .mock_airflow_data_fetcher import MockDagRun, MockDataFetcher
 
 @dataclass
 class DagRuns:
-    dag_run_1 = MockDagRun(id=10, dag_id="dag1", state="RUNNING", is_paused=False)
-    dag_run_2 = MockDagRun(id=11, dag_id="dag2", state="RUNNING", is_paused=False)
-    dag_run_3 = MockDagRun(id=12, dag_id="dag3", state="RUNNING", is_paused=False)
-    dag_run_4 = MockDagRun(id=13, dag_id="dag4", state="RUNNING", is_paused=False)
+    dag_run_1 = MockDagRun(id=10, dag_id="dag1", state="running", is_paused=False)
+    dag_run_2 = MockDagRun(id=11, dag_id="dag2", state="running", is_paused=False)
+    dag_run_3 = MockDagRun(id=12, dag_id="dag3", state="running", is_paused=False)
+    dag_run_4 = MockDagRun(id=13, dag_id="dag4", state="running", is_paused=False)
 
     def as_list(self):
         return [self.dag_run_1, self.dag_run_2, self.dag_run_3, self.dag_run_4]
@@ -43,7 +43,6 @@ def mock_dag_runs() -> DagRuns:
 def airflow_integration_config() -> AirflowIntegrationConfig:
     config = {
         "uid": uuid4(),
-        "config_updater_enabled": False,
         "source_type": "airflow",
         "source_name": "mock_server_1",
         "tracking_source_uid": uuid4(),

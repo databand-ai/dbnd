@@ -21,7 +21,6 @@ from test_dbnd_airflow_monitor.mock_airflow_integration import MockAirflowIntegr
 
 MOCK_SERVER_1_CONFIG = {
     "uid": get_uuid(),
-    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_1",
     "tracking_source_uid": uuid.uuid4(),
@@ -29,26 +28,21 @@ MOCK_SERVER_1_CONFIG = {
 }
 MOCK_SERVER_2_CONFIG = {
     "uid": get_uuid(),
-    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_2",
     "tracking_source_uid": uuid.uuid4(),
 }
 MOCK_SERVER_3_CONFIG = {
     "uid": get_uuid(),
-    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_3",
     "tracking_source_uid": uuid.uuid4(),
-    "state_sync_enabled": True,
 }
 MOCK_SERVER_4_CONFIG = {
     "uid": get_uuid(),
-    "config_updater_enabled": False,
     "source_type": "airflow",
     "source_name": "mock_server_4",
     "tracking_source_uid": uuid.uuid4(),
-    "state_sync_enabled": True,
     "sync_interval": 0,  # Important so that the same syncer can run for another iteration
 }
 
@@ -135,7 +129,7 @@ class TestMultiServer(object):
     def test_04_single_server_single_component(self, multi_server, caplog):
         components = {"state_sync": MockSyncer}
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG),
             mock_components_dict=components,
         )
         multi_server.get_integrations = MagicMock(
@@ -230,7 +224,7 @@ class TestMultiServer(object):
     def test_07_syncer_last_heartbeat(self, multi_server):
         components = {"state_sync": MockSyncer}
         mock_airflow_integration = MockAirflowIntegration(
-            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG, state_sync_enabled=True),
+            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG),
             mock_components_dict=components,
         )
         multi_server.get_integrations = MagicMock(

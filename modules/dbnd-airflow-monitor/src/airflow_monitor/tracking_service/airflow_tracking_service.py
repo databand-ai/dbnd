@@ -49,23 +49,6 @@ class AirflowTrackingService(BaseTrackingService):
         data["airflow_instance_uid"] = self.airflow_instance_uid
         self._make_request("update_last_seen_values", method="POST", data=data)
 
-    def get_all_dag_runs(
-        self, dag_ids: str, excluded_dag_ids: Optional[str] = None
-    ) -> DbndDagRunsResponse:
-        params = {}
-        if dag_ids:
-            params["dag_ids"] = dag_ids
-        if excluded_dag_ids:
-            params["excluded_dag_ids"] = excluded_dag_ids
-        params["airflow_instance_uid"] = self.airflow_instance_uid
-
-        response = self._make_request(
-            "get_all_dag_runs", method="GET", data=None, query=params
-        )
-        dags_to_sync = DbndDagRunsResponse.from_dict(response)
-
-        return dags_to_sync
-
     def get_active_dag_runs(
         self, dag_ids: Optional[str] = None, excluded_dag_ids: Optional[str] = None
     ) -> DbndDagRunsResponse:
