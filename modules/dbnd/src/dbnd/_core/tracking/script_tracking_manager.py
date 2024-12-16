@@ -42,7 +42,8 @@ from dbnd._core.utils.uid_utils import get_job_run_uid, get_task_run_uid
 from dbnd._vendor import pendulum
 from dbnd.api.tracking_api import TrackingSource
 from dbnd.providers.spark.dbnd_databricks import (
-    attach_link_to_databrick_notebook,
+    attach_link_to_databricks_notebook,
+    create_run_uid_for_databricks_notebook,
     is_databricks_notebook_env,
     register_on_cell_exit_action,
     safe_get_databricks_notebook_name,
@@ -264,12 +265,14 @@ class _DbndScriptTrackingManager(object):
                 tracking_config_job_name=tracking_config.job
             )
 
+        existing_run = False
         if airflow_context:
             root_task, job_name, source_type, run_uid = build_run_time_airflow_task(
                 af_context=airflow_context, root_task_name=root_task_name
             )
             try_number = airflow_context.try_number
             tracking_source = None
+            existing_run = True
         else:
             root_task = _build_inline_root_task(root_task_name)
             job_name = root_task_name
@@ -287,7 +290,10 @@ class _DbndScriptTrackingManager(object):
                     name=source_name_from_config.value, source_type=str(source_type)
                 )
 
-            run_uid = None
+            if is_databricks_notebook_env():
+                run_uid = create_run_uid_for_databricks_notebook()
+            else:
+                run_uid = None
             try_number = 1
 
         from dbnd._core.run.databand_run import DatabandRun
@@ -297,7 +303,7 @@ class _DbndScriptTrackingManager(object):
                 context=dc,
                 job_name=job_name,
                 run_uid=run_uid,
-                existing_run=run_uid is not None,
+                existing_run=existing_run,
                 source=source_type,
                 af_context=airflow_context,
                 tracking_source=tracking_source,
@@ -335,7 +341,7 @@ class _DbndScriptTrackingManager(object):
         self._task_run = run.root_task_run
 
         if is_databricks_notebook_env():
-            attach_link_to_databrick_notebook()
+            attach_link_to_databricks_notebook()
 
         if self._task_run.task_tracker_url:
             logger.info(

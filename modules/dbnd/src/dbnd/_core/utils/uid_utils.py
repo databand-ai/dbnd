@@ -99,3 +99,7 @@ def get_job_uid(airflow_server_info_uid, dag_id):
 
 def get_dataset_op_uid(dataset_uid, task_run_attempt_id, operation_type):
     return uuid.uuid5(dataset_uid, "{}.{}".format(task_run_attempt_id, operation_type))
+
+
+def get_run_uid_from_databricks_run_id(databricks_run_id: str) -> uuid.UUID:
+    return uuid.uuid5(NAMESPACE_DBND_RUN, databricks_run_id)

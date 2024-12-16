@@ -1,10 +1,16 @@
 # © Copyright Databand.ai, an IBM Company 2022
+
+import json
 import logging
 import os
+
+from typing import Optional
+from uuid import UUID
 
 from dbnd._core.log import dbnd_log_exception
 from dbnd._core.log.dbnd_log import dbnd_log_debug, dbnd_log_info
 from dbnd._core.tracking.commands import set_external_resource_urls
+from dbnd._core.utils.uid_utils import get_run_uid_from_databricks_run_id
 
 
 logger = logging.getLogger(__name__)
@@ -17,11 +23,15 @@ def is_databricks_notebook_env():
     return True
 
 
-def attach_link_to_databrick_notebook():
-    try:
-        from databricks.sdk.runtime import dbutils
+def get_databricks_notebook_context():
+    from databricks.sdk.runtime import dbutils
 
-        context = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+    return dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+
+
+def attach_link_to_databricks_notebook():
+    try:
+        context = get_databricks_notebook_context()
 
         workspace_url = context.apiUrl().get()
 
@@ -40,6 +50,20 @@ def attach_link_to_databrick_notebook():
         dbnd_log_exception(
             "Can't extract notebook URL from Databricks environment, exception occurred"
         )
+
+
+def create_run_uid_for_databricks_notebook() -> Optional[UUID]:
+    try:
+        context = json.loads(get_databricks_notebook_context().toJson())
+        run_id = str(context["tags"]["multitaskParentRunId"])
+        run_uid = get_run_uid_from_databricks_run_id(run_id)
+        dbnd_log_info(f"Databricks Notebook DBND RUN UID: {run_uid}")
+        return run_uid
+    except Exception:
+        dbnd_log_exception(
+            "Can't extract Notebook Run ID from Databricks environment, exception occurred"
+        )
+        return None
 
 
 def safe_get_databricks_notebook_name():
