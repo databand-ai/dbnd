@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -33,7 +33,9 @@ class MockAdapter(MonitorAdapter):
     def set_error(self, error: Exception) -> None:
         self.error = error
 
-    def get_new_assets_for_cursor(self, cursor: int) -> Tuple[Assets, int]:
+    def get_new_assets_for_cursor(
+        self, cursor: int, active_assets: Optional[Assets] = None
+    ) -> Tuple[Assets, int]:
         old_cursor = self.cursor
         self.cursor += 1
         return (

@@ -125,7 +125,7 @@ class GenericSyncer(BaseComponent):
         self.process_assets_in_chunks(active_assets)
         logger.info("Finished collecting and processing active assets")
 
-        new_assets = self._get_new_assets_and_update_cursor(cursor)
+        new_assets = self._get_new_assets_and_update_cursor(cursor, active_assets)
         self.process_assets_in_chunks(new_assets)
         logger.info("Finished collecting and processing new assets")
 
@@ -150,10 +150,14 @@ class GenericSyncer(BaseComponent):
         update_assets = Assets(assets_to_state=active_assets_to_states)
         return update_assets
 
-    def _get_new_assets_and_update_cursor(self, cursor: Any) -> Assets:
+    def _get_new_assets_and_update_cursor(
+        self, cursor: Any, active_assets: Assets
+    ) -> Assets:
         # We do not catch exceptions here, so that if there is a real error getting data
         # it will get to capture_component_exception and sent to the webserver.
-        new_assets, new_cursor = self.adapter.get_new_assets_for_cursor(cursor)
+        new_assets, new_cursor = self.adapter.get_new_assets_for_cursor(
+            cursor, active_assets
+        )
         if new_assets.assets_to_state:
             self.tracking_service.save_assets_state(
                 integration_id=str(self.config.uid),

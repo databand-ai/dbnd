@@ -14,7 +14,9 @@ class MockAirflowAdapter(MonitorAdapter):
     def init_cursor(self) -> object:
         raise NotImplementedError()
 
-    def get_new_assets_for_cursor(self, cursor: object) -> Tuple[Assets, object]:
+    def get_new_assets_for_cursor(
+        self, cursor: object, active_assets: Optional[Assets] = None
+    ) -> Tuple[Assets, object]:
         raise NotImplementedError()
 
     def get_assets_data(self, assets: Assets) -> Assets:

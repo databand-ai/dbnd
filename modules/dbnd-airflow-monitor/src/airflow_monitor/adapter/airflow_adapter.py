@@ -65,7 +65,7 @@ class AirflowAdapter(MonitorAdapter[LastSeenValues]):
         return self.db_fetcher.get_last_seen_values()
 
     def get_new_assets_for_cursor(
-        self, cursor: LastSeenValues
+        self, cursor: LastSeenValues, active_assets: Optional[Assets] = None
     ) -> Tuple[Assets, LastSeenValues]:
         airflow_response = self.db_fetcher.get_airflow_dagruns_to_sync(
             last_seen_dag_run_id=cursor.last_seen_dag_run_id,

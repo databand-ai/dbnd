@@ -182,9 +182,11 @@ class MonitorAdapter(ABC, Generic[T]):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_new_assets_for_cursor(self, cursor: T) -> Tuple[Assets, T]:
+    def get_new_assets_for_cursor(
+        self, cursor: T, active_assets: Optional[Assets] = None
+    ) -> Tuple[Assets, T]:
         """
-        Returns new assets and new cursor given current cursor.
+        Returns new assets and new cursor given current cursor and active assets.
 
         This method should be implemented by subclasses to return new assets available
         in the integration and corresponding new cursor object given initial cursor.
@@ -194,6 +196,7 @@ class MonitorAdapter(ABC, Generic[T]):
 
         Args:
             cursor (object): The cursor object that will be used to query for integration assets
+            active_assets (Optional[Assets], optional): The assets object that can be used to filter new integration assets, default to None
 
         Returns: Tuple[Assets, object]: A tuple containing assets and a next cursor
             example: Assets(data=None, assets_to_state={run_id: state.Init}), new_cursor
