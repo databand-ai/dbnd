@@ -1,8 +1,12 @@
 # © Copyright Databand.ai, an IBM Company 2022
+import random
+import string
 
 from dbnd_monitor.error_aggregator import ErrorAggregator
 
-from . import random_text
+
+def random_text(n=10):
+    return "".join(random.choice(string.ascii_letters) for _ in range(n))
 
 
 def test_01_same_reporter():

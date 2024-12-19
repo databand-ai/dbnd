@@ -12,9 +12,8 @@ from dbnd._core.configuration.environ_config import (
 )
 from dbnd._core.utils.basics.environ_utils import set_on
 from dbnd.testing.test_config_setter import add_test_configuration
-
-from .mock_airflow_data_fetcher import MockDataFetcher
-from .mock_airflow_tracking_service import (
+from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import MockDataFetcher
+from test_dbnd_airflow_monitor.mocks.mock_airflow_tracking_service import (
     MockIntegrationManagementService,
     MockReportingService,
     MockTrackingService,

@@ -16,7 +16,9 @@ from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
-from test_dbnd_airflow_monitor.mock_airflow_integration import MockAirflowIntegration
+from test_dbnd_airflow_monitor.mocks.mock_airflow_integration import (
+    MockAirflowIntegration,
+)
 
 
 MOCK_SERVER_1_CONFIG = {

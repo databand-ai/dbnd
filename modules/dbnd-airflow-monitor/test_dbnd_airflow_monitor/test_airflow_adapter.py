@@ -17,8 +17,10 @@ from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from dbnd_monitor.adapter.adapter import Assets, AssetState, AssetToState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
-
-from .mock_airflow_data_fetcher import MockDagRun, MockDataFetcher
+from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import (
+    MockDagRun,
+    MockDataFetcher,
+)
 
 
 @dataclass
