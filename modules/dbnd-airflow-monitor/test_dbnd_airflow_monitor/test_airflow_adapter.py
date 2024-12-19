@@ -1,17 +1,18 @@
 # © Copyright Databand.ai, an IBM Company 2024
 from dataclasses import dataclass
 from typing import List
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
-from airflow_monitor.adapter.airflow_adapter import AirflowAdapter, update_assets_states
-from airflow_monitor.common.airflow_data import (
-    DagRunsFullData,
-    DagRunsStateData,
-    LastSeenValues,
+from airflow_monitor.adapter.airflow_adapter import (
+    AirflowAdapter,
+    merge_dag_runs_full_and_state_data,
+    split_assets_by_active_state,
+    update_assets_states,
 )
+from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from dbnd_monitor.adapter.adapter import Assets, AssetState, AssetToState
@@ -46,7 +47,6 @@ def airflow_integration_config() -> AirflowIntegrationConfig:
         "source_type": "airflow",
         "source_name": "mock_server_1",
         "tracking_source_uid": uuid4(),
-        "sync_interval": 0,
     }
     return AirflowIntegrationConfig(**config)
 
@@ -85,25 +85,26 @@ def airflow_adapter(airflow_integration_config, mock_data_fetcher) -> AirflowAda
 
 def test_init_cursor(airflow_adapter, mock_data_fetcher, mock_dag_runs):
     no_dag_runs_cursor = airflow_adapter.init_cursor()
-    assert no_dag_runs_cursor.last_seen_dag_run_id is None
+    assert no_dag_runs_cursor is None
 
     mock_data_fetcher.dag_runs = mock_dag_runs.as_list()
     new_dag_runs_cursor = airflow_adapter.init_cursor()
-    assert new_dag_runs_cursor.last_seen_dag_run_id == mock_dag_runs.dag_run_4.id
+    assert new_dag_runs_cursor == mock_dag_runs.dag_run_4.id
 
 
 @pytest.mark.parametrize(
     [
-        "last_seen_dag_run_id",
-        "airflow_dag_runs_to_sync",
-        "expected_new_last_seen_dag_run_id",
+        "cursor",
+        "airflow_active_dag_runs",
+        "dbnd_active_dag_runs",
+        "expected_new_cursor",
         "expected_dag_run_ids",
     ],
     [
-        (None, [], None, []),
-        (13, [10, 11, 12, 13], 13, []),
-        (None, [10, 11, 12, 13], 13, [10, 11, 12, 13]),
-        (11, [10, 11, 12, 13], 13, [12, 13]),
+        (None, [], [], None, []),
+        (None, [10, 11, 12, 13], [], 13, [10, 11, 12, 13]),
+        (11, [10, 11, 12, 13], [10, 11], 13, [12, 13]),
+        (13, [12, 13], [10, 11, 12, 13], 13, []),
     ],
 )
 def test_get_new_assets_for_cursor(
@@ -111,19 +112,26 @@ def test_get_new_assets_for_cursor(
     mock_tracking_service,
     mock_data_fetcher,
     mock_dag_runs,
-    last_seen_dag_run_id,
-    airflow_dag_runs_to_sync,
-    expected_new_last_seen_dag_run_id,
+    cursor,
+    airflow_active_dag_runs,
+    dbnd_active_dag_runs,
+    expected_new_cursor,
     expected_dag_run_ids,
 ):
     dag_runs_dict = mock_dag_runs.as_dict()
-    mock_data_fetcher.dag_runs = [dag_runs_dict[id] for id in airflow_dag_runs_to_sync]
+    mock_data_fetcher.dag_runs = [dag_runs_dict[id] for id in airflow_active_dag_runs]
 
-    cursor = LastSeenValues(last_seen_dag_run_id)
-    new_assets, new_cursor = airflow_adapter.get_new_assets_for_cursor(cursor)
+    active_assets = Assets(
+        assets_to_state=[AssetToState(str(id)) for id in dbnd_active_dag_runs]
+    )
+
+    new_assets, new_cursor = airflow_adapter.get_new_assets_for_cursor(
+        cursor, active_assets
+    )
     new_dag_run_ids = [int(asset.asset_id) for asset in new_assets.assets_to_state]
+    new_dag_run_ids = sorted(new_dag_run_ids)
 
-    assert new_cursor.last_seen_dag_run_id == expected_new_last_seen_dag_run_id
+    assert new_cursor == expected_new_cursor
     assert new_dag_run_ids == expected_dag_run_ids
 
     for asset in new_assets.assets_to_state:
@@ -138,37 +146,48 @@ def test_get_assets_data_no_assets(airflow_adapter, mock_dag_runs, mock_data_fet
     assert not assets.assets_to_state
 
 
-def test_get_assets_data_new_runs(airflow_adapter, mock_dag_runs, mock_data_fetcher):
-    mock_data_fetcher.dag_runs = mock_dag_runs.as_list()
-
-    cursor = LastSeenValues(None)
-    new_runs_assets, _ = airflow_adapter.get_new_assets_for_cursor(cursor)
-    assets = airflow_adapter.get_assets_data(new_runs_assets)
-
-    assert "dags" in assets.data
-    assert "dag_runs" in assets.data
-    assert "task_instances" in assets.data
-    assert "airflow_instance_uid" in assets.data
-
-
-def test_get_assets_data_active_runs(
+@pytest.mark.parametrize(
+    ["assets_to_state_dict", "expected_full_data_assets_count"],
+    [
+        ({10: AssetState.INIT, 11: AssetState.FAILED_REQUEST}, 2),
+        ({12: AssetState.ACTIVE}, 0),
+        ({12: AssetState.ACTIVE, 13: AssetState.INIT}, 1),
+    ],
+)
+def test_get_assets_data_no_empty_assets(
     airflow_adapter,
-    airflow_integration_config,
     mock_dag_runs,
-    mock_tracking_service,
     mock_data_fetcher,
+    assets_to_state_dict,
+    expected_full_data_assets_count,
 ):
-    mock_tracking_service.dag_runs = mock_dag_runs.as_list()
-    mock_data_fetcher.dag_runs = mock_dag_runs.as_list()
-
-    active_runs_assets_to_state = mock_tracking_service.get_active_assets(
-        str(airflow_integration_config.uid),
-        str(airflow_integration_config.tracking_source_uid),
+    airflow_adapter.get_assets_full_data = MagicMock(
+        wraps=airflow_adapter.get_assets_full_data
     )
-    active_runs_assets = Assets(assets_to_state=active_runs_assets_to_state)
-    assets = airflow_adapter.get_assets_data(active_runs_assets)
+    airflow_adapter.get_assets_state_data = MagicMock(
+        wraps=airflow_adapter.get_assets_state_data
+    )
 
-    assert "dags" not in assets.data
+    mock_data_fetcher.dag_runs = mock_dag_runs.as_list()
+    assets_to_state = [
+        AssetToState(str(id), state=state) for id, state in assets_to_state_dict.items()
+    ]
+    assets_to_get_data = Assets(assets_to_state=assets_to_state)
+
+    assets = airflow_adapter.get_assets_data(assets_to_get_data)
+
+    full_data_assets_count = len(airflow_adapter.get_assets_full_data.call_args[0][0])
+    assert full_data_assets_count == expected_full_data_assets_count
+
+    state_data_assets_count = len(airflow_adapter.get_assets_state_data.call_args[0][0])
+    expected_state_data_assets_count = (
+        len(assets_to_state) - expected_full_data_assets_count
+    )
+    assert state_data_assets_count == expected_state_data_assets_count
+
+    should_have_dags = expected_full_data_assets_count > 0
+
+    assert ("dags" in assets.data) == should_have_dags
     assert "dag_runs" in assets.data
     assert "task_instances" in assets.data
     assert "airflow_instance_uid" in assets.data
@@ -196,3 +215,40 @@ def test_update_assets_states(airflow_adapter, mock_dag_runs):
     actual_states = list(map(lambda asset: asset.state, updated_assets_to_state))
 
     assert actual_states == expected_states
+
+
+def test_split_assets_by_active_state():
+    expected_active = [AssetToState(asset_id="1", state=AssetState.ACTIVE)]
+    expected_others = [
+        AssetToState(asset_id="2", state=AssetState.INIT),
+        AssetToState(asset_id="3", state=AssetState.FAILED_REQUEST),
+        AssetToState(asset_id="4", state=AssetState.FINISHED),
+    ]
+
+    all = expected_others + expected_active
+
+    active, others = split_assets_by_active_state(all)
+
+    assert active == expected_active
+    assert others == expected_others
+
+
+@pytest.mark.parametrize("dags", [[], [1, 2]])
+def test_merge_dag_runs_full_and_state_data(mock_dag_runs, dags):
+    dag_runs = mock_dag_runs.as_list()
+    task_instances = [1, 2, 3, 4]
+    full_data = DagRunsFullData(
+        dags=dags, dag_runs=dag_runs[:2], task_instances=task_instances[:2]
+    )
+    state_data = DagRunsStateData(
+        dag_runs=dag_runs[2:], task_instances=task_instances[2:]
+    )
+
+    data = merge_dag_runs_full_and_state_data(full_data, state_data)
+
+    expected_data_class = DagRunsFullData if dags else DagRunsStateData
+    assert isinstance(data, expected_data_class)
+
+    assert not dags or data.dags == dags
+    assert data.dag_runs == dag_runs
+    assert data.task_instances == task_instances

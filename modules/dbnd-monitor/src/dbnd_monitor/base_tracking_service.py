@@ -39,20 +39,21 @@ class BaseTrackingService:
         integration_id: str,
         syncer_instance_id: str,
         assets_to_state: List[AssetToState],
+        asset_type: str = "run",
     ):
         data_to_send = [asset_to_state.asdict() for asset_to_state in assets_to_state]
         self._api_client.api_request(
-            endpoint=f"tracking-monitor/{integration_id}/assets/run?syncer_instance_id={syncer_instance_id}",
+            endpoint=f"tracking-monitor/{integration_id}/assets/{asset_type}?syncer_instance_id={syncer_instance_id}",
             method="PUT",
             data=data_to_send,
         )
 
     @retry(stop=stop_after_attempt(2), reraise=True)
     def get_active_assets(
-        self, integration_id: str, syncer_instance_id: str
+        self, integration_id: str, syncer_instance_id: str, asset_type: str = "run"
     ) -> List[AssetToState]:
         result = self._api_client.api_request(
-            endpoint=f"tracking-monitor/{integration_id}/assets/run?states={','.join(AssetState.get_active_states())}&syncer_instance_id={syncer_instance_id}",
+            endpoint=f"tracking-monitor/{integration_id}/assets/{asset_type}?states={','.join(AssetState.get_active_states())}&syncer_instance_id={syncer_instance_id}",
             method="GET",
             data=None,
         )
@@ -67,19 +68,29 @@ class BaseTrackingService:
 
     @retry(stop=stop_after_attempt(2), reraise=True)
     def update_last_cursor(
-        self, integration_id: str, syncer_instance_id: str, state: str, data: str
+        self,
+        integration_id: str,
+        syncer_instance_id: str,
+        state: str,
+        data: str,
+        cursor_name: str = "last_cursor_value",
     ):
         self._api_client.api_request(
             endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor?syncer_instance_id={syncer_instance_id}",
             method="PUT",
-            data={"state": state, "data": {"last_cursor_value": data}},
+            data={"state": state, "data": {cursor_name: data}},
         )
 
     @retry(stop=stop_after_attempt(2), reraise=True)
-    def get_last_cursor(self, integration_id: str, syncer_instance_id: str):
+    def get_last_cursor(
+        self,
+        integration_id: str,
+        syncer_instance_id: str,
+        cursor_name: str = "last_cursor_value",
+    ):
         result = self._api_client.api_request(
             endpoint=f"tracking-monitor/{integration_id}/assets/state/cursor?syncer_instance_id={syncer_instance_id}",
             method="GET",
             data=None,
         )
-        return result.get("data", {}).get("last_cursor_value")
+        return result.get("data", {}).get(cursor_name)

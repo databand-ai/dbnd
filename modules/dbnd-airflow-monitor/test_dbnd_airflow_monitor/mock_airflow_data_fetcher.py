@@ -111,7 +111,7 @@ class MockDataFetcher(DbFetcher):
     ) -> DagRunsFullData:
         dag_run_ids = list(dag_run_ids)
         return DagRunsFullData(
-            dags=[],
+            dags=[dr.dag_id for dr in self.dag_runs if dr.id in dag_run_ids],
             dag_runs=[dr for dr in self.dag_runs if dr.id in dag_run_ids],
             task_instances=[
                 MockTaskInstance(dag_id=dr.dag_id, execution_date=dr.execution_date)

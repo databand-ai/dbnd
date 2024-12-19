@@ -126,12 +126,14 @@ class TestMultiServer(object):
             assert len(components_dict) == 2
         assert not count_logged_exceptions(caplog)
 
-    def test_04_single_server_single_component(self, multi_server, caplog):
-        components = {"state_sync": MockSyncer}
-        mock_airflow_integration = MockAirflowIntegration(
-            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG),
-            mock_components_dict=components,
-        )
+    def test_04_single_server_single_component(
+        self, multi_server, caplog, mock_tracking_service, mock_reporting_service
+    ):
+        config = AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG)
+        mock_syncer = MockSyncer(config, mock_tracking_service, mock_reporting_service)
+        mock_airflow_integration = MockAirflowIntegration(config)
+        mock_airflow_integration.get_components = MagicMock(return_value=[mock_syncer])
+
         multi_server.get_integrations = MagicMock(
             return_value=[mock_airflow_integration]
         )
@@ -221,12 +223,14 @@ class TestMultiServer(object):
             == expected_metadata
         )
 
-    def test_07_syncer_last_heartbeat(self, multi_server):
-        components = {"state_sync": MockSyncer}
-        mock_airflow_integration = MockAirflowIntegration(
-            AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG),
-            mock_components_dict=components,
-        )
+    def test_07_syncer_last_heartbeat(
+        self, multi_server, mock_tracking_service, mock_reporting_service
+    ):
+        config = AirflowIntegrationConfig(**MOCK_SERVER_1_CONFIG)
+        mock_syncer = MockSyncer(config, mock_tracking_service, mock_reporting_service)
+        mock_airflow_integration = MockAirflowIntegration(config)
+        mock_airflow_integration.get_components = MagicMock(return_value=[mock_syncer])
+
         multi_server.get_integrations = MagicMock(
             return_value=[mock_airflow_integration]
         )

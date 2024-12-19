@@ -159,6 +159,18 @@ class MockTrackingService(BaseTrackingService):
     def get_syncer_info(self):
         return {}
 
+    @can_be_dead
+    @ticking
+    def get_last_cursor(self, integration_id: str, syncer_instance_id: str):
+        return LastSeenValues(self.last_seen_dag_run_id)
+
+    @can_be_dead
+    @ticking
+    def update_last_cursor(
+        self, integration_id: str, syncer_instance_id: str, state: str, data: str
+    ):
+        return
+
 
 class MockIntegrationManagementService(IntegrationManagementService):
     def __init__(self):
