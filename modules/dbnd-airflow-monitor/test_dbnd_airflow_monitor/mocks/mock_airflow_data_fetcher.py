@@ -13,6 +13,7 @@ from airflow_monitor.common.airflow_data import (
     LastSeenValues,
 )
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
+from dbnd_airflow.export_plugin.models import DagRunState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 
 
@@ -21,7 +22,7 @@ class MockDagRun:
     id = attr.ib()  # type: int
     dag_id = attr.ib(default="dag1")  # type: str
     execution_date = attr.ib(default="date1")  # type: str
-    state = attr.ib(default="running")  # type: str
+    state = attr.ib(default=DagRunState.RUNNING)  # type: DagRunState
     is_paused = attr.ib(default=False)  # type: bool
 
     # mock only
@@ -60,9 +61,9 @@ class MockDataFetcher(DbFetcher):
     @can_be_dead
     def get_last_seen_values(self) -> LastSeenValues:
         return LastSeenValues(
-            last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
-            if self.dag_runs
-            else None
+            last_seen_dag_run_id=(
+                max(dr.id for dr in self.dag_runs) if self.dag_runs else None
+            )
         )
 
     @can_be_dead
@@ -87,7 +88,7 @@ class MockDataFetcher(DbFetcher):
             for dr in self.dag_runs
             if (
                 (
-                    (dr.state == "running" and not dr.is_paused)
+                    (dr.state == DagRunState.RUNNING and not dr.is_paused)
                     or dr.id in extra_dag_run_ids
                     or (
                         last_seen_dag_run_id is not None
@@ -100,9 +101,9 @@ class MockDataFetcher(DbFetcher):
         ]
         return AirflowDagRunsResponse(
             dag_runs=dag_runs,
-            last_seen_dag_run_id=max(dr.id for dr in self.dag_runs)
-            if self.dag_runs
-            else None,
+            last_seen_dag_run_id=(
+                max(dr.id for dr in self.dag_runs) if self.dag_runs else None
+            ),
         )
 
     @can_be_dead

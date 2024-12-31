@@ -1,7 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
-
 from dbnd_airflow.export_plugin.api_functions import get_new_dag_runs
+from dbnd_airflow.export_plugin.models import DagRunState
 from test_dbnd_airflow.export_plugin.db_data_generator import (
     insert_dag_runs,
     set_dag_is_paused,
@@ -40,7 +39,7 @@ class TestNewRuns:
         self.validate_result(result, 0, 3)
 
     def test_03_running(self):
-        insert_dag_runs(dag_runs_count=3, state="running", with_log=False)
+        insert_dag_runs(dag_runs_count=3, state=DagRunState.RUNNING, with_log=False)
 
         result = get_new_dag_runs(None, [])
         self.validate_result(result, 3, 3)

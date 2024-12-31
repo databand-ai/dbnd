@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import attr
 
+from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_monitor.base_monitor_config import NOTHING, BaseMonitorState
 
 
@@ -66,7 +67,7 @@ class AirflowDagRun:
     id = attr.ib()  # type: int
     dag_id = attr.ib()  # type: str
     execution_date = attr.ib()  # type: str
-    state = attr.ib()  # type: str
+    state = attr.ib()  # type: DagRunState
     is_paused = attr.ib()  # type: bool
 
 

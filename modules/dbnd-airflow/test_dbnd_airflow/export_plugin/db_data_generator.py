@@ -9,6 +9,7 @@ from airflow.models import DagModel, DagRun, Log, TaskInstance
 from airflow.utils.db import provide_session
 
 from dbnd._core.utils.timezone import utcnow
+from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_2
 
 
@@ -45,7 +46,7 @@ def insert_dag_runs(
     dag_id="plugin_test_dag",
     dag_runs_count=1,
     task_instances_per_run=0,
-    state="success",
+    state=DagRunState.SUCCESS,
     with_log=False,
 ):
     for i in range(dag_runs_count):

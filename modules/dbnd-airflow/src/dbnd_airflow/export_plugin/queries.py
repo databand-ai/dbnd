@@ -6,7 +6,7 @@ from sqlalchemy import and_, func, not_, or_
 from sqlalchemy.orm import joinedload, relationship
 
 from dbnd_airflow.export_plugin.metrics import measure_time, save_result_size
-from dbnd_airflow.export_plugin.models import AirflowTaskInstance, EDagRun
+from dbnd_airflow.export_plugin.models import AirflowTaskInstance, DagRunState, EDagRun
 from dbnd_airflow.export_plugin.utils import AIRFLOW_VERSION_BEFORE_2_2
 
 
@@ -60,7 +60,7 @@ def _get_new_dag_runs_base_query(dag_ids, excluded_dag_ids, include_subdags, ses
 def _get_new_dag_runs_filter_condition(last_seen_dagrun_id, extra_dag_runs_ids):
     new_runs_filter_condition = or_(
         DagRun.id.in_(extra_dag_runs_ids),
-        and_(DagRun.state == "running", DagModel.is_paused.is_(False)),
+        and_(DagRun.state == DagRunState.RUNNING, DagModel.is_paused.is_(False)),
     )
 
     if last_seen_dagrun_id is not None:

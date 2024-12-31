@@ -3,6 +3,7 @@
 import typing
 
 from datetime import datetime
+from enum import Enum
 from typing import List
 
 import attr
@@ -307,12 +308,19 @@ class EDag(object):
         )
 
 
+class DagRunState(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
 @attr.s
 class AirflowNewDagRun(object):
     id = attr.ib()  # type: int
     dag_id = attr.ib()  # type: str
     execution_date = attr.ib()  # type: datetime
-    state = attr.ib()  # type: str
+    state = attr.ib()  # type: DagRunState
     is_paused = attr.ib()  # type: bool
 
     def as_dict(self):

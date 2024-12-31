@@ -9,6 +9,7 @@ from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateDat
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
+from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import (
     Assets,
@@ -28,7 +29,7 @@ def get_asset_state_from_dag_run(dag_run: Optional[Dict[str, Any]]) -> AssetStat
 
     dag_run_state = dag_run["state"].lower()
 
-    if dag_run_state in ("success", "failed"):
+    if dag_run_state in (DagRunState.SUCCESS, DagRunState.FAILED):
         return AssetState.FINISHED
     return AssetState.ACTIVE
 

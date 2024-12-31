@@ -15,6 +15,7 @@ from airflow_monitor.adapter.airflow_adapter import (
 from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
+from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_monitor.adapter.adapter import Assets, AssetState, AssetToState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import (
@@ -25,10 +26,18 @@ from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import (
 
 @dataclass
 class DagRuns:
-    dag_run_1 = MockDagRun(id=10, dag_id="dag1", state="running", is_paused=False)
-    dag_run_2 = MockDagRun(id=11, dag_id="dag2", state="running", is_paused=False)
-    dag_run_3 = MockDagRun(id=12, dag_id="dag3", state="running", is_paused=False)
-    dag_run_4 = MockDagRun(id=13, dag_id="dag4", state="running", is_paused=False)
+    dag_run_1 = MockDagRun(
+        id=10, dag_id="dag1", state=DagRunState.RUNNING, is_paused=False
+    )
+    dag_run_2 = MockDagRun(
+        id=11, dag_id="dag2", state=DagRunState.RUNNING, is_paused=False
+    )
+    dag_run_3 = MockDagRun(
+        id=12, dag_id="dag3", state=DagRunState.RUNNING, is_paused=False
+    )
+    dag_run_4 = MockDagRun(
+        id=13, dag_id="dag4", state=DagRunState.RUNNING, is_paused=False
+    )
 
     def as_list(self):
         return [self.dag_run_1, self.dag_run_2, self.dag_run_3, self.dag_run_4]
@@ -199,9 +208,9 @@ def test_update_assets_states(airflow_adapter, mock_dag_runs):
     assets_to_state = [AssetToState(asset_id=str(id)) for id in mock_dag_runs.as_dict()]
     assets_to_state.append(AssetToState(asset_id=str(14)))
 
-    mock_dag_runs.dag_run_2.state = "queued"
-    mock_dag_runs.dag_run_3.state = "success"
-    mock_dag_runs.dag_run_4.state = "failed"
+    mock_dag_runs.dag_run_2.state = DagRunState.QUEUED
+    mock_dag_runs.dag_run_3.state = DagRunState.SUCCESS
+    mock_dag_runs.dag_run_4.state = DagRunState.FAILED
 
     dag_runs = list(map(lambda dag_run: dag_run.as_dict(), mock_dag_runs.as_list()))
 

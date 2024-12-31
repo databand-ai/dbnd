@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Dict, List, Optional
 
 from dbnd._core.utils.timezone import utcnow
+from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_monitor.adapter.adapter import AssetState, AssetToState
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 from dbnd_monitor.error_aggregator import ErrorAggregatorResult
@@ -62,7 +63,7 @@ class MockTrackingService(BaseTrackingService):
         dag_run_ids = [
             dag_run.id
             for dag_run in self.dag_runs
-            if dag_run.state == "running" and not dag_run.is_paused
+            if dag_run.state == DagRunState.RUNNING and not dag_run.is_paused
         ]
         asset_ids = list(map(str, dag_run_ids))
         return list(map(lambda id: AssetToState(id, AssetState.ACTIVE), asset_ids))
