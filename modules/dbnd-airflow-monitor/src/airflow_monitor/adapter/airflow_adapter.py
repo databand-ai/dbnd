@@ -8,7 +8,6 @@ import attr
 from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from airflow_monitor.data_fetcher.plugin_metadata import get_plugin_metadata
 from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import (
@@ -132,7 +131,7 @@ class AirflowAdapter(MonitorAdapter[Optional[int]]):
         return Assets(assets_data, assets_to_state)
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
-        metadata = get_plugin_metadata()
+        metadata = self.db_fetcher.get_plugin_metadata()
         metadata_dict = metadata.as_safe_dict() if metadata else {}
 
         return ThirdPartyInfo(metadata=metadata_dict, error_list=[])

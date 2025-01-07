@@ -15,8 +15,9 @@ from airflow_monitor.common.airflow_data import (
     PluginMetadata,
 )
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.errors import AirflowFetchingException
+from dbnd._core.errors import DatabandError
 from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
+from dbnd_monitor.base_monitor_config import NOTHING
 from dbnd_monitor.metric_reporter import METRIC_REPORTER, measure_time
 
 
@@ -95,8 +96,9 @@ class DbFetcher:
                 from sqlalchemy.orm import close_all_sessions
 
                 close_all_sessions()
-            raise AirflowFetchingException(
-                f"Exception occurred in function {function_name} in Airflow: {error_message}"
+            raise DatabandError(
+                f"Exception occurred in function {function_name} in Airflow: {error_message}",
+                show_exc_info=False,
             )
 
     @retry(stop=stop_after_attempt(3), reraise=True, wait=wait_fixed(1))
@@ -181,9 +183,29 @@ class DbFetcher:
     def is_alive(self):
         return True
 
-    def get_plugin_metadata(self) -> PluginMetadata:
-        return PluginMetadata()
-
     def _on_data_received(self, json_data, data_source):
         log_received_tasks(data_source, json_data)
         send_metrics(self.source_name, json_data.get("airflow_export_meta"))
+
+    def get_plugin_metadata(self) -> PluginMetadata:
+        try:
+            from airflow import version as airflow_version
+
+            import dbnd_airflow
+
+            from dbnd_airflow.export_plugin.compat import get_api_mode
+            from dbnd_airflow.utils import get_or_create_airflow_instance_uid
+
+            return PluginMetadata(
+                airflow_version=airflow_version.version,
+                plugin_version=dbnd_airflow.__version__,
+                airflow_instance_uid=get_or_create_airflow_instance_uid(),
+                api_mode=get_api_mode(),
+            )
+        except Exception:
+            return PluginMetadata(
+                airflow_version=NOTHING,
+                plugin_version=NOTHING,
+                airflow_instance_uid=NOTHING,
+                api_mode=NOTHING,
+            )
