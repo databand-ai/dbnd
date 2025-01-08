@@ -53,9 +53,6 @@ class AirflowServerInfoSchema(ApiStrictSchema):
         return AirflowServerInfo(**data)
 
 
-airflow_server_info_schema = AirflowServerInfoSchema()
-
-
 def is_url_valid(url):
     return validate.URL(schemes={"http", "https"}, require_tld=False)(url)
 
