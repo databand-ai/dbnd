@@ -4,16 +4,17 @@ from datetime import datetime
 from traceback import format_exception
 from typing import Optional
 
-from pydantic import BaseModel
+import attr
 
 from dbnd._core.utils.timezone import utcnow
 
 
-class ComponentError(BaseModel):
-    exception_type: str  # Exception type
-    exception_body: str  # Exception message
-    traceback: str  # Stack traceback
-    timestamp: datetime  # UTC datetime
+@attr.s(hash=False, str=False)
+class ComponentError:
+    exception_type: str = attr.ib()
+    exception_body: str = attr.ib()
+    traceback: str = attr.ib()
+    timestamp: datetime = attr.ib()
 
     def __hash__(self) -> int:
         return hash(self.traceback)
@@ -38,10 +39,22 @@ class ComponentError(BaseModel):
             timestamp=utcnow(),
         )
 
+    def dump(self):
+        def auxiliary(_, attrib, value):
+            if attrib.name == "timestamp" and isinstance(value, datetime):
+                return value.isoformat()
+            return value
 
-class ReportErrorsDTO(BaseModel):
-    tracking_source_uid: str
-    external_id: Optional[str]
-    component: str
-    errors: list[ComponentError] = []
-    is_error: bool = True
+        return attr.asdict(self, value_serializer=auxiliary)
+
+
+@attr.s
+class ReportErrorsDTO:
+    tracking_source_uid: str = attr.ib()
+    external_id: Optional[str] = attr.ib()
+    component: str = attr.ib()
+    errors: list[ComponentError] = attr.ib(factory=list)
+    is_error: bool = attr.ib(default=True)
+
+    def dump(self):
+        return attr.asdict(self, recurse=True)

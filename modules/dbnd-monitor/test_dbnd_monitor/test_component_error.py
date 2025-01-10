@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2024
 
+from datetime import datetime
 from random import choice
 
 import pytest
@@ -7,7 +8,7 @@ import pytest
 from dbnd_monitor.component_error import ComponentError, ReportErrorsDTO
 
 
-def test_component_error_model_dump():
+def test_component_error_dump():
     """
     The test proves the equality of instances created manually and recreated
     from the dictionary representing the ComponentError model, what means
@@ -19,12 +20,44 @@ def test_component_error_model_dump():
 
     # Act:
     # create the dictionary representing the model, i.e. model's dump
-    dumped = component_error.model_dump()
+    dumped = component_error.dump()
+
+    # Assert:
+    # `dumped` dict "timestamp" value must be a type of str
+    assert isinstance(dumped["timestamp"], str)
+
+    # Act
+    # Cast the "timestamp" value back to the datetime instance
+    dumped["timestamp"] = datetime.fromisoformat(dumped["timestamp"])
 
     # Assert:
     # the new instance of the ComponentError created from the model's dump
     # must be equal to the original instance
     assert ComponentError(**dumped) == component_error
+
+
+def test_component_error_equality():
+    """
+    The test proves the equality of `hash`es of two ComponentError instances
+    even when they are created at different times
+    """
+
+    # Arrange
+    exc_1 = ValueError("0: Error")
+    ce_1 = ComponentError.from_exception(exc_1)
+
+    exc_2 = ValueError("0: Error")
+    ce_2 = ComponentError.from_exception(exc_2)
+
+    # Assert
+    # Exceptions are not the same and ComponentErrors created from them also
+    assert exc_1 != exc_2
+    assert ce_1 != ce_2
+    # Timestamps are not the same
+    assert ce_1.timestamp != ce_2.timestamp
+
+    # Hash'es are the same though
+    assert hash(ce_1) == hash(ce_2)
 
 
 @pytest.mark.parametrize(
@@ -46,7 +79,7 @@ def test_component_error_raises_value_error(param):
     assert value_error.match("Expected an exception instance")
 
 
-def test_report_errors_dto_model_dump():
+def test_report_errors_dto_dump():
     """
     The test proves the equality of instances created manually and recreated
     from the dictionary representing the ReportErrorDTO model, what means
@@ -68,13 +101,9 @@ def test_report_errors_dto_model_dump():
 
     # Act:
     # create the dictionary representing the model, i.e. model's dump
-    dumped = report_errors_dto.model_dump()
+    dumped = report_errors_dto.dump()
 
     # Assert:
-    # the new instance of the ReportErrorsDTO created from the model's dump
-    # must be equal to the original instance
-    assert ReportErrorsDTO(**dumped) == report_errors_dto
-
     # Fully populated ReportErrorsDTO model
     assert dumped == {
         "tracking_source_uid": "test_tracking_source_uid",
@@ -96,3 +125,27 @@ def test_report_errors_dto_model_dump():
         ],
         "is_error": True,
     }
+
+    # Act:
+    # In order to recreate an instance of the ReportErrorsDTO from the dictionary,
+    # `errors` must be converted back to a list of ComponentError instances
+    dumped["errors"] = [ComponentError(**dump) for dump in dumped["errors"]]
+
+    # Assert:
+    # the new instance of the ReportErrorsDTO created from the model's dump
+    # must be equal to the original instance
+    assert ReportErrorsDTO(**dumped) == report_errors_dto
+
+
+def test_report_errors_dto_when_external_id_missed():
+    """
+    The test proves that the `ReportErrorsDTO` model raises a TypeError, when
+    'external_id' is not provided
+    """
+    with pytest.raises(TypeError) as exc:
+        ReportErrorsDTO(tracking_source_uid="test", component="test", errors=[])
+
+    assert str(exc.value) == (
+        "ReportErrorsDTO.__init__() missing 1 required positional argument: "
+        "'external_id'"
+    )
