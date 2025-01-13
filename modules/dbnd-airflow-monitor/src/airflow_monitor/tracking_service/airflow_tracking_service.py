@@ -4,7 +4,7 @@ import logging
 
 from typing import List
 
-from dbnd_airflow.utils import get_or_create_airflow_instance_uid
+from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from dbnd_monitor.adapter.adapter import AssetToState
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 
@@ -21,7 +21,7 @@ class AirflowTrackingService(BaseTrackingService):
         super(AirflowTrackingService, self).__init__(
             monitor_type=monitor_type, tracking_source_uid=tracking_source_uid
         )
-        self.airflow_instance_uid = get_or_create_airflow_instance_uid()
+        self.airflow_instance_uid = DbFetcher.get_airflow_instance_uid()
 
     def get_syncer_info(self):
         params = {"airflow_instance_uid": self.airflow_instance_uid}

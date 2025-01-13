@@ -16,6 +16,7 @@ from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.multiserver import MultiServerMonitor
 from test_dbnd_airflow_monitor.airflow_utils import TestConnectionError
+from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import MOCK_INSTANCE_UID
 from test_dbnd_airflow_monitor.mocks.mock_airflow_integration import (
     MockAirflowIntegration,
 )
@@ -366,16 +367,13 @@ class TestMultiServer(object):
             "This monitor contains more than one integrations type, configuring sending monitor logs not possible"
         )
 
-    @patch(
-        "airflow_monitor.multiserver.airflow_integration.get_or_create_airflow_instance_uid"
-    )
-    def test_get_integrations(self, mock_instance_uid, multi_server):
-        test_uid = str(uuid.uuid4())
-        mock_instance_uid.return_value = test_uid
+    def test_get_integrations(self, multi_server):
         multi_server.integration_management_service.get_all_integration_configs = (
             MagicMock()
         )
         multi_server.get_integrations()
         multi_server.integration_management_service.get_all_integration_configs.assert_called_once_with(
-            monitor_type="airflow", syncer_name=None, source_instance_uid=test_uid
+            monitor_type="airflow",
+            syncer_name=None,
+            source_instance_uid=str(MOCK_INSTANCE_UID),
         )

@@ -1,5 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
-
+import uuid
 
 from typing import List, Optional
 
@@ -15,6 +15,9 @@ from airflow_monitor.common.airflow_data import (
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from dbnd_airflow.export_plugin.models import DagRunState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
+
+
+MOCK_INSTANCE_UID = uuid.uuid4()
 
 
 @attr.s
@@ -137,3 +140,7 @@ class MockDataFetcher(DbFetcher):
 
     def is_alive(self):
         pass
+
+    @staticmethod
+    def get_airflow_instance_uid():
+        return str(MOCK_INSTANCE_UID)

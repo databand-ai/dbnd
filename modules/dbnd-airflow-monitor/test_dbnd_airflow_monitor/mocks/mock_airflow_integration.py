@@ -1,4 +1,5 @@
 # © Copyright Databand.ai, an IBM Company 2022
+from typing import Optional
 from unittest.mock import patch
 
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
@@ -34,3 +35,7 @@ class MockAirflowIntegration(AirflowIntegration):
 
     def on_integration_disabled(self):
         self.on_integration_disabled_call_count += 1
+
+    @staticmethod
+    def get_source_instance_uid_or_none() -> Optional[str]:
+        return MockDataFetcher.get_airflow_instance_uid()

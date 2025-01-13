@@ -86,8 +86,6 @@ def mock_data_fetcher() -> DbFetcher:
 @pytest.fixture
 def airflow_adapter(airflow_integration_config, mock_data_fetcher) -> AirflowAdapter:
     with patch(
-        "airflow_monitor.adapter.airflow_adapter.get_or_create_airflow_instance_uid"
-    ), patch(
         "airflow_monitor.adapter.airflow_adapter.DbFetcher",
         return_value=mock_data_fetcher,
     ):

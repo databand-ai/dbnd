@@ -8,10 +8,10 @@ from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.config_updater.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
+from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
 from airflow_monitor.tracking_service.airflow_tracking_service import (
     AirflowTrackingService,
 )
-from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import ThirdPartyInfo
 from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
@@ -61,4 +61,4 @@ class AirflowIntegration(BaseIntegration):
 
     @staticmethod
     def get_source_instance_uid_or_none() -> Optional[str]:
-        return get_or_create_airflow_instance_uid()
+        return DbFetcher.get_airflow_instance_uid()

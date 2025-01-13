@@ -37,7 +37,7 @@ def _build_query_for_subdag_prefixes(column, dag_ids, excluded_dag_ids):
     )
 
 
-def _get_new_dag_runs_base_query(dag_ids, excluded_dag_ids, include_subdags, session):
+def _get_new_dag_runs_base_query(dag_ids, excluded_dag_ids, session):
     new_runs_base_query = session.query(
         DagRun.id,
         DagRun.dag_id,
@@ -50,9 +50,6 @@ def _get_new_dag_runs_base_query(dag_ids, excluded_dag_ids, include_subdags, ses
         new_runs_base_query = new_runs_base_query.filter(
             _build_query_for_subdag_prefixes(DagRun.dag_id, dag_ids, excluded_dag_ids)
         )
-
-    if not include_subdags:
-        new_runs_base_query = new_runs_base_query.filter(DagModel.is_subdag.is_(False))
 
     return new_runs_base_query
 
@@ -74,15 +71,10 @@ def _get_new_dag_runs_filter_condition(last_seen_dagrun_id, extra_dag_runs_ids):
 @save_result_size("find_new_dag_runs")
 @measure_time
 def find_new_dag_runs(
-    last_seen_dagrun_id,
-    extra_dag_runs_ids,
-    dag_ids,
-    excluded_dag_ids,
-    include_subdags,
-    session,
+    last_seen_dagrun_id, extra_dag_runs_ids, dag_ids, excluded_dag_ids, session
 ):
     new_runs_base_query = _get_new_dag_runs_base_query(
-        dag_ids, excluded_dag_ids, include_subdags, session
+        dag_ids, excluded_dag_ids, session
     )
     new_runs_filter_condition = _get_new_dag_runs_filter_condition(
         last_seen_dagrun_id, extra_dag_runs_ids

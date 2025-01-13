@@ -2,7 +2,6 @@
 
 from typing import Optional
 from unittest.mock import patch
-from uuid import uuid4
 
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
@@ -15,9 +14,6 @@ class MockAirflowAdapter(AirflowAdapter):
         with patch(
             "airflow_monitor.adapter.airflow_adapter.DbFetcher",
             return_value=data_fetcher,
-        ), patch(
-            "airflow_monitor.adapter.airflow_adapter.get_or_create_airflow_instance_uid",
-            return_value=uuid4(),
         ):
             super().__init__(config)
 

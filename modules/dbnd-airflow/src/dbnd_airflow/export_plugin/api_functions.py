@@ -93,7 +93,6 @@ def get_new_dag_runs(
     extra_dag_runs_ids,
     dag_ids=None,
     excluded_dag_ids=None,
-    include_subdags=True,
     session=None,
 ):
     max_dag_run_id = find_max_dag_run_id(session)
@@ -102,12 +101,7 @@ def get_new_dag_runs(
         last_seen_dag_run_id = max_dag_run_id
 
     dag_runs = find_new_dag_runs(
-        last_seen_dag_run_id,
-        extra_dag_runs_ids,
-        dag_ids,
-        excluded_dag_ids,
-        include_subdags,
-        session,
+        last_seen_dag_run_id, extra_dag_runs_ids, dag_ids, excluded_dag_ids, session
     )
 
     new_dag_runs = []

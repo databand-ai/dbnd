@@ -8,8 +8,6 @@ import attr
 from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
 from airflow_monitor.common.config_data import AirflowIntegrationConfig
 from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from dbnd_airflow.export_plugin.models import DagRunState
-from dbnd_airflow.utils import get_or_create_airflow_instance_uid
 from dbnd_monitor.adapter.adapter import (
     Assets,
     AssetState,
@@ -23,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_asset_state_from_dag_run(dag_run: Optional[Dict[str, Any]]) -> AssetState:
+    from dbnd_airflow.export_plugin.models import DagRunState
+
     if not dag_run:
         return AssetState.FAILED_REQUEST
 
@@ -80,7 +80,7 @@ class AirflowAdapter(MonitorAdapter[Optional[int]]):
     def __init__(self, config: AirflowIntegrationConfig):
         self.config = config
         self.db_fetcher = DbFetcher(config)
-        self.airflow_instance_uid = get_or_create_airflow_instance_uid()
+        self.airflow_instance_uid = DbFetcher.get_airflow_instance_uid()
 
     def init_cursor(self) -> int:
         last_seen_values = self.db_fetcher.get_last_seen_values()

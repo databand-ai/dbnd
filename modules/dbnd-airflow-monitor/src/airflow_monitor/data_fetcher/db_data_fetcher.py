@@ -135,7 +135,6 @@ class DbFetcher:
                 extra_dag_runs_ids=extra_dag_run_ids,
                 dag_ids=dag_ids_list,
                 excluded_dag_ids=excluded_dag_ids_list,
-                include_subdags=True,
                 session=session,
             )
 
@@ -209,3 +208,9 @@ class DbFetcher:
                 airflow_instance_uid=NOTHING,
                 api_mode=NOTHING,
             )
+
+    @staticmethod
+    def get_airflow_instance_uid():
+        from dbnd_airflow.utils import get_or_create_airflow_instance_uid
+
+        return get_or_create_airflow_instance_uid()
