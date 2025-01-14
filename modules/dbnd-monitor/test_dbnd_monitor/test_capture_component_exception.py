@@ -9,11 +9,27 @@ from dbnd._core.errors import DatabandError
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
+from dbnd_monitor.error_aggregator import ComponentErrorAggregator, ErrorAggregator
 from dbnd_monitor.errors import ClientConnectionError
+from dbnd_monitor.reporting_service import ReportingService
 
 
 class MockSyncer(BaseComponent):
     SYNCER_TYPE = "syncer"
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(ErrorAggregator),
+        pytest.param(
+            ComponentErrorAggregator,
+            marks=pytest.mark.skip(reason="ReportingService has not been adjusted"),
+        ),
+    ]
+)
+def mock_reporting_service(request):
+    with patch("dbnd.utils.api_client.ApiClient.api_request"):
+        yield ReportingService("airflow")
 
 
 class TestCaptureComponentException:

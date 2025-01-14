@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from traceback import format_exception
-from typing import Optional
+from typing import List, Optional
 
 import attr
 
@@ -53,7 +53,7 @@ class ReportErrorsDTO:
     tracking_source_uid: str = attr.ib()
     external_id: Optional[str] = attr.ib()
     component: str = attr.ib()
-    errors: list[ComponentError] = attr.ib(factory=list)
+    errors: List["ComponentError"] = attr.ib(factory=list)
     is_error: bool = attr.ib(default=True)
 
     def dump(self):
