@@ -10,7 +10,7 @@ from uuid import UUID
 from dbnd._core.log import dbnd_log_exception
 from dbnd._core.log.dbnd_log import dbnd_log_debug, dbnd_log_info
 from dbnd._core.tracking.commands import set_external_resource_urls
-from dbnd._core.utils.uid_utils import get_run_uid_from_databricks_run_id
+from dbnd._core.utils.uid_utils import get_run_uid_from_run_id
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def create_run_uid_for_databricks_notebook() -> Optional[UUID]:
     try:
         context = json.loads(get_databricks_notebook_context().toJson())
         run_id = str(context["tags"]["multitaskParentRunId"])
-        run_uid = get_run_uid_from_databricks_run_id(run_id)
+        run_uid = get_run_uid_from_run_id(run_id)
         dbnd_log_info(f"Databricks Notebook DBND RUN UID: {run_uid}")
         return run_uid
     except Exception:
