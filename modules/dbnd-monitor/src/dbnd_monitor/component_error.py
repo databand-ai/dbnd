@@ -9,6 +9,12 @@ import attr
 from dbnd._core.utils.timezone import utcnow
 
 
+def auxiliary_converter(_, attrib: attr.Attribute, value):
+    if attrib.name == "timestamp" and isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
 @attr.s(hash=False, str=False)
 class ComponentError:
     exception_type: str = attr.ib()
@@ -40,12 +46,7 @@ class ComponentError:
         )
 
     def dump(self):
-        def auxiliary(_, attrib, value):
-            if attrib.name == "timestamp" and isinstance(value, datetime):
-                return value.isoformat()
-            return value
-
-        return attr.asdict(self, value_serializer=auxiliary)
+        return attr.asdict(self, value_serializer=auxiliary_converter)
 
 
 @attr.s
@@ -57,4 +58,4 @@ class ReportErrorsDTO:
     is_error: bool = attr.ib(default=True)
 
     def dump(self):
-        return attr.asdict(self, recurse=True)
+        return attr.asdict(self, recurse=True, value_serializer=auxiliary_converter)

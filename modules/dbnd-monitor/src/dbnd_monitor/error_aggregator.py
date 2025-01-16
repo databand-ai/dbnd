@@ -63,10 +63,12 @@ class ComponentErrorAggregator:
             return {hash(comp_error) for comp_error in comp_errors}
 
         if hashed(self.errors) != hashed(self.active_errors):
-            self.errors, self.active_errors = self.active_errors, set()
+            self.errors = self.active_errors.copy()
+            self.active_errors.clear()
             return (
                 sorted(self.errors, key=attrgetter("timestamp"), reverse=True),
                 True,
             )
 
+        self.active_errors.clear()
         return [], False

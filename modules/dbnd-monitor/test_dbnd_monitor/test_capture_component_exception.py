@@ -18,18 +18,14 @@ class MockSyncer(BaseComponent):
     SYNCER_TYPE = "syncer"
 
 
-@pytest.fixture(
-    params=[
-        pytest.param(ErrorAggregator),
-        pytest.param(
-            ComponentErrorAggregator,
-            marks=pytest.mark.skip(reason="ReportingService has not been adjusted"),
-        ),
-    ]
-)
+@pytest.fixture(params=[ErrorAggregator, ComponentErrorAggregator, None])
 def mock_reporting_service(request):
     with patch("dbnd.utils.api_client.ApiClient.api_request"):
-        yield ReportingService("airflow")
+        aggregator = request.param
+        if aggregator:
+            yield ReportingService("airflow", aggregator=aggregator)
+        else:
+            yield ReportingService("airflow")
 
 
 class TestCaptureComponentException:

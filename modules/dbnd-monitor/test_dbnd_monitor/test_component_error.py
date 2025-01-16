@@ -114,13 +114,13 @@ def test_report_errors_dto_dump():
                 "exception_type": "ValueError",
                 "exception_body": "0: Error",
                 "traceback": "ValueError: 0: Error\n",
-                "timestamp": error_0.timestamp,
+                "timestamp": error_0.timestamp.isoformat(),
             },
             {
                 "exception_type": "AttributeError",
                 "exception_body": "1: Error",
                 "traceback": "AttributeError: 1: Error\n",
-                "timestamp": error_1.timestamp,
+                "timestamp": error_1.timestamp.isoformat(),
             },
         ],
         "is_error": True,
@@ -129,7 +129,17 @@ def test_report_errors_dto_dump():
     # Act:
     # In order to recreate an instance of the ReportErrorsDTO from the dictionary,
     # `errors` must be converted back to a list of ComponentError instances
-    dumped["errors"] = [ComponentError(**dump) for dump in dumped["errors"]]
+    # and all timestamps recreated from ISO formatted strings
+
+    dumped["errors"] = [
+        ComponentError(
+            exception_type=dump["exception_type"],
+            exception_body=dump["exception_body"],
+            traceback=dump["traceback"],
+            timestamp=datetime.fromisoformat(dump["timestamp"]),
+        )
+        for dump in dumped["errors"]
+    ]
 
     # Assert:
     # the new instance of the ReportErrorsDTO created from the model's dump
