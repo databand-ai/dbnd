@@ -23,7 +23,15 @@ def is_databricks_notebook_env():
     return True
 
 
+def get_databricks_notebook_context_legacy():
+    # Compatibility with Databricks Runtime 10.4 and upper
+    from dbruntime.databricks_repl_context import get_context
+
+    return get_context()
+
+
 def get_databricks_notebook_context():
+    # Compatibility with Databricks Runtime 12.2 and upper
     from databricks.sdk.runtime import dbutils
 
     return dbutils.notebook.entry_point.getDbutils().notebook().getContext()
@@ -31,15 +39,31 @@ def get_databricks_notebook_context():
 
 def attach_link_to_databricks_notebook():
     try:
-        context = get_databricks_notebook_context()
+        version_of_databricks = float(os.getenv("DATABRICKS_RUNTIME_VERSION"))
 
-        workspace_url = context.apiUrl().get()
+        if version_of_databricks >= 12.2:
+            context = json.loads(get_databricks_notebook_context().toJson())
+            tags = context["tags"]
 
-        workspace_id = context.workspaceId().get()
+            browser_host_name = tags["browserHostName"]
+            browser_path_name = tags["browserPathName"]
 
-        notebook_id = context.notebookId().get()
+            notebook_url = f"https://{browser_host_name}{browser_path_name}"
+        elif version_of_databricks >= 10.4:
+            context = get_databricks_notebook_context_legacy()
 
-        notebook_url = f"{workspace_url}/?o={workspace_id}#notebook/{notebook_id}"
+            workspace_url = context.workspaceUrl
+            workspace_id = context.workspaceId
+            notebook_id = context.notebookId
+
+            notebook_url = (
+                f"https://{workspace_url}/?o={workspace_id}#notebook/{notebook_id}"
+            )
+        else:
+            dbnd_log_info(
+                f"Can't extract notebook URL from Databricks environment. Link to notebook won't be attached. Try use Databricks 10.4 or higher. Tracking continue. Databricks version: {version_of_databricks}"
+            )
+            return
 
         set_external_resource_urls({"Databricks": notebook_url})
         dbnd_log_debug(
@@ -48,7 +72,7 @@ def attach_link_to_databricks_notebook():
 
     except Exception:
         dbnd_log_exception(
-            "Can't extract notebook URL from Databricks environment, exception occurred"
+            f"Exception occurred. Can't extract notebook URL from Databricks environment. Link to notebook won't be attached. Tracking continue. Databricks version: {version_of_databricks}"
         )
 
 
