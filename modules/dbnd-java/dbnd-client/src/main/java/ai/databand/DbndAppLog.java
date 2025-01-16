@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2024
+ * © Copyright Databand.ai, an IBM Company 2024-2025
  */
 
 package ai.databand;
@@ -17,7 +17,8 @@ public class DbndAppLog {
         this.LOG = log4j;
     }
 
-    public final static String LOG_PREFIX= "[[==DBND==]] "; // make it clearly visible in Spark logs to not confuse it with regular Spark execution logs
+    //public final static String LOG_PREFIX= "[[==DBND==]] "; // make it clearly visible in Spark logs to not confuse it with regular Spark execution logs
+    public final static String LOG_PREFIX= "";
 
     private static String getClassName(final StackTraceElement ste) {
         String stFullClassName = ste.getClassName();
