@@ -16,6 +16,17 @@ from dbnd._core.utils.uid_utils import get_run_uid_from_run_id
 logger = logging.getLogger(__name__)
 
 
+def is_ipython_env():
+    try:
+        from IPython import get_ipython
+
+        if get_ipython() is None:
+            return False
+        return True
+    except (ImportError, AttributeError):
+        return False
+
+
 def is_databricks_notebook_env():
     version = os.getenv("DATABRICKS_RUNTIME_VERSION")
     if version is None:

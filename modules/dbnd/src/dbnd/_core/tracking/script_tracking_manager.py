@@ -45,6 +45,7 @@ from dbnd.providers.spark.dbnd_databricks import (
     attach_link_to_databricks_notebook,
     create_run_uid_for_databricks_notebook,
     is_databricks_notebook_env,
+    is_ipython_env,
     register_on_cell_exit_action,
     safe_get_databricks_notebook_name,
     unregister_on_cell_exit_action,
@@ -95,7 +96,7 @@ def _set_tracking_config_overide(airflow_context=None):
 
 
 def _set_process_exit_handler(handler):
-    if is_databricks_notebook_env():
+    if is_ipython_env():
         register_on_cell_exit_action(handler)
 
     atexit.register(handler)
@@ -357,7 +358,7 @@ class _DbndScriptTrackingManager(object):
             return
         self._active = False
 
-        if is_databricks_notebook_env():
+        if is_ipython_env():
             unregister_on_cell_exit_action(self.stop)
 
         try:
@@ -387,9 +388,9 @@ class _DbndScriptTrackingManager(object):
                 if root_tr.task_run_state == TaskRunState.DEFERRED:
                     return
 
-            # In the notebook databricks stop will be called at the end of each tracked cell,
+            # In the IPython notebooks stop will be called at the end of each tracked cell,
             # closing the context manager will prevent tracking in the rest of the notebook
-            if not is_databricks_notebook_env():
+            if not is_ipython_env():
                 self._close_all_context_managers()
 
         except Exception:
