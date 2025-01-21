@@ -8,13 +8,13 @@ import dbnd_monitor
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd.utils.api_client import ApiClient
-from dbnd_monitor.component_error import ComponentError, ReportErrorsDTO
-from dbnd_monitor.error_aggregator import (
+from dbnd_monitor.error_handling.component_error import ComponentError, ReportErrorsDTO
+from dbnd_monitor.error_handling.error_aggregator import (
     ComponentErrorAggregator,
     ErrorAggregator,
     ErrorAggregatorResult,
 )
-from dbnd_monitor.utils import _get_api_client
+from dbnd_monitor.utils.api_client import _get_api_client
 
 
 K = Union[UUID, Tuple[UUID, str, str]]  # K for Key

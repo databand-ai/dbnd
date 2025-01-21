@@ -7,7 +7,7 @@ from typing import Optional, Set
 import attr
 
 from dbnd._core.utils.timezone import utcnow
-from dbnd_monitor.component_error import ComponentError
+from dbnd_monitor.error_handling.component_error import ComponentError
 
 
 @attr.s

@@ -4,15 +4,13 @@ import logging
 from typing import Optional
 
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.config_updater.runtime_config_updater import (
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
+from airflow_monitor.config_data import AirflowIntegrationConfig
+from airflow_monitor.multiserver.airflow_tracking_service import AirflowTrackingService
+from airflow_monitor.multiserver.runtime_config_updater import (
     AirflowRuntimeConfigUpdater,
 )
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from airflow_monitor.tracking_service.airflow_tracking_service import (
-    AirflowTrackingService,
-)
-from dbnd_monitor.adapter.adapter import ThirdPartyInfo
+from dbnd_monitor.adapter import ThirdPartyInfo
 from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.generic_syncer import GenericSyncer

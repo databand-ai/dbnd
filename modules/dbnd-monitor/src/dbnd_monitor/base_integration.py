@@ -4,7 +4,7 @@ from typing import ClassVar, List, Optional, Type
 
 import dbnd_monitor
 
-from dbnd_monitor.adapter.adapter import ThirdPartyInfo
+from dbnd_monitor.adapter import ThirdPartyInfo
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig

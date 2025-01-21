@@ -4,9 +4,9 @@ from typing import Optional
 from unittest.mock import patch
 
 from airflow_monitor.adapter.airflow_adapter import AirflowAdapter
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from dbnd_monitor.adapter.adapter import ThirdPartyInfo
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
+from airflow_monitor.config_data import AirflowIntegrationConfig
+from dbnd_monitor.adapter import ThirdPartyInfo
 
 
 class MockAirflowAdapter(AirflowAdapter):

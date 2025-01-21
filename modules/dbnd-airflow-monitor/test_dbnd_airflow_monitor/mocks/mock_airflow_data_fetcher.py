@@ -5,14 +5,14 @@ from typing import List, Optional
 
 import attr
 
-from airflow_monitor.common.airflow_data import (
+from airflow_monitor.adapter.airflow_data import (
     AirflowDagRun,
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
 )
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
 from dbnd_airflow.export_plugin.models import DagRunState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 

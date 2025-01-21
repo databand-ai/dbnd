@@ -2,8 +2,8 @@
 
 import logging
 
-from airflow_monitor.adapter.validations import run_validations
-from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.cli.config import AirflowMonitorConfig
+from airflow_monitor.cli.validations import run_validations
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
 from dbnd import dbnd_config
 from dbnd._core.errors.base import DatabandConfigError

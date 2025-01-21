@@ -2,9 +2,7 @@
 
 import logging
 
-from airflow_monitor.tracking_service.airflow_tracking_service import (
-    AirflowTrackingService,
-)
+from airflow_monitor.multiserver.airflow_tracking_service import AirflowTrackingService
 from dbnd_monitor.base_component import BaseComponent
 
 

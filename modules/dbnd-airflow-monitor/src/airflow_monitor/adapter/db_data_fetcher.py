@@ -6,15 +6,18 @@ import logging
 
 from typing import List, Optional
 
-from airflow_monitor.airflow_monitor_utils import log_received_tasks, send_metrics
-from airflow_monitor.common.airflow_data import (
+from airflow_monitor.adapter.airflow_data import (
     AirflowDagRunsResponse,
     DagRunsFullData,
     DagRunsStateData,
     LastSeenValues,
     PluginMetadata,
 )
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
+from airflow_monitor.adapter.airflow_monitor_utils import (
+    log_received_tasks,
+    send_metrics,
+)
+from airflow_monitor.config_data import AirflowIntegrationConfig
 from dbnd._core.errors import DatabandError
 from dbnd._vendor.tenacity import retry, stop_after_attempt, wait_fixed
 from dbnd_monitor.base_monitor_config import NOTHING

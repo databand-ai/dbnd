@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbnd_monitor.adapter.adapter import AssetState, AssetToState
+from dbnd_monitor.adapter import AssetState, AssetToState
 from dbnd_monitor.generic_syncer import (
     GenericSyncer,
     assets_to_str,

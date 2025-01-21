@@ -2,8 +2,8 @@
 
 import logging
 
-from airflow_monitor.config import AirflowMonitorConfig
-from dbnd_monitor.utils import TrackingServiceConfig
+from airflow_monitor.cli.config import AirflowMonitorConfig
+from dbnd_monitor.utils.api_client import TrackingServiceConfig
 
 
 logger = logging.getLogger(__name__)

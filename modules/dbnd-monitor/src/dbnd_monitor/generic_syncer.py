@@ -6,7 +6,7 @@ from typing import Any, Collection, List, Tuple
 
 import attr
 
-from dbnd_monitor.adapter.adapter import (
+from dbnd_monitor.adapter import (
     Assets,
     AssetState,
     AssetToState,

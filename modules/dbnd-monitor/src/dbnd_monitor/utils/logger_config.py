@@ -8,7 +8,7 @@ from dbnd_monitor.remote_monitor_log_handler import RemoteMonitorLogHandler
 
 
 try:
-    from .json_formatter import JsonFormatter
+    from dbnd_monitor.utils.json_formatter import JsonFormatter
 except ImportError:
     JsonFormatter = None
 

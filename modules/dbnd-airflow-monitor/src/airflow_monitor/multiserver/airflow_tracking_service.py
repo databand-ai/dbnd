@@ -4,8 +4,8 @@ import logging
 
 from typing import List
 
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from dbnd_monitor.adapter.adapter import AssetToState
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
+from dbnd_monitor.adapter import AssetToState
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 
 

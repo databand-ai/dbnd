@@ -2,7 +2,7 @@
 import random
 import string
 
-from dbnd_monitor.error_aggregator import ErrorAggregator
+from dbnd_monitor.error_handling.error_aggregator import ErrorAggregator
 
 
 def random_text(n=10):

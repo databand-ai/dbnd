@@ -6,7 +6,7 @@ from typing import Dict, List
 import prometheus_client as prom
 import pytest
 
-from dbnd_monitor.adapter.adapter import AssetState
+from dbnd_monitor.adapter import AssetState
 from dbnd_monitor.generic_syncer import GenericSyncer
 from dbnd_monitor.integration_metrics_reporter import (
     func_execution_time,

@@ -7,8 +7,8 @@ from dbnd._vendor import click
 from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 from dbnd_monitor.integration_management_service import IntegrationManagementService
-from dbnd_monitor.monitoring.apm import configure_apm
 from dbnd_monitor.multiserver import MultiServerMonitor
+from dbnd_monitor.utils.apm import configure_apm
 
 
 def start_integration_multi_server(

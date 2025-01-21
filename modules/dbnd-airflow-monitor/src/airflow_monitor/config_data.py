@@ -4,7 +4,7 @@ from typing import Optional
 
 import attr
 
-from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.cli.config import AirflowMonitorConfig
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 

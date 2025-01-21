@@ -2,7 +2,7 @@
 from typing import Optional
 from unittest.mock import patch
 
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
+from airflow_monitor.config_data import AirflowIntegrationConfig
 from airflow_monitor.multiserver.airflow_integration import AirflowIntegration
 from dbnd_monitor.reporting_service import ReportingService
 

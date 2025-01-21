@@ -8,7 +8,7 @@ from typing import List
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd.utils.api_client import ApiClient
-from dbnd_monitor.utils import _get_api_client
+from dbnd_monitor.utils.api_client import _get_api_client
 
 
 def get_logs_buffer_size_in_kb(buffer: List[str]):

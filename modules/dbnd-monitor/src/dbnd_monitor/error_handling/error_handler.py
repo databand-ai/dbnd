@@ -11,7 +11,7 @@ from uuid import UUID
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
 from dbnd_monitor.base_component import BaseComponent
-from dbnd_monitor.errors import ClientConnectionError
+from dbnd_monitor.error_handling.errors import ClientConnectionError
 from dbnd_monitor.reporting_service import ReportingService
 
 

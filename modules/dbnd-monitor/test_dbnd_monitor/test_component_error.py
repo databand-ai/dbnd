@@ -5,7 +5,7 @@ from random import choice
 
 import pytest
 
-from dbnd_monitor.component_error import ComponentError, ReportErrorsDTO
+from dbnd_monitor.error_handling.component_error import ComponentError, ReportErrorsDTO
 
 
 def test_component_error_dump():

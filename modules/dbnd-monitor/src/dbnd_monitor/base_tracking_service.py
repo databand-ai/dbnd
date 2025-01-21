@@ -5,9 +5,9 @@ from typing import List
 
 from dbnd._vendor.cachetools import TTLCache
 from dbnd._vendor.tenacity import retry, stop_after_attempt
-from dbnd_monitor.adapter.adapter import AssetState, AssetToState
+from dbnd_monitor.adapter import AssetState, AssetToState
 from dbnd_monitor.metric_reporter import METRIC_REPORTER, measure_time
-from dbnd_monitor.utils import _get_api_client
+from dbnd_monitor.utils.api_client import _get_api_client
 
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ from datetime import timedelta
 import pytest
 
 from dbnd._core.utils.timezone import utcnow
-from dbnd_monitor.adapter.adapter import (
+from dbnd_monitor.adapter import (
     AssetState,
     AssetToState,
     update_asset_retry_state,

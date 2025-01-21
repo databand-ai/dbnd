@@ -9,8 +9,11 @@ from dbnd._core.errors import DatabandError
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
-from dbnd_monitor.error_aggregator import ComponentErrorAggregator, ErrorAggregator
-from dbnd_monitor.errors import ClientConnectionError
+from dbnd_monitor.error_handling.error_aggregator import (
+    ComponentErrorAggregator,
+    ErrorAggregator,
+)
+from dbnd_monitor.error_handling.errors import ClientConnectionError
 from dbnd_monitor.reporting_service import ReportingService
 
 

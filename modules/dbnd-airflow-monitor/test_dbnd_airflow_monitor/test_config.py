@@ -4,7 +4,7 @@ import os
 
 from mock import patch
 
-from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.cli.config import AirflowMonitorConfig
 
 
 def test_airflow_monitor_config_from_env():

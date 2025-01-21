@@ -8,9 +8,9 @@ from mock import MagicMock, patch
 
 import airflow_monitor
 
-from airflow_monitor.common.airflow_data import PluginMetadata
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.config import AirflowMonitorConfig
+from airflow_monitor.adapter.airflow_data import PluginMetadata
+from airflow_monitor.cli.config import AirflowMonitorConfig
+from airflow_monitor.config_data import AirflowIntegrationConfig
 from dbnd._core.utils.dotdict import _as_dotted_dict
 from dbnd._core.utils.uid_utils import get_uuid
 from dbnd_monitor.base_component import BaseComponent

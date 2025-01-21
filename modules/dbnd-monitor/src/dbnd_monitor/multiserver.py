@@ -16,15 +16,18 @@ from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 from dbnd_monitor.integration_management_service import IntegrationManagementService
-from dbnd_monitor.logger_config import configure_logging, configure_sending_monitor_logs
-from dbnd_monitor.monitoring.apm import transaction_scope
-from dbnd_monitor.monitoring.prometheus_tools import (
+from dbnd_monitor.scheduler import Scheduler
+from dbnd_monitor.utils.apm import transaction_scope
+from dbnd_monitor.utils.logger_config import (
+    configure_logging,
+    configure_sending_monitor_logs,
+)
+from dbnd_monitor.utils.prometheus_tools import (
     integration_components_count,
     integration_iteration_time,
     monitor_integrations_count,
     monitor_iteration_time,
 )
-from dbnd_monitor.scheduler import Scheduler
 
 
 logger = logging.getLogger(__name__)

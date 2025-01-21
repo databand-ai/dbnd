@@ -16,7 +16,7 @@ from dbnd._vendor.tenacity import (
     wait_exponential,
 )
 from dbnd.utils.api_client import ApiClient
-from dbnd_monitor.utils import _get_api_client
+from dbnd_monitor.utils.api_client import _get_api_client
 
 
 logger = logging.getLogger(__name__)

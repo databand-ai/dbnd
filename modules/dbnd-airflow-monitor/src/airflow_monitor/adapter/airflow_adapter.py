@@ -5,10 +5,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import attr
 
-from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
-from dbnd_monitor.adapter.adapter import (
+from airflow_monitor.adapter.airflow_data import DagRunsFullData, DagRunsStateData
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
+from airflow_monitor.config_data import AirflowIntegrationConfig
+from dbnd_monitor.adapter import (
     Assets,
     AssetState,
     AssetToState,

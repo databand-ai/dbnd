@@ -9,12 +9,7 @@ import pytest
 from attr import evolve
 
 from dbnd._vendor.tenacity import retry, stop_after_attempt
-from dbnd_monitor.adapter.adapter import (
-    Assets,
-    AssetState,
-    AssetToState,
-    MonitorAdapter,
-)
+from dbnd_monitor.adapter import Assets, AssetState, AssetToState, MonitorAdapter
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_tracking_service import BaseTrackingService
 from dbnd_monitor.generic_syncer import GenericSyncer

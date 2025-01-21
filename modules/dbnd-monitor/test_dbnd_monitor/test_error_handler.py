@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from dbnd_monitor.error_handler import capture_component_exception
+from dbnd_monitor.error_handling.error_handler import capture_component_exception
 
 
 @pytest.fixture(scope="function")

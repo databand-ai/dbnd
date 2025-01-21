@@ -5,9 +5,9 @@ from typing import Dict, List, Optional
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd_airflow.export_plugin.models import DagRunState
-from dbnd_monitor.adapter.adapter import AssetState, AssetToState
+from dbnd_monitor.adapter import AssetState, AssetToState
 from dbnd_monitor.base_tracking_service import BaseTrackingService
-from dbnd_monitor.error_aggregator import ErrorAggregatorResult
+from dbnd_monitor.error_handling.error_aggregator import ErrorAggregatorResult
 from dbnd_monitor.integration_management_service import IntegrationManagementService
 from dbnd_monitor.reporting_service import ReportingService
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead

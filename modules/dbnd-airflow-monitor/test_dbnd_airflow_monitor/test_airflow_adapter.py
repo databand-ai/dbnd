@@ -12,11 +12,11 @@ from airflow_monitor.adapter.airflow_adapter import (
     split_assets_by_active_state,
     update_assets_states,
 )
-from airflow_monitor.common.airflow_data import DagRunsFullData, DagRunsStateData
-from airflow_monitor.common.config_data import AirflowIntegrationConfig
-from airflow_monitor.data_fetcher.db_data_fetcher import DbFetcher
+from airflow_monitor.adapter.airflow_data import DagRunsFullData, DagRunsStateData
+from airflow_monitor.adapter.db_data_fetcher import DbFetcher
+from airflow_monitor.config_data import AirflowIntegrationConfig
 from dbnd_airflow.export_plugin.models import DagRunState
-from dbnd_monitor.adapter.adapter import Assets, AssetState, AssetToState
+from dbnd_monitor.adapter import Assets, AssetState, AssetToState
 from test_dbnd_airflow_monitor.airflow_utils import can_be_dead
 from test_dbnd_airflow_monitor.mocks.mock_airflow_data_fetcher import (
     MockDagRun,

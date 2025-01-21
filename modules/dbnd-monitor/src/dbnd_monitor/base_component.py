@@ -10,9 +10,9 @@ from prometheus_client import Summary
 from dbnd._core.utils.trace import new_tracing_id
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_tracking_service import BaseTrackingService
-from dbnd_monitor.monitoring.apm import transaction_scope
-from dbnd_monitor.monitoring.prometheus_tools import sync_once_time
 from dbnd_monitor.reporting_service import ReportingService
+from dbnd_monitor.utils.apm import transaction_scope
+from dbnd_monitor.utils.prometheus_tools import sync_once_time
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class BaseComponent:
 
     @property
     def error_handler(self):
-        from dbnd_monitor.error_handler import (  # noqa: Cyclic import
+        from dbnd_monitor.error_handling.error_handler import (  # noqa: Cyclic import
             capture_component_exception,
             capture_component_exception_as_component_error,
         )
