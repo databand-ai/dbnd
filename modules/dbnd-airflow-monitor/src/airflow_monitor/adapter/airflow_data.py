@@ -3,7 +3,6 @@ from typing import List, Optional
 
 import attr
 
-from dbnd_airflow.export_plugin.models import DagRunState
 from dbnd_monitor.base_monitor_config import NOTHING, BaseMonitorState
 
 
