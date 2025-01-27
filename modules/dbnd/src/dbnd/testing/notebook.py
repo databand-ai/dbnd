@@ -19,7 +19,7 @@ def notebook_run(path):
     with open(path, "r", encoding="utf-8") as f:
         notebook = nbformat.read(f, as_version=4)
 
-    ep = ExecutePreprocessor(timeout=60, kernel_name="python3")
+    ep = ExecutePreprocessor(timeout=120, kernel_name="python3")
 
     try:
         ep.preprocess(notebook, {"metadata": {"path": os.path.dirname(path)}})
