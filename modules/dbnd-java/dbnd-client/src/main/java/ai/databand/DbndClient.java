@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022-2024
+ * © Copyright Databand.ai, an IBM Company 2022-2025
  */
 
 package ai.databand;
@@ -388,14 +388,16 @@ public class DbndClient {
      * @param datasets dataset operations to log
      */
     public void logDatasetOperations(TaskRun taskRun, List<LogDataset> datasets) {
+        int i = 1;
         for (LogDataset op : datasets) {
-            LOG.info("[task_run_uid: {}, task_name: {}] logging dataset operation {}", taskRun.getTaskRunUid(), taskRun.getName(), op);
+            LOG.info("[task_run_uid: {}, task_name: {}] logging dataset operation {}/{} {}", taskRun.getTaskRunUid(), taskRun.getName(), i, datasets.size(), op);
+            ++i;
         }
         Optional<Object> res = safeExecuteVoid(dbnd.logDatasets(new LogDatasets(datasets)));
         if (res.isPresent()) {
-            LOG.info("[task_run_uid: {}, task_name: {}] dataset operations submitted", taskRun.getTaskRunUid(), taskRun.getName());
+            LOG.info("[task_run_uid: {}, task_name: {}] {} dataset operations submitted", taskRun.getTaskRunUid(), taskRun.getName(), datasets.size());
         } else {
-            LOG.error("[task_run_uid: {}, task_name: {}] unable to submit dataset operations", taskRun.getTaskRunUid(), taskRun.getName());
+            LOG.error("[task_run_uid: {}, task_name: {}] unable to submit {} dataset operations", taskRun.getTaskRunUid(), taskRun.getName(), datasets.size());
         }
     }
 

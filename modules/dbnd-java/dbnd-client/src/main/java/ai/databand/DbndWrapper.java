@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022-2024
+ * © Copyright Databand.ai, an IBM Company 2022-2025
  */
 
 package ai.databand;
@@ -281,7 +281,6 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, data, error, params, LogDataset.OP_SOURCE_JAVA_MANUAL_LOGGING);
-        LOG.info("Dataset Operation [path: {}], [type: {}], [status: {}] logged", path, type, status);
     }
 
     public void logDatasetOperation(String path,
@@ -298,7 +297,6 @@ public class DbndWrapper {
             run = createAgentlessRun();
         }
         run.logDatasetOperation(path, type, status, valuePreview, null, dataDimensions, dataSchema, withPartition, columnStats, operationSource);
-        LOG.info("Dataset Operation [path: '{}'], [type: {}], [status: {}] logged", path, type, status);
         if (isSparkShutdown) {
             // If spark is in the shutdown sequence, pyspark tracking is already completed.
             // This call ensures Spark Listener will send `stop` signal.
