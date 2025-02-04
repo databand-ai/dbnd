@@ -32,12 +32,24 @@ def airflow_sync(ctx):
 
 
 @airflow_sync.command("list")
-def list_airflow_instances():
+@click.option(
+    "--to_json",
+    "-j",
+    help="Return airflow instances list in json format",
+    type=click.BOOL,
+    is_flag=True,
+    default=False,
+)
+def list_airflow_instances(to_json: bool):
     try:
         instances = list_synced_airflow_instances()
     except (LookupError, DatabandApiError) as e:
         logger.warning(e)
     else:
+        if to_json:
+            json_instances = json.dumps([instance.to_dict() for instance in instances])
+            print(json_instances)
+            return
         print_table("Synced Airflow instances", instances)
 
 
@@ -51,6 +63,7 @@ def build_instances_table(instances_data):
     extract_keys = (
         "name",
         "is_sync_enabled",
+        "monitor_status",
         "tracking_source_uid",
         "base_url",
         "external_url",
@@ -59,6 +72,7 @@ def build_instances_table(instances_data):
     headers = (
         "Name",
         "Active",
+        "Status",
         "Tracking source UID",
         "Base url",
         "External url",

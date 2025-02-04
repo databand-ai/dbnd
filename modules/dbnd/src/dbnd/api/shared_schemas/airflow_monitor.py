@@ -98,3 +98,6 @@ class AirflowServerInfo(object):
     airflow_environment = attr.ib(default=None)  # type: Optional[str]
     last_seen_dag_run_id = attr.ib(default=None)  # type: Optional[int]
     last_seen_log_id = attr.ib(default=None)  # type: Optional[int]
+
+    def to_dict(self) -> dict:
+        return self.__dict__
