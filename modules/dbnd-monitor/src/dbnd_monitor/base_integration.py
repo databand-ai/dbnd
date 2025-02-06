@@ -1,6 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 from abc import ABC, abstractmethod
-from typing import ClassVar, List, Optional, Type
+from typing import ClassVar, List, Optional, Type, Union
 
 import dbnd_monitor
 
@@ -8,7 +8,14 @@ from dbnd_monitor.adapter import ThirdPartyInfo
 from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
+from dbnd_monitor.error_handling.error_aggregator import (
+    ComponentErrorAggregator,
+    ErrorAggregator,
+)
 from dbnd_monitor.reporting_service import ReportingService
+
+
+A = Union[ErrorAggregator, ComponentErrorAggregator]  # A for Aggregator
 
 
 class BaseIntegration(ABC):
@@ -37,19 +44,47 @@ class BaseIntegration(ABC):
     CONFIG_CLASS: ClassVar[Type[BaseIntegrationConfig]] = BaseIntegrationConfig
     config: BaseIntegrationConfig
 
-    def __init__(self, integration_config: BaseIntegrationConfig) -> None:
+    def __init__(
+        self,
+        integration_config: BaseIntegrationConfig,
+        reporting_service: Optional[ReportingService] = None,
+    ) -> None:
         self.config = integration_config
+
+        if reporting_service is None:
+            self._reporting_service = ReportingService(
+                self.MONITOR_TYPE, aggregator=self.error_aggregator_type
+            )
+        elif not isinstance(reporting_service, ReportingService):
+            raise TypeError(
+                "'reporting_service' must be an instance of ReportingService"
+            )
+        else:
+            self._reporting_service = reporting_service
 
     @classmethod
     def build_integration(
-        cls, config_json: dict, monitor_config: Optional[BaseMonitorConfig]
+        cls,
+        config_json: dict,
+        monitor_config: Optional[BaseMonitorConfig] = None,
+        reporting_service: Optional[ReportingService] = None,
     ) -> "BaseIntegration":
         integration_config = cls.CONFIG_CLASS.create(config_json, monitor_config)
-        return cls(integration_config)
+        return cls(integration_config, reporting_service)
 
     @property
     def reporting_service(self) -> ReportingService:
-        return ReportingService(monitor_type=self.MONITOR_TYPE)
+        return self._reporting_service
+
+    @reporting_service.setter
+    def _reporting_service_setter(self, reporting_service: ReportingService):
+        self._reporting_service = reporting_service
+
+    @property
+    def error_aggregator_type(self) -> Type[A]:
+        if self.config.component_error_support:
+            return ComponentErrorAggregator
+        return ErrorAggregator
 
     def get_third_party_info(self) -> Optional[ThirdPartyInfo]:
         return None

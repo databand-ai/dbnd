@@ -14,6 +14,7 @@ from dbnd_monitor.adapter import ThirdPartyInfo
 from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.generic_syncer import GenericSyncer
+from dbnd_monitor.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,12 @@ class AirflowIntegration(BaseIntegration):
     CONFIG_CLASS = AirflowIntegrationConfig
     config: AirflowIntegrationConfig
 
-    def __init__(self, integration_config: BaseIntegrationConfig):
-        super().__init__(integration_config)
+    def __init__(
+        self,
+        integration_config: BaseIntegrationConfig,
+        reporting_service: Optional[ReportingService] = None,
+    ):
+        super().__init__(integration_config, reporting_service)
         self.tracking_service = AirflowTrackingService(
             monitor_type=self.MONITOR_TYPE,
             tracking_source_uid=str(self.config.tracking_source_uid),

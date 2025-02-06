@@ -5,14 +5,11 @@ import traceback
 
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Optional
-from uuid import UUID
+from typing import Any, Generator, Optional
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
-from dbnd_monitor.base_component import BaseComponent
 from dbnd_monitor.error_handling.errors import ClientConnectionError
-from dbnd_monitor.reporting_service import ReportingService
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +17,8 @@ ERRORS_TO_IGNORE = [ClientConnectionError]
 
 
 @contextmanager
-def capture_component_exception(component: BaseComponent, function_name: str):
+def capture_component_exception(component, function_name):
+    # type: (BaseComponent, str) -> Generator[Any, Any, Any]
     syncer_logger = getattr(component.__module__, "logger", None) or logging.getLogger(
         component.__module__
     )
@@ -64,9 +62,8 @@ def capture_component_exception(component: BaseComponent, function_name: str):
 
 
 @contextmanager
-def capture_component_exception_as_component_error(
-    component: BaseComponent, function_name: str
-):
+def capture_component_exception_as_component_error(component, function_name):
+    # type: (BaseComponent, str) -> Generator[Any, Any, Any]
     syncer_logger = getattr(component.__module__, "logger", None) or logging.getLogger(
         component.__module__
     )
@@ -91,21 +88,16 @@ log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds()
 
 # cached in order to avoid logging same messages over and over again
 @cached(log_exception_cache)
-def _log_exception_to_server(
-    exception_message: str, reporting_service: ReportingService
-):
+def _log_exception_to_server(exception_message, reporting_service):
+    # type: (str, ReportingService) -> Any
     try:
         reporting_service.report_exception_to_web_server(exception_message)
     except Exception:
         logger.warning("Error sending monitoring exception message")
 
 
-def _report_error(
-    reporting_service: ReportingService,
-    syncer_id: UUID,
-    function_name: str,
-    err_message: Optional[str],
-):
+def _report_error(reporting_service, syncer_id, function_name, err_message):
+    # type: (ReportingService, UUID, str, Optional[str]) -> None
     try:
         reporting_service.report_error(syncer_id, function_name, err_message)
     except Exception:

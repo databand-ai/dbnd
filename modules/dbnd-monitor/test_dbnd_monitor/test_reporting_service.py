@@ -18,8 +18,8 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from dbnd_monitor.component_error import ComponentError as CE
-from dbnd_monitor.error_aggregator import ComponentErrorAggregator as CEA
+from dbnd_monitor.error_handling.component_error import ComponentError
+from dbnd_monitor.error_handling.error_aggregator import ComponentErrorAggregator
 from dbnd_monitor.reporting_service import ReportingService
 
 
@@ -34,7 +34,7 @@ class Suite:
     component = "TestGenericSyncer"
 
     expected_calls: list[
-        list[CE]
+        list[ComponentError]
     ]  # Attention: initialize with empty list in the final child class
 
     reporting_service: ReportingService
@@ -45,7 +45,7 @@ class Suite:
     @pytest.fixture
     def mock_reporting_service(self):
         with patch("dbnd.utils.api_client.ApiClient.api_request"):
-            yield ReportingService("airflow", aggregator=CEA)
+            yield ReportingService("airflow", aggregator=ComponentErrorAggregator)
 
     @pytest.fixture
     def setup(self, mock_reporting_service):
@@ -65,7 +65,7 @@ class Suite:
         sake of preserving the timestamp of ComponentErrors
         """
 
-        def component_errors() -> list[CE]:
+        def component_errors() -> list[ComponentError]:
             exs = copy(self.initial_exceptions if exceptions is None else exceptions)
 
             if len(exs) > 1:
@@ -73,7 +73,7 @@ class Suite:
 
             result = []
             for ex in exs:
-                result.append(CE.from_exception(ex))
+                result.append(ComponentError.from_exception(ex))
                 sleep(0.1)  # let's there a timespan between consecutive exceptions
             return result
 
@@ -83,13 +83,15 @@ class Suite:
                 self.integration_uid, self.external_id, self.component, comp_error
             )  # reporting the ComponentError instance
 
-        # in the payload CEs ordered from the latest to the earliest, let's prepare for that
+        # in the payload ComponentErrors ordered from the latest to the earliest,
+        # let's prepare for that
         self.expected_calls.append(comp_errors[::-1])
 
     @property
-    def aggregator(self) -> CEA:
+    def aggregator(self) -> ComponentErrorAggregator:
         """
-        Returns the ComponentErrorAggregator instance holding reported ComponentError instances.
+        Returns the ComponentErrorAggregator instance holding reported
+        ComponentError instances.
         """
         return self.reporting_service._error_aggregators[
             (self.integration_uid, self.external_id, self.component)
@@ -98,7 +100,8 @@ class Suite:
     @property
     def latest_api_call(self):
         """
-        Returns the most recent call to the REST API endpoint made by ReportingService._api_client instance.
+        Returns the most recent call to the REST API endpoint made by
+        ReportingService._api_client instance.
         """
         if self.api_request is not None and self.api_request.call_count > 0:
             return self.api_request.mock_calls[-1]
@@ -163,7 +166,8 @@ class TestReportingServiceSameRepeatingErrors(InitialCycleWithExceptions):
 
     @pytest.fixture
     def current_cycle(self, initial_cycle):
-        # During the current cycle the same exceptions raised as during the previous one
+        # During the current cycle the same exceptions raised as during
+        # the previous one
         self.assume_raised()
 
         # checking aggregator's state
@@ -224,7 +228,8 @@ class TestReportingServiceClearingErrors(InitialCycleWithExceptions):
 
         # Since there was no exceptions in the current cycle,
         # ReportingService must send an empty list of errors to API,
-        # so the number of calls increased by 1 and the last one must be as follows
+        # so the number of calls increased by 1 and the last one must be
+        # as follows
         assert self.api_request.call_count == 2
 
         assert self.latest_api_call == call(

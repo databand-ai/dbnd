@@ -5,7 +5,7 @@ import logging
 from datetime import timedelta
 from functools import partial
 from time import sleep
-from typing import Callable, Iterable, List, Tuple, Type, TypeVar
+from typing import Callable, Dict, Iterable, List, Tuple, Type, TypeVar
 from uuid import UUID
 
 from prometheus_client import Summary
@@ -16,6 +16,7 @@ from dbnd_monitor.base_integration import BaseIntegration
 from dbnd_monitor.base_integration_config import BaseIntegrationConfig
 from dbnd_monitor.base_monitor_config import BaseMonitorConfig
 from dbnd_monitor.integration_management_service import IntegrationManagementService
+from dbnd_monitor.reporting_service import ReportingService
 from dbnd_monitor.scheduler import Scheduler
 from dbnd_monitor.utils.apm import transaction_scope
 from dbnd_monitor.utils.logger_config import (
@@ -205,6 +206,7 @@ class MultiServerMonitor:
         try:
             component.refresh_config(integration_config)
             component.sync_once()
+            component.report_errors()
         except Exception:
             logger.exception("Exception occurred during component execution")
 
@@ -264,13 +266,38 @@ class MultiServerMonitor:
                 syncer_name=self.monitor_config.syncer_name,
                 source_instance_uid=source_instance_uid,
             )
-            integrations.extend(
-                [
-                    integration_type.build_integration(config, self.monitor_config)
-                    for config in configs
-                ]
+            new_integrations = (
+                self.builder(integration_type, configs)
+                if self.monitor_config.component_error_support
+                else self.default_builder(integration_type, configs)
             )
+            integrations.extend(new_integrations)
         return integrations
+
+    def default_builder(
+        self, integration_type: Type[BaseIntegration], configs: List[Dict]
+    ) -> List[BaseIntegration]:
+        return [
+            integration_type.build_integration(config, self.monitor_config)
+            for config in configs
+        ]
+
+    def builder(
+        self, integration_type: Type[BaseIntegration], configs: List[Dict]
+    ) -> List[BaseIntegration]:
+        reporting_services = self.uid_to_reporting_service
+        return [
+            integration_type.build_integration(config, self.monitor_config, rs)
+            for config in configs
+            for rs in reporting_services.get(config["uid"], (None,))
+        ]
+
+    @property
+    def uid_to_reporting_service(self) -> Dict[UUID, Tuple[ReportingService]]:
+        return {
+            integration.config.uid: (integration.reporting_service,)
+            for integration in self.current_integrations
+        }
 
     def set_remote_log_handler(self):
 

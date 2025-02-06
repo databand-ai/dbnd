@@ -94,6 +94,10 @@ class BaseComponent:
         """
 
     @property
+    def name(self) -> str:
+        return self.__class__.__name__
+
+    @property
     def identifier(self) -> str:
         return self.SYNCER_TYPE
 
@@ -105,6 +109,10 @@ class BaseComponent:
         return self.tracking_service.tracking_source_uid
 
     @property
+    def external_id(self) -> str:
+        return self.config.integration_config.get("external_id", "None")
+
+    @property
     def error_handler(self):
         from dbnd_monitor.error_handling.error_handler import (  # noqa: Cyclic import
             capture_component_exception,
@@ -114,3 +122,9 @@ class BaseComponent:
         if self.config.component_error_support:
             return capture_component_exception_as_component_error
         return capture_component_exception
+
+    def report_errors(self):
+        if self.config.component_error_support:
+            self.reporting_service.report_errors_dto(
+                self.config.uid, self.external_id, self.name
+            )
