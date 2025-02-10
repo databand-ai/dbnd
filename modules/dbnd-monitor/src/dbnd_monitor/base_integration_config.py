@@ -1,5 +1,6 @@
 # © Copyright Databand.ai, an IBM Company 2022
 
+
 from typing import Optional
 from uuid import UUID
 
@@ -44,11 +45,14 @@ class BaseIntegrationConfig:
             tracking_source_uid = integration_config["synced_entities"][0][
                 "tracking_source_uid"
             ]
-        component_error_support = (
-            monitor_config.component_error_support
-            if monitor_config is not None
-            else False
-        )
+        component_error_support = False
+        if (
+            monitor_config
+            and monitor_config.component_error_support
+            and config.get("component_error_support", False)
+        ):
+            component_error_support = True
+
         return BaseIntegrationConfig(
             uid=config["uid"],
             source_type=config["integration_type"],
