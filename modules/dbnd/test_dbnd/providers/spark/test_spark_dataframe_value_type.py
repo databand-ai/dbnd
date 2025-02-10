@@ -4,6 +4,15 @@ import logging
 import pandas as pd
 import pytest
 
+from pyspark.sql import SparkSession
+from pyspark.sql.types import (
+    FloatType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
+
 from dbnd._core.tracking.schemas.column_stats import ColumnStatsArgs
 from targets.providers.pandas.pandas_values import DataFrameValueType
 from targets.providers.spark.spark_values import SparkDataFrameValueType
@@ -95,6 +104,11 @@ def spark_data_frame(pandas_data_frame, spark_session):
 @pytest.fixture
 def spark_data_frame_histograms(pandas_data_frame_histograms):
     return pandas_data_frame_histograms
+
+
+@pytest.fixture(scope="session")
+def spark_session():
+    return SparkSession.builder.master("local[*]").getOrCreate()
 
 
 class TestSparkDataFrameValueType(object):
@@ -210,3 +224,109 @@ def spark_data_frame_stats():
             quartile_3=56.7,
         ),
     ]
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {
+            "data": [(30, "Andy")],
+            "schema": StructType(
+                [
+                    StructField("age", IntegerType(), True),
+                    StructField("name", StringType(), True),
+                ]
+            ),
+            "expected_values": [
+                ColumnStatsArgs(
+                    column_name="age",
+                    column_type="IntegerType()",
+                    records_count=1,
+                    null_count=0,
+                    mean_value=30.0,
+                    min_value=30,
+                    max_value=30,
+                    quartile_1=30,
+                    quartile_2=30,
+                    quartile_3=30,
+                    non_null_count=1,
+                    null_percent=0.0,
+                ),
+                ColumnStatsArgs(
+                    column_name="name",
+                    column_type="StringType()",
+                    records_count=1,
+                    null_count=0,
+                    non_null_count=1,
+                    null_percent=0.0,
+                ),
+            ],
+        },
+        {
+            "data": [
+                ("A", 10, 100.0),
+                ("B", 20, 200.0),
+                ("C", 30, None),
+                (None, 40, 400.0),
+            ],
+            "schema": StructType(
+                [
+                    StructField("category", StringType(), True),
+                    StructField("value", IntegerType(), True),
+                    StructField("price", FloatType(), True),
+                ]
+            ),
+            "expected_values": [
+                ColumnStatsArgs(
+                    column_name="category",
+                    column_type="StringType()",
+                    records_count=4,
+                    null_count=1,
+                    non_null_count=3,
+                    null_percent=25.0,
+                ),
+                ColumnStatsArgs(
+                    column_name="value",
+                    column_type="IntegerType()",
+                    records_count=4,
+                    null_count=0,
+                    mean_value=25.0,
+                    min_value=10,
+                    max_value=40,
+                    std_value=12.909944487358056,
+                    quartile_1=10,
+                    quartile_2=20,
+                    quartile_3=30,
+                    non_null_count=4,
+                    null_percent=0.0,
+                ),
+                ColumnStatsArgs(
+                    column_name="price",
+                    column_type="FloatType()",
+                    records_count=4,
+                    null_count=1,
+                    mean_value=233.33333333333334,
+                    min_value=100.0,
+                    max_value=400.0,
+                    std_value=152.75252316519467,
+                    quartile_1=100.0,
+                    quartile_2=200.0,
+                    quartile_3=400.0,
+                    non_null_count=3,
+                    null_percent=25.0,
+                ),
+            ],
+        },
+    ],
+)
+def test_calculate_spark_stats(spark_session, params):
+    spark_data_frame_value_type = SparkDataFrameValueType()
+
+    df = spark_session.createDataFrame(params["data"], schema=params["schema"])
+
+    result = spark_data_frame_value_type.calculate_spark_stats(df)
+
+    expected_result = params["expected_values"]
+
+    for res, exp in zip(result, expected_result):
+        assert res == exp

@@ -172,13 +172,13 @@ class SparkDataFrameValueType(DataValueType):
                         column_type=str(col.dataType),
                         records_count=total_count,
                         null_count=total_count - int(col_stats["count"]),
-                        min_value=float(col_stats["min"]),
-                        max_value=float(col_stats["max"]),
-                        std_value=float(col_stats["stddev"]),
-                        mean_value=float(col_stats["mean"]),
-                        quartile_1=float(col_stats["25%"]),
-                        quartile_2=float(col_stats["50%"]),
-                        quartile_3=float(col_stats["75%"]),
+                        min_value=col_stats["min"],
+                        max_value=col_stats["max"],
+                        std_value=col_stats["stddev"],
+                        mean_value=col_stats["mean"],
+                        quartile_1=col_stats["25%"],
+                        quartile_2=col_stats["50%"],
+                        quartile_3=col_stats["75%"],
                     )
                 )
 
