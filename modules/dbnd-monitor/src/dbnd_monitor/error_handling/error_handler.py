@@ -9,6 +9,7 @@ from typing import Any, Generator, Optional
 
 from dbnd._core.utils.timezone import utcnow
 from dbnd._vendor.cachetools import TTLCache, cached
+from dbnd_monitor.error_handling.component_error import ComponentError
 from dbnd_monitor.error_handling.errors import ClientConnectionError
 
 
@@ -71,16 +72,27 @@ def capture_component_exception_as_component_error(component, function_name):
 
     try:
         yield
-    except Exception:
-        # syncer_logger.exception(
-        #     "Error when running function %s from %s, integration_uid: %s, "
-        #     "tracking_source_uid: %s",
-        #     function_name,
-        #     component.name,
-        #     component.config.uid,
-        #     component.tracking_source_uid,
-        # )
-        pass
+        component.report_sync_metrics(is_success=True)
+    except Exception as exc:
+        syncer_logger.exception(
+            "Error when running function %s from %s, integration_uid: %s, external_id: %s,"
+            "tracking_source_uid: %s",
+            function_name,
+            component.name,
+            component.config.uid,
+            component.external_id,
+            str(component.config.tracking_source_uid),
+        )
+
+        if not should_ignore_error(exc):
+            component.reporting_service.report_component_error(
+                integration_uid=component.config.uid,
+                external_id=component.external_id,
+                component=component.name,
+                component_error=ComponentError.from_exception(exc),
+            )
+
+        component.report_sync_metrics(is_success=False)
 
 
 log_exception_cache = TTLCache(maxsize=5, ttl=timedelta(hours=1).total_seconds())

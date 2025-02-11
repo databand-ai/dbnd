@@ -115,3 +115,11 @@ class ReportingService:
         return self._api_client.api_request(
             endpoint="log_exception", method="POST", data=data
         )
+
+    def clean_component_errors(
+        self, integration_uid: UUID, external_id: str, component_name: str
+    ):
+        key = integration_uid, external_id, component_name
+        aggregator = self._error_aggregators.get(key)
+        if aggregator is not None:
+            aggregator.active_errors.clear()
