@@ -2,7 +2,7 @@
 import logging
 
 from collections import Counter
-from typing import Any, Collection, List, Tuple
+from typing import Any, Collection, List, Optional, Tuple
 
 import attr
 
@@ -106,9 +106,10 @@ class GenericSyncer(BaseComponent):
         reporting_service: ReportingService,
         adapter: MonitorAdapter,
         syncer_instance_id: str,
+        external_id: Optional[str] = None,
     ):
         super(GenericSyncer, self).__init__(
-            config, tracking_service, reporting_service, None
+            config, tracking_service, reporting_service, None, external_id
         )
         self.adapter = adapter
         self.syncer_instance_id = syncer_instance_id

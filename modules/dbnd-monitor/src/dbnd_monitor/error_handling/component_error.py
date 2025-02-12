@@ -45,6 +45,15 @@ class ComponentError:
             timestamp=utcnow(),
         )
 
+    @classmethod
+    def from_message(cls, msg: str):
+        if not isinstance(msg, str):
+            raise ValueError("Expected an exception message")
+
+        return cls(
+            exception_type="", exception_body="", traceback=msg, timestamp=utcnow()
+        )
+
     def dump(self):
         return attr.asdict(self, value_serializer=auxiliary_converter)
 
@@ -53,7 +62,7 @@ class ComponentError:
 class ReportErrorsDTO:
     tracking_source_uid: str = attr.ib()
     external_id: Optional[str] = attr.ib()
-    component: str = attr.ib()
+    component: Optional[str] = attr.ib()
     errors: List["ComponentError"] = attr.ib(factory=list)
     is_error: bool = attr.ib(default=True)
 

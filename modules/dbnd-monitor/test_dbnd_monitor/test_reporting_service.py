@@ -80,7 +80,7 @@ class Suite:
         comp_errors = component_errors()
         for comp_error in comp_errors:
             self.reporting_service.report_component_error(
-                self.integration_uid, self.external_id, self.component, comp_error
+                self.integration_uid, comp_error, self.external_id, self.component
             )  # reporting the ComponentError instance
 
         # in the payload ComponentErrors ordered from the latest to the earliest,

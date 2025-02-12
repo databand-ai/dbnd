@@ -44,10 +44,14 @@ class AirflowIntegration(BaseIntegration):
             self.reporting_service,
             self.adapter,
             str(self.config.tracking_source_uid),
+            self.config.source_name,
         )
 
         config_updater = AirflowRuntimeConfigUpdater(
-            self.config, self.tracking_service, self.reporting_service
+            self.config,
+            self.tracking_service,
+            self.reporting_service,
+            external_id=self.config.source_name,
         )
 
         return [state_syncer, config_updater]

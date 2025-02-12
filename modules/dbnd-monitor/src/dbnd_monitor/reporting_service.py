@@ -27,7 +27,8 @@ class ReportingService:
     ) -> None:
         self.monitor_type: str = monitor_type
         self._api_client: ApiClient = _get_api_client()
-        self._error_aggregators: DefaultDict[K, A] = defaultdict(aggregator)
+        self._aggregator_type = aggregator
+        self._error_aggregators: DefaultDict[K, A] = defaultdict(self._aggregator_type)
 
     def report_monitor_time_data(
         self, integration_uid: UUID, synced_new_data: bool = False
@@ -53,23 +54,32 @@ class ReportingService:
     def report_error(
         self, integration_uid: UUID, full_function_name: str, err_message: Optional[str]
     ):
-        res = self._error_aggregators[integration_uid].report(
-            full_function_name, err_message
-        )
-        self._report_error(integration_uid, res)
+        if self._aggregator_type == ErrorAggregator:
+            res = self._error_aggregators[integration_uid].report(
+                full_function_name, err_message
+            )
+            self._report_error(integration_uid, res)
+        elif err_message is not None:
+            self.report_component_error(
+                integration_uid=integration_uid,
+                component_error=ComponentError.from_message(err_message),
+            )
 
     def report_component_error(
         self,
         integration_uid: UUID,
-        external_id: str,
-        component: str,
         component_error: ComponentError,
+        external_id: Optional[str] = None,
+        component: Optional[str] = None,
     ):
         key = (integration_uid, external_id, component)
         self._error_aggregators[key].report_component_error(component_error)
 
     def report_errors_dto(
-        self, integration_uid: UUID, external_id: str, component: str
+        self,
+        integration_uid: UUID,
+        external_id: Optional[str] = None,
+        component: Optional[str] = None,
     ):
         key = (integration_uid, external_id, component)
         errors, should_update = self._error_aggregators[key].report()

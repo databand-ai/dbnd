@@ -2,7 +2,7 @@
 
 import logging
 
-from typing import ClassVar, Union
+from typing import ClassVar, Optional, Union
 from uuid import UUID
 
 from prometheus_client import Summary
@@ -36,11 +36,13 @@ class BaseComponent:
         tracking_service: BaseTrackingService,
         reporting_service: ReportingService,
         data_fetcher: object = None,
+        external_id: Optional[str] = None,
     ):
         self.config = config
         self.tracking_service = tracking_service
         self.reporting_service = reporting_service
         self.data_fetcher: object = data_fetcher
+        self.external_id = external_id
 
     @property
     def sleep_interval(self):
@@ -55,16 +57,20 @@ class BaseComponent:
             logging.root.setLevel(self.config.log_level)
 
     def sync_once(self):
-
         logger.info(
             "Starting sync_once on tracking source uid: %s, syncer: %s",
             self.server_id,
             self.identifier,
         )
 
-        with new_tracing_id(), self._time_sync_once(), self.error_handler(
-            self, "sync_once"
-        ), transaction_scope(f"{self.config.source_type}.{self.SYNCER_TYPE}.sync_once"):
+        with (
+            new_tracing_id(),
+            self._time_sync_once(),
+            self.error_handler(self, "sync_once"),
+            transaction_scope(
+                f"{self.config.source_type}.{self.SYNCER_TYPE}.sync_once"
+            ),
+        ):
             result = self._sync_once()
 
             logger.info(
@@ -107,10 +113,6 @@ class BaseComponent:
             return self.config.tracking_source_uid
 
         return self.tracking_service.tracking_source_uid
-
-    @property
-    def external_id(self) -> str:
-        return self.config.integration_config.get("external_id", "None")
 
     @property
     def error_handler(self):
