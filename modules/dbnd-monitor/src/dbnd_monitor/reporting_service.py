@@ -87,6 +87,9 @@ class ReportingService:
         if not should_update:
             return
 
+        self._report_errors_dto(integration_uid, errors, external_id, component)
+
+    def _report_errors_dto(self, integration_uid, errors, external_id, component):
         errors_dto = ReportErrorsDTO(
             tracking_source_uid=str(integration_uid),
             external_id=external_id,
@@ -101,9 +104,13 @@ class ReportingService:
         )
 
     def clean_error_message(self, integration_uid: UUID):
-        self._report_error(
-            integration_uid, ErrorAggregatorResult(None, should_update=True)
-        )
+        if self._aggregator_type == ErrorAggregator:
+            self._report_error(
+                integration_uid, ErrorAggregatorResult(None, should_update=True)
+            )
+        else:
+            self._error_aggregators.clear()
+            self._report_errors_dto(integration_uid, [])
 
     def _report_error(self, integration_uid, res: ErrorAggregatorResult):
         if not res.should_update:
