@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.examples;
@@ -128,7 +128,7 @@ public class PipelinesVerify {
 
         assertMetricInTask(dedupRecords, "dedupedData.stats", stats, "histograms");
 
-        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Output Data Schema: struct<value: string>");
+        assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "dataset operations submitted");
         assertLogsInTask(tasksAttemptsIds.get(dedupRecords.getUid()), "Dedup Records");
         assertLogsInTask(tasksAttemptsIds.get(createReport.getUid()), "Create Report");
         assertLogsInTask(tasksAttemptsIds.get(driverTask.getUid()), "Pipeline finished");
@@ -489,6 +489,10 @@ public class PipelinesVerify {
     }
 
     protected void assertLogsInTask(Integer taskId, String logContent) throws IOException {
+        this.assertLogsInTask(taskId, logContent, false);
+    }
+
+    protected void assertLogsInTask(Integer taskId, String logContent, boolean ignoreErrors) throws IOException {
         Response<List<TaskRunAttemptLog>> res = api.logs(taskId).execute();
         assertThat("Logs response should be successful", res.isSuccessful(), equalTo(true));
 
@@ -497,8 +501,12 @@ public class PipelinesVerify {
         assertThat("Logs shouldn't be empty", log.isEmpty(), equalTo(false));
 
         TaskRunAttemptLog logBody = log.get(0);
+        String logString = logBody.getLogBody();
 
-        assertThat("Log body should have actual content", logBody.getLogBody(), Matchers.containsString(logContent));
+        if(!ignoreErrors) {
+            assertThat("There should be no errors in the log", logString, Matchers.not(Matchers.containsStringIgnoringCase("error")));
+        }
+        assertThat("Log body should have actual content", logString, Matchers.containsString(logContent));
     }
 
     protected void assertUpstreams(TaskRun upstream, TaskRun downstream, TaskFullGraph graph) {

@@ -11,7 +11,12 @@
  import ai.databand.schema.Pair;
  import ai.databand.schema.TaskFullGraph;
  import ai.databand.schema.Tasks;
- import org.junit.jupiter.api.Test;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
  import java.io.IOException;
  import java.util.List;
@@ -22,6 +27,16 @@
   * if there is some reads inside the write plan.
   */
  public class TpchReadsWritesTest {
+
+    @BeforeAll
+    static void setup() {
+        if(!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+            BasicConfigurator.configure();
+        }
+        Logger.getLogger("ai.databand").setLevel(Level.DEBUG);
+        Logger.getLogger("org.apache").setLevel(Level.WARN);
+        Logger.getLogger("org.spark_project").setLevel(Level.WARN);
+    }
 
      @Test
      public void testTpcReadsWrites() throws IOException {

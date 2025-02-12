@@ -1,5 +1,5 @@
 /*
- * © Copyright Databand.ai, an IBM Company 2022
+ * © Copyright Databand.ai, an IBM Company 2022-2024
  */
 
 package ai.databand.examples;
@@ -10,7 +10,12 @@ import ai.databand.schema.Pair;
 import ai.databand.schema.TaskFullGraph;
 import ai.databand.schema.TaskRun;
 import ai.databand.schema.Tasks;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -21,6 +26,14 @@ import java.util.stream.Collectors;
  * The purpose of this test is to make sure static methods are instrumented correctly.
  */
 public class FailedPipelineTest {
+
+    @BeforeAll
+    static void setup() {
+        if(!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+            BasicConfigurator.configure();
+        }
+        Logger.getLogger("ai.databand").setLevel(Level.DEBUG);
+    }
 
     private static class BadPipeline {
 
@@ -67,7 +80,8 @@ public class FailedPipelineTest {
 
         pipelinesVerify.assertLogsInTask(
             tasksAttemptsIds.get(executeBad.getUid()),
-            "java.lang.RuntimeException: Unable to complete the pipeline"
+            "java.lang.RuntimeException: Unable to complete the pipeline",
+            true
         );
 
         pipelinesVerify.assertTaskExists("successTask", tasks, "success");
@@ -83,7 +97,8 @@ public class FailedPipelineTest {
 
         pipelinesVerify.assertLogsInTask(
             tasksAttemptsIds.get(failureTask.getUid()),
-            "java.lang.RuntimeException: Unable to complete the task"
+            "java.lang.RuntimeException: Unable to complete the task",
+            true
         );
     }
 

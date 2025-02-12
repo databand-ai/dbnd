@@ -15,9 +15,14 @@ import ai.databand.schema.TaskFullGraph;
 import ai.databand.schema.TaskRun;
 import ai.databand.schema.Tasks;
 import ai.databand.spark.DbndSparkQueryExecutionListener;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -30,6 +35,16 @@ import java.util.Map;
  * Schema should be extracted from the relation.
  */
 public class ListenerSchemaTest {
+
+    @BeforeAll
+    static void setup() {
+        if(!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+            BasicConfigurator.configure();
+        }
+        Logger.getLogger("ai.databand").setLevel(Level.INFO);
+        Logger.getLogger("org.apache").setLevel(Level.WARN);
+        Logger.getLogger("org.spark_project").setLevel(Level.WARN);
+    }
 
     private static class TestSchemaPipeline {
 
