@@ -30,13 +30,23 @@ class ReportingService:
         self._aggregator_type = aggregator
         self._error_aggregators: DefaultDict[K, A] = defaultdict(self._aggregator_type)
 
+    @property
+    def is_component_error_supported(self) -> bool:
+        return self._aggregator_type == ComponentErrorAggregator
+
     def report_monitor_time_data(
-        self, integration_uid: UUID, synced_new_data: bool = False
+        self,
+        integration_uid: UUID,
+        synced_new_data: bool = False,
+        external_id: Optional[str] = None,
     ):
         current_time = utcnow().isoformat()
         data = {"last_sync_time": current_time}
         if synced_new_data:
             data["last_update_time"] = current_time
+
+        if self.is_component_error_supported and external_id is not None:
+            data["external_id"] = external_id
 
         self._api_client.api_request(
             endpoint=f"integrations/{integration_uid}/monitor_time_data?type={self.monitor_type}",
@@ -54,12 +64,12 @@ class ReportingService:
     def report_error(
         self, integration_uid: UUID, full_function_name: str, err_message: Optional[str]
     ):
-        if self._aggregator_type == ErrorAggregator:
+        if not self.is_component_error_supported:
             res = self._error_aggregators[integration_uid].report(
                 full_function_name, err_message
             )
             self._report_error(integration_uid, res)
-        elif err_message is not None:
+        elif self.is_component_error_supported and err_message is not None:
             self.report_component_error(
                 integration_uid=integration_uid,
                 component_error=ComponentError.from_message(err_message),

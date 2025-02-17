@@ -113,7 +113,9 @@ class MockReportingService(ReportingService):
         self.last_sync_time = None
         self.last_update_time = None
 
-    def report_monitor_time_data(self, integration_uid, synced_new_data=False):
+    def report_monitor_time_data(
+        self, integration_uid, synced_new_data=False, external_id=None
+    ):
         current_time = utcnow()
         self.last_sync_time = current_time
         if synced_new_data:

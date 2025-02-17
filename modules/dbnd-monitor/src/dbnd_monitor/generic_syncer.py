@@ -131,7 +131,7 @@ class GenericSyncer(BaseComponent):
         logger.info("Finished collecting and processing new assets")
 
         self.reporting_service.report_monitor_time_data(
-            self.config.uid, synced_new_data=False
+            self.config.uid, synced_new_data=False, external_id=self.external_id
         )
 
     def _get_active_assets(self) -> Assets:
@@ -237,7 +237,7 @@ class GenericSyncer(BaseComponent):
                     get_data_dimension_str(assets_data.data),
                 )
                 self.reporting_service.report_monitor_time_data(
-                    self.config.uid, synced_new_data=True
+                    self.config.uid, synced_new_data=True, external_id=self.external_id
                 )
             else:
                 logger.info("No assets to save - _process_assets_batch")
