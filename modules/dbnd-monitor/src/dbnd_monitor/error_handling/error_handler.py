@@ -83,14 +83,16 @@ def capture_component_exception_as_component_error(component, function_name):
             component.external_id,
             str(component.config.tracking_source_uid),
         )
-
+        component_error = ComponentError.from_exception(exc)
         if not should_ignore_error(exc):
-            component.reporting_service.report_component_error(
-                integration_uid=component.config.uid,
-                external_id=component.external_id,
-                component=component.name,
-                component_error=ComponentError.from_exception(exc),
-            )
+            _log_exception_to_server(str(component_error), component.reporting_service)
+
+        component.reporting_service.report_component_error(
+            integration_uid=component.config.uid,
+            external_id=component.external_id,
+            component=component.name,
+            component_error=component_error,
+        )
 
         component.report_sync_metrics(is_success=False)
 
