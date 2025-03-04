@@ -8,8 +8,7 @@ from dbnd_monitor.generic_syncer import (
     assets_to_str,
     get_data_dimension_str,
 )
-
-from .conftest import MockTrackingService
+from test_dbnd_monitor.plugins.mock_tracking_service import MockTrackingService
 
 
 class TestGenericSyncer:

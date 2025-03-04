@@ -54,7 +54,7 @@ class TestCaptureComponentException:
         ):
             yield syncer
 
-    @patch("dbnd_monitor.error_handler._log_exception_to_server")
+    @patch("dbnd_monitor.error_handling.error_handler._log_exception_to_server")
     def test_calling__log_exception_to_server(
         self, mock__log_exception_to_server, runtime_syncer
     ):
@@ -67,7 +67,7 @@ class TestCaptureComponentException:
 
         mock__log_exception_to_server.assert_called_once()
 
-    @patch("dbnd_monitor.error_handler._log_exception_to_server")
+    @patch("dbnd_monitor.error_handling.error_handler._log_exception_to_server")
     def test_not_calling_log_exception_to_server(
         self, mock__log_exception_to_server, runtime_syncer
     ):

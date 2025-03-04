@@ -13,8 +13,10 @@ from dbnd_monitor.integration_metrics_reporter import (
     integration_assets_in_state,
     integration_total_assets_size,
 )
+from test_dbnd_monitor.plugins.mock_adapter import MockAdapter
+from test_dbnd_monitor.plugins.mock_tracking_service import MockTrackingService
 
-from .conftest import INTEGRATION_UID, MockAdapter, MockTrackingService
+from .conftest import INTEGRATION_UID
 
 
 def get_metric_value(

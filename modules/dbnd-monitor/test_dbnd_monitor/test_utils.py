@@ -6,7 +6,7 @@ import pytest
 
 from mock import patch
 
-from dbnd_monitor.utils import TrackingServiceConfig
+from dbnd_monitor.utils.api_client import TrackingServiceConfig
 
 
 @pytest.fixture
