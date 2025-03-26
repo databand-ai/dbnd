@@ -522,7 +522,7 @@ spython==0.2.1
 sqlalchemy-bigquery==1.4.3
 sqlalchemy-drill==1.1.2
 sqlalchemy-redshift==0.8.9
-sqlparse==0.4.2
+sqlparse==0.4.4
 sshtunnel==0.4.0
 stack-data==0.2.0
 starkbank-ecdsa==2.0.3
