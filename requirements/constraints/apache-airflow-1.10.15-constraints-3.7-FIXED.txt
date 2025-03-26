@@ -100,7 +100,7 @@ configparser==3.5.3
 croniter==0.3.36
 
 # M1 support cryptography==3.2.1
-cryptography==39.0.0
+cryptography==41.0.0
 
 cx-Oracle==8.0.1
 datadog==0.39.0
