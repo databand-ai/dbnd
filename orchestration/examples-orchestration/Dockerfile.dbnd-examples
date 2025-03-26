@@ -96,7 +96,7 @@ COPY ./dbnd-core/dist-python/databand-*.whl \
     ./dbnd-core/dist-python/dbnd_gcp-*.whl \
     ./dbnd-core/dist-python/dbnd_docker-*.whl \
     /dist-python/
-ENV DBND_VERSION=1.0.27.16
+ENV DBND_VERSION=1.0.27.17
 RUN pip install databand[aws,gcp,docker,mlflow]==$DBND_VERSION --find-links /dist-python/
 
 
