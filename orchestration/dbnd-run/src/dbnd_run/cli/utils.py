@@ -81,8 +81,7 @@ class PrefixStore(object):
 
         try:
             cache_dir = os.path.dirname(self._path)
-            if not os.path.exists(cache_dir):
-                os.makedirs(cache_dir)
+            os.makedirs(cache_dir, exist_ok=True)
             json.dump(cache, open(self._path, "w"))
         except Exception as ex:
             logging.error(

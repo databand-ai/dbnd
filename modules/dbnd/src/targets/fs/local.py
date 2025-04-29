@@ -52,7 +52,7 @@ class LocalFileSystem(FileSystem):
 
         if parents:
             try:
-                os.makedirs(path)
+                os.makedirs(path, exist_ok=True)
             except OSError as err:
                 # somebody already created the path
                 if err.errno != errno.EEXIST:

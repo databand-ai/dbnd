@@ -29,7 +29,7 @@ def pandas_data_frame():
 @fixture
 def s1_root_dir(tmpdir):
     dir_path = str(tmpdir.join("dir.csv/"))
-    os.makedirs(dir_path)
+    os.makedirs(dir_path, exists_ok=True)
     return dir_path + "/"
 
 

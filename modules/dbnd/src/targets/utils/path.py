@@ -32,7 +32,7 @@ def safe_mkdirs(path, mode):
 
     o_umask = os.umask(0)
     try:
-        os.makedirs(path, mode)
+        os.makedirs(path, mode, exist_ok=True)
     except OSError as e:
         if e.errno != errno.EEXIST:
             logger.warning("Could not create dir: %s. %s", path, e)

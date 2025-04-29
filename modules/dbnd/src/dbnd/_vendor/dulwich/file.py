@@ -30,7 +30,7 @@ import tempfile
 def ensure_dir_exists(dirname):
     """Ensure a directory exists, creating if necessary."""
     try:
-        os.makedirs(dirname)
+        os.makedirs(dirname, exist_ok=True)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise

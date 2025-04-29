@@ -172,9 +172,9 @@ class FileSystem(object):
 
         # parent_location can be empty string if `location` has no dirname, e.g -
         # "some_file_name.txt" or "some_whole_dir"
-        if parent_location and not os.path.exists(parent_location):
+        if parent_location:
             try:
-                os.makedirs(parent_location)
+                os.makedirs(parent_location, exist_ok=True)
             except OSError as err:
                 # somebody already created the path
                 if err.errno != errno.EEXIST:

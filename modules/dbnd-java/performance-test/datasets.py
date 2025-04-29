@@ -15,8 +15,7 @@ DATASETS = ["backblaze-data-01gb", "backblaze-data-04gb", "backblaze-data-10gb"]
 
 
 def download_data():
-    if not os.path.exists(data_working_dir):
-        os.makedirs(data_working_dir)
+    os.makedirs(data_working_dir, exist_ok=True)
 
     for dataset in DATASETS:
         if not exists(os.path.join(data_working_dir, dataset)):

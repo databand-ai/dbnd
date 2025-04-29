@@ -38,8 +38,7 @@ def setup_scheduled_dags(sub_dir=None, unlink_first=True):
     if not os.path.exists(target_path):
         try:
             logger.info("Linking %s to %s.", source_path, target_path)
-            if not os.path.exists(sub_dir):
-                os.makedirs(sub_dir)
+            os.makedirs(sub_dir, exist_ok=True)
             os.symlink(source_path, target_path)
         except Exception:
             logger.error(

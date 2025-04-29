@@ -573,8 +573,7 @@ def build_index_from_tree(
             continue
         full_path = _tree_to_fs_path(root_path, entry.path)
 
-        if not os.path.exists(os.path.dirname(full_path)):
-            os.makedirs(os.path.dirname(full_path))
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
         # TODO(jelmer): Merge new index into working tree
         if S_ISGITLINK(entry.mode):

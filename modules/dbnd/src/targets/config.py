@@ -56,8 +56,7 @@ def get_local_tempfile(*path):
     )
     base_dir = os.path.dirname(path)
     try:
-        if not os.path.exists(base_dir):
-            os.makedirs(base_dir)
+        os.makedirs(base_dir, exist_ok=True)
     except Exception as ex:
         logger.info("Failed to create temp dir %s: %s", base_dir, ex)
     return path

@@ -43,8 +43,7 @@ def task_with_mlflow(check_time: datetime.datetime = datetime.datetime.now()) ->
     log_metric("foo2", random() + 1)
 
     # artifacts
-    if not os.path.exists("outputs"):
-        os.makedirs("outputs")
+    os.makedirs("outputs", exist_ok=True)
     with open("outputs/test1.txt", "w") as f1, open("outputs/test2.txt", "w") as f2:
         f1.write("hello")
         f2.write("world!")

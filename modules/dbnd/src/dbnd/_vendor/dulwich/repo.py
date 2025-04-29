@@ -872,7 +872,7 @@ class Repo(BaseRepo):
             self.controldir(), "logs", ref.decode(sys.getfilesystemencoding())
         )
         try:
-            os.makedirs(os.path.dirname(path))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise

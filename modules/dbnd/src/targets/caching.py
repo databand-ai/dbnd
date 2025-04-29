@@ -233,6 +233,5 @@ class DbndLocalFileMetadataRegistry(object):
 def get_or_create_folder_in_dir(folder_name, dir_):
     # type: (str, Task) -> str
     folder_path = os.path.join(dir_, folder_name)
-    if not os.path.isdir(folder_path):
-        os.makedirs(folder_path)
+    os.makedirs(folder_path, exist_ok=True)
     return folder_path

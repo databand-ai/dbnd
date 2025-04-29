@@ -41,7 +41,7 @@ class TestDirTarget(TargetTestBase):
 
     def test_folder_flag(self, tmpdir):
         dir_path = str(tmpdir.join("dir.csv/"))
-        os.makedirs(dir_path)
+        os.makedirs(dir_path, exist_ok=True)
         dir_path = dir_path + os.path.sep
 
         t = target(dir_path)
@@ -73,7 +73,7 @@ class TestDirTarget(TargetTestBase):
     def test_meta_files(self, tmpdir):
         meta_files = [".a1", "a2", "a3"]
         dir_path = str(tmpdir.join("dir.csv/"))
-        os.makedirs(dir_path)
+        os.makedirs(dir_path, exist_ok=True)
         dir_path = dir_path + os.path.sep
 
         t_no_meta_files = target(dir_path, config=folder.without_flag())
