@@ -15,6 +15,7 @@ from dbnd_airflow.tracking.dbnd_spark_conf import (
     track_dataproc_submit_job_operator,
     track_ecs_operator,
     track_emr_add_steps_operator,
+    track_kubernetes_pod_operator,
     track_spark_submit_operator,
 )
 
@@ -87,6 +88,14 @@ _EXECUTE_TRACKING = OrderedDict(
         ("airflow.providers.amazon.aws.operators.ecs.ECSOperator", track_ecs_operator),
         # Airflow 2.x - with lowercase Ecs (not ECS)
         ("airflow.providers.amazon.aws.operators.ecs.EcsOperator", track_ecs_operator),
+        (
+            "airflow.providers.cncf.kubernetes.operators.kubernetes_pod.KubernetesPodOperator",
+            track_kubernetes_pod_operator,
+        ),
+        (
+            "airflow.contrib.operators.kubernetes_pod_operator.KubernetesPodOperator",
+            track_kubernetes_pod_operator,
+        ),
     ]
 )
 

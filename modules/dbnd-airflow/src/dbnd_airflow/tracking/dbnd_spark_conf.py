@@ -34,6 +34,9 @@ if typing.TYPE_CHECKING:
     )
     from airflow.contrib.operators.ecs_operator import ECSOperator
     from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+    from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import (
+        KubernetesPodOperator,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +448,22 @@ def track_custom_spark_submit_operator(operator, tracking_info):
             if operator.spark_args is None:
                 operator.spark_args = []
             operator.spark_args.extend(custom_cli)
+
+    except Exception as ex:
+        dbnd_log_exception("Failed to wrap '%s'. Got an error '%s'", operator, ex)
+
+    yield
+
+
+@contextmanager
+def track_kubernetes_pod_operator(operator, tracking_info):
+    # type: (KubernetesPodOperator, Dict[str,str])-> None
+    try:
+        tracking_env_vars = [
+            {"name": key, "value": value} for key, value in six.iteritems(tracking_info)
+        ]
+
+        operator.env_vars.extend(tracking_env_vars)
 
     except Exception as ex:
         dbnd_log_exception("Failed to wrap '%s'. Got an error '%s'", operator, ex)
