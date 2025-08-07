@@ -74,7 +74,8 @@ class DbFetcher:
                 logger.info("Adding 'core' section to airflow config.")
                 conf.add_section("core")
 
-            conf.set("core", "sql_alchemy_conn", value=self.sql_conn_string)
+            escaped_conn_str = self.sql_conn_string.replace("%", "%%")
+            conf.set("core", "sql_alchemy_conn", value=escaped_conn_str)
             self._engine = create_engine(self.sql_conn_string)
 
             self._session = sessionmaker(bind=self._engine)

@@ -92,6 +92,20 @@ def airflow_adapter(airflow_integration_config, mock_data_fetcher) -> AirflowAda
         return AirflowAdapter(airflow_integration_config)
 
 
+def test_airflow_config_with_interpolated_connection_string():
+    from airflow.configuration import conf
+
+    conn_str = f"postgresql://xxx:xxxxx@localhost:5432/airflowopr?options=-csearch_path%3Dairflow"  # pragma: allowlist secret
+
+    with pytest.raises(ValueError) as excinfo:
+        conf.set("core", "sql_alchemy_conn", value=conn_str)
+
+    assert "invalid interpolation syntax" in str(excinfo.value)
+
+    escaped_str = conn_str.replace("%", "%%")
+    conf.set("core", "sql_alchemy_conn", value=escaped_str)
+
+
 def test_init_cursor(airflow_adapter, mock_data_fetcher, mock_dag_runs):
     no_dag_runs_cursor = airflow_adapter.init_cursor()
     assert no_dag_runs_cursor is None
