@@ -23,11 +23,10 @@ dbnd_vendors_list = [
     "croniter>=0.3.30,<0.4",
     "psutil>=4.2.0,<5.7.0",  # extracted use to vendorized_psutil.py
 ]
-
 setuptools.setup(
     name="dbnd",
     package_dir={"": "src"},
-    python_requires=">=3.6, <3.13",
+    python_requires=">=3.6, <3.14",
     install_requires=[
         "tzlocal",
         "six",
@@ -51,10 +50,11 @@ setuptools.setup(
         ':sys_platform=="win32"': ["colorama"],
         "tests": [
             "coverage",
-            "tox==3.12.1",
-            'pytest==4.5.0;python_version<"3.10"',  # 4.6.0 requires pluggy 0.12
+            'tox==3.12.1;python_version<"3.8"',
+            'tox==4.28.4;python_version>="3.8"',
+            'pytest==4.5.0;python_version<"3.8"',
+            'pytest==6.2.5;python_version>="3.8"',
             'pytest-cov==2.9.0;python_version<"3.10"',
-            'pytest==6.2.5;python_version>="3.10"',
             'pytest-cov==3.0.0;python_version>="3.10"',
             "mock",
             "wheel",  # for fat_wheel tests
@@ -62,16 +62,20 @@ setuptools.setup(
         "test-pandas": [
             "openpyxl==2.6.4",
             'numpy<1.23;python_version<"3.12"',
-            'numpy<2;python_version>="3.12"',
+            'numpy<2;python_version>="3.12" and python_version < "3.13"',
+            'numpy>2.1.0;python_version>"3.12"',
             'pandas<2.0.0,>=0.17.1;python_version<"3.12"',  # airflow supports only this version
             'pandas>2;python_version>="3.12"',
             'scikit-learn==0.23.2;python_version<"3.8"',
             'scikit-learn==1.2.0;python_version >= "3.8" and python_version < "3.12"',
-            'scikit-learn==1.5.0;python_version>="3.12"',
+            'scikit-learn==1.5.0;python_version>="3.12"  and python_version < "3.13" ',
+            'scikit-learn==1.6.0;python_version>="3.13"',
             'matplotlib==3.3.0;python_version<"3.8"',
-            'matplotlib==3.6.2;python_version>="3.8"',
+            'matplotlib==3.6.2;python_version>="3.8" and python_version < "3.12" ',
+            'matplotlib==3.10.5;python_version>="3.13"',
             'tables==3.7.0;python_version<"3.12"',
-            'tables==3.9.2;python_version>="3.12"',
+            'tables==3.9.2;python_version>="3.12" and python_version < "3.13"',
+            'tables==3.10.2;python_version>="3.13"',
             "feather-format",
             "pyarrow",
         ],

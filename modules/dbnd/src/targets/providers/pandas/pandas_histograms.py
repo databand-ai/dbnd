@@ -119,8 +119,8 @@ class PandasHistograms(object):
                 column_name=column_name,
                 column_type=column_type,
                 records_count=records_count,
-                null_count=null_count,
-                distinct_count=distinct_count,
+                null_count=_int(null_count),
+                distinct_count=_int(distinct_count),
                 most_freq_value=stats[column_name].get("top"),
                 most_freq_value_count=stats[column_name].get("freq"),
                 unique_count=stats[column_name].get("unique"),
@@ -190,3 +190,18 @@ class PandasHistograms(object):
             logger.exception(
                 "log_histogram: Something went wrong for column '%s'", df_column.name
             )
+
+def _int(value):
+    if value is None:
+        return value
+    if isinstance(value, int):
+        return value
+    try:
+        import numpy
+    except ImportError:
+        return value
+
+    if isinstance(value, numpy.int64):
+        return value.item()
+
+    return value

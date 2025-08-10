@@ -9,6 +9,10 @@ import pytest
 from pytest import fixture
 
 
+def _makedirs(dir_path):
+    os.makedirs(dir_path, exist_ok=True)
+
+
 @fixture
 def simple_df():
     import pandas as pd
@@ -29,7 +33,7 @@ def pandas_data_frame():
 @fixture
 def s1_root_dir(tmpdir):
     dir_path = str(tmpdir.join("dir.csv/"))
-    os.makedirs(dir_path, exists_ok=True)
+    _makedirs(dir_path)
     return dir_path + "/"
 
 
