@@ -95,7 +95,7 @@ def airflow_adapter(airflow_integration_config, mock_data_fetcher) -> AirflowAda
 def test_airflow_config_with_interpolated_connection_string():
     from airflow.configuration import conf
 
-    conn_str = f"postgresql://xxx:xxxxx@localhost:5432/airflowopr?options=-csearch_path%3Dairflow"  # pragma: allowlist secret
+    conn_str = "postgresql://xxx:xxxxx@localhost:5432/airflowopr?options=-csearch_path%3Dairflow"  # pragma: allowlist secret
 
     with pytest.raises(ValueError) as excinfo:
         conf.set("core", "sql_alchemy_conn", value=conn_str)

@@ -191,6 +191,7 @@ class PandasHistograms(object):
                 "log_histogram: Something went wrong for column '%s'", df_column.name
             )
 
+
 def _int(value):
     if value is None:
         return value

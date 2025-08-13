@@ -573,7 +573,7 @@ def test_extract_from_sql(sqlquery, expected):
         ),
         (
             "mssql://scott/ms_2008",
-            '"D:\directory\YourFileName.csv"',
+            '"D:\\directory\\YourFileName.csv"',
             ("D:\\directory\\YourFileName.csv", "directory\\YourFileName.csv"),
         ),
     ],
