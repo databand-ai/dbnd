@@ -147,9 +147,27 @@ dist-python:  ## Build all python modules.
 	@echo "\n\nCheck if dbnd.requirements.txt in repo is updated"
 	@# add newline at the end of dist-python/dbnd.requirements.txt to match
 	@echo "" >> dist-python/dbnd.requirements.txt
-	@cmp -s dist-python/dbnd.requirements.txt modules/dbnd/dbnd.requirements.txt && \
-		echo "dbnd.requirements.txt is expected" || \
-		(echo "Error: dbnd.requirements.txt files doesn't match" && exit 1);
+	@# sort both files
+	@sort modules/dbnd/dbnd.requirements.txt > dist-python/requirements-expected.txt
+	@sort dist-python/dbnd.requirements.txt > dist-python/requirements-got.txt
+	@diff -q dist-python/requirements-expected.txt dist-python/requirements-got.txt > /dev/null || \
+		(echo "Error: dbnd.requirements.txt files don't match" && \
+		echo "===================================" && \
+		echo "modules/dbnd/dbnd.requirements.txt:" && \
+		echo "-----------------------------------" && \
+		cat modules/dbnd/dbnd.requirements.txt && \
+		echo "===================================" && \
+		echo "dist-python/dbnd.requirements.txt:" && \
+		echo "-----------------------------------" && \
+		cat dist-python/dbnd.requirements.txt && \
+		echo "===================================" && \
+		echo "DIFF:" && \
+		echo "-----------------------------------" && \
+		diff dist-python/requirements-expected.txt dist-python/requirements-got.txt && \
+		echo "===================================" && \
+		echo "exiting now" && \
+		exit 1);
+	@rm dist-python/requirements-expected.txt dist-python/requirements-got.txt
 
 	# create databand package
 	python setup.py sdist bdist_wheel
