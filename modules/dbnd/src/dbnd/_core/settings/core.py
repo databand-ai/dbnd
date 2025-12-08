@@ -105,6 +105,10 @@ class CoreConfig(Config):
         description="Set the amount of sleep time in between retries of the API client.",
         default=0.1,
     )[float]
+    api_request_timeout_sec = parameter(
+        description="Set the number of seconds to wait for an API request timeout.",
+        default=120,
+    )[int]
 
     #### TO DEPRECATE ## (DONT USE)
     # deprecate in favor of databand_access_token
@@ -173,4 +177,5 @@ class CoreConfig(Config):
             default_retry_sleep=self.client_retry_sleep,
             extra_default_headers=self.extra_default_headers,
             ignore_ssl_errors=self.ignore_ssl_errors,
+            default_request_timeout=self.api_request_timeout_sec,
         )
