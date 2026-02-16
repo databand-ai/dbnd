@@ -144,7 +144,14 @@ def test_pandas_v0_histograms():
     ]
     assert histograms["str_column"][0] == [22, 21, 20, 20, 17]
     # "str_column" calculation is unstable
-    assert set(histograms["str_column"][1]) == {"foo", None, "", "baz", "bar"}
+    # Pandas 3.0.0 uses nan instead of None for null values in histograms
+    import math
+    histogram_values = histograms["str_column"][1]
+    expected_strings = {"foo", "", "baz", "bar"}
+    actual_strings = {v for v in histogram_values if isinstance(v, str)}
+    has_null = any(v is None or (isinstance(v, float) and math.isnan(v)) for v in histogram_values)
+    assert actual_strings == expected_strings
+    assert has_null
     # fmt: on
 
 

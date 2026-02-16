@@ -10,10 +10,14 @@ def register_value_type_pandas():
 
     value_type_pandas_df = register_value_type(
         ValueTypeLoader(
-            "pandas.core.frame.DataFrame",
+            "pandas.DataFrame",  # Changed from pandas.core.frame.DataFrame for pandas 3.0.0 compatibility
             "targets.providers.pandas.pandas_values.DataFrameValueType",
             "dbnd",
-            type_str_extras=["pd.DataFrame", "DataFrame"],
+            type_str_extras=[
+                "pd.DataFrame",
+                "DataFrame",
+                "pandas.core.frame.DataFrame",
+            ],  # Keep old path for backwards compatibility
         )
     )
 
@@ -54,10 +58,13 @@ def register_value_type_pandas():
 
     value_type_pandas_series = register_value_type(
         ValueTypeLoader(
-            "pandas.core.series.Series",
+            "pandas.Series",  # Changed from pandas.core.series.Series for pandas 3.0.0 compatibility
             "targets.providers.pandas.pandas_values.PandasSeriesValueType",
             "dbnd",
-            type_str_extras=["pd.Series"],
+            type_str_extras=[
+                "pd.Series",
+                "pandas.core.series.Series",
+            ],  # Keep old path for backwards compatibility
         )
     )
     value_type_pandas_series.register_marshallers(
@@ -89,13 +96,14 @@ def register_value_type_pandas():
     # orchestration only
     value_type_dict_df = register_value_type(
         ValueTypeLoader(
-            "typing.Dict[str, pandas.core.frame.DataFrame]",
+            "typing.Dict[str, pandas.DataFrame]",  # Changed from pandas.core.frame.DataFrame for pandas 3.0.0 compatibility
             "targets.providers.pandas.pandas_values.DataFramesDictValueType",
             "dbnd",
             type_str_extras=[
                 "DataFrameDict",
                 "Dict[str,pd.DataFrame]",
                 "Dict[str,DataFrame]",
+                "typing.Dict[str, pandas.core.frame.DataFrame]",  # Keep old path for backwards compatibility
             ],
         )
     )

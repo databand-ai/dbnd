@@ -37,7 +37,8 @@ class TestTypeHandlingParseStrAnnotation(object):
         actual = r.get_value_type_of_type_str("List[pd.DataFrame]")
         assert isinstance(actual, _StructureValueType)
         assert isinstance(actual.sub_value_type, ValueTypeLoader)
-        assert actual.sub_value_type.type_str == "pandas.core.frame.DataFrame"
+        # Updated for pandas 3.0.0 compatibility - module path changed from pandas.core.frame.DataFrame to pandas.DataFrame
+        assert actual.sub_value_type.type_str == "pandas.DataFrame"
 
     def test_dict_nested_parse_int(self):
         r = get_types_registry()

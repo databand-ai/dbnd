@@ -107,7 +107,14 @@ class BaseHistogramTests(object):
 
         histogram = value_meta.histograms["test_column_0"]
         assert histogram[0] == [30, 20, 15, 5]
-        assert histogram[1] == ["Ola Mundo!", "Shalom Olam!", "Hello World!", None]
+        # Pandas 3.0.0 uses nan instead of None for null values in histograms
+        import math
+
+        expected_values = ["Ola Mundo!", "Shalom Olam!", "Hello World!"]
+        assert histogram[1][:3] == expected_values
+        assert histogram[1][3] is None or (
+            isinstance(histogram[1][3], float) and math.isnan(histogram[1][3])
+        )
 
         col_stats = value_meta._get_column_stats_by_col_name("test_column_0")
         assert col_stats.records_count == 70
@@ -153,5 +160,14 @@ class BaseHistogramTests(object):
         str_histogram_1 = value_meta.histograms["test_column_2"]
         str_histogram_2 = value_meta.histograms["test_column_3"]
         assert str_histogram_1[0] == [4, 3, 2, 1]
-        assert str_histogram_1[1] == ["1", "5", None, "3"]
+        # Pandas 3.0.0 uses nan instead of None for null values in histograms
+        import math
+
+        expected_values = ["1", "5"]
+        assert str_histogram_1[1][:2] == expected_values
+        assert str_histogram_1[1][2] is None or (
+            isinstance(str_histogram_1[1][2], float)
+            and math.isnan(str_histogram_1[1][2])
+        )
+        assert str_histogram_1[1][3] == "3"
         assert str_histogram_1 == str_histogram_2
