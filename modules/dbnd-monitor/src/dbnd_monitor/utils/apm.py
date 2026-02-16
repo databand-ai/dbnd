@@ -13,6 +13,7 @@ instana_available = False
 try:
     if os.environ.get("INSTANA_ENABLED", "false").lower() == "true":
         from instana.singletons import tracer
+        from opentelemetry import trace
 
         instana_available = True
 except ImportError:
@@ -45,8 +46,9 @@ def transaction_scope(name: str):
         return
 
     try:
-        tags = {"span.kind": "entry"} if not tracer.active_span else {}
-        active_span = tracer.start_active_span(name, tags=tags)
+        current_span = trace.get_current_span()
+        tags = {"span.kind": "entry"} if not current_span.is_recording() else {}
+        active_span = tracer.start_as_current_span(name, attributes=tags)
     except Exception:
         logger.warning("Error while starting instana active_span", exc_info=True)
         active_span = None

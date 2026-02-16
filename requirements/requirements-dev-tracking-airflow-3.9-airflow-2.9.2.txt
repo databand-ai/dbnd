@@ -609,7 +609,7 @@ prometheus-client==0.20.0
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.9.2-constraints-3.9-FIXED.txt
     #   dbnd-airflow-monitor
-protobuf==4.25.3
+protobuf==6.33.5
     # via
     #   -c requirements/../requirements/constraints/apache-airflow-2.9.2-constraints-3.9-FIXED.txt
     #   googleapis-common-protos

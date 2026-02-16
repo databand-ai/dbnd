@@ -409,7 +409,7 @@ prison==0.2.1
 prometheus-client==0.13.1
 prompt-toolkit==3.0.28
 proto-plus==1.18.1
-protobuf==3.19.4
+protobuf==6.33.5
 psutil==5.9.0
 psycopg2-binary==2.9.3
 ptyprocess==0.7.0
@@ -468,7 +468,7 @@ pywinrm==0.4.2
 pyzmq==22.3.0
 qds-sdk==1.16.1
 readme-renderer==34.0
-redis==3.5.3
+redis==6.2.0
 redshift-connector==2.0.905
 requests-file==1.5.1
 requests-kerberos==0.14.0

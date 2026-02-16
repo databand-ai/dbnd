@@ -135,7 +135,7 @@ plyvel==1.5.1
 prison==0.2.1
 prometheus_client==0.22.0
 propcache==0.3.1
-protobuf==5.29.4
+protobuf==6.33.5
 psutil==7.0.0
 pure-sasl==0.6.2
 pyasn1==0.6.1

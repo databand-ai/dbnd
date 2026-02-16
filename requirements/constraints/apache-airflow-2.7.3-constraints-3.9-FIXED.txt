@@ -149,7 +149,7 @@ plyvel==1.5.0
 prison==0.2.1
 prometheus-client==0.18.0
 prompt-toolkit==3.0.39
-protobuf==4.24.4
+protobuf==6.33.5
 psutil==5.9.6
 pure-sasl==0.6.2
 pyarrow==14.0.0

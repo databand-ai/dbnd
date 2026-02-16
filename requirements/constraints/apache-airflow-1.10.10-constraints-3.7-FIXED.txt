@@ -228,7 +228,7 @@ pre-commit==2.2.0
 presto-python-client==0.7.0
 prison==0.1.2
 prompt-toolkit==3.0.4
-protobuf==3.11.3
+protobuf==6.33.5
 psutil==5.7.0
 psycopg2-binary==2.8.4
 ptyprocess==0.6.0
@@ -275,7 +275,7 @@ pytzdata==2019.3
 pywinrm==0.4.1
 pyzmq==19.0.0
 qds-sdk==1.15.0
-redis==3.4.1
+redis==6.2.0
 regex==2020.2.20
 requests-futures==0.9.4
 requests-kerberos==0.12.0
